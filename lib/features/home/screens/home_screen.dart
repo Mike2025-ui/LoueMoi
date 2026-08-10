@@ -191,6 +191,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       child: const Icon(Icons.tune, size: 20, color: AppColors.textPrimary),
                     ),
                   ),
+                  const SizedBox(width: AppSpacing.sm),
+                  InkWell(
+                    onTap: () => context.push(AppRoutes.propertyMap),
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceMuted,
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: const Icon(Icons.map_outlined, size: 20, color: AppColors.textPrimary),
+                    ),
+                  ),
                 ],
               ),
             ),

@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:latlong2/latlong.dart';
 import '../../../app/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/feedback.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/app_map_view.dart';
 import '../../../core/widgets/bottom_reservation_bar.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/property_image.dart';
@@ -297,6 +299,40 @@ class _AProposTab extends ConsumerWidget {
         PropertyDetailsTable(property: property),
         const SizedBox(height: AppSpacing.md),
         Text(property.description, style: AppTextStyles.body),
+        const SizedBox(height: AppSpacing.lg),
+        const SectionDividerTitle(title: 'Localisation'),
+        const SizedBox(height: AppSpacing.md),
+        if (property.latitude != null && property.longitude != null)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            child: SizedBox(
+              height: 180,
+              child: AppMapView(
+                center: LatLng(property.latitude!, property.longitude!),
+                markers: [
+                  AppMapMarker(
+                    id: property.id,
+                    latitude: property.latitude!,
+                    longitude: property.longitude!,
+                  ),
+                ],
+                interactive: false,
+              ),
+            ),
+          )
+        else
+          Container(
+            height: 100,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AppColors.surfaceMuted,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: const Text(
+              'Position non renseignée par l’agent.',
+              style: AppTextStyles.caption,
+            ),
+          ),
       ],
     );
   }

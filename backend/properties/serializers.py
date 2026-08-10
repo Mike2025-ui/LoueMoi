@@ -92,6 +92,30 @@ class PropertySerializer(serializers.ModelSerializer):
             return False
         return Favorite.objects.filter(user=request.user, property=obj).exists()
 
+    def validate(self, attrs):
+        # Les plages (-90/90, -180/180) sont déjà validées via les
+        # validators du modèle (propagés automatiquement par DRF). Ici on
+        # vérifie seulement la cohérence : une position n'a de sens que si
+        # les deux coordonnées sont fournies ensemble.
+        latitude = attrs.get("latitude", getattr(self.instance, "latitude", None))
+        longitude = attrs.get("longitude", getattr(self.instance, "longitude", None))
+        if (latitude is None) != (longitude is None):
+            raise serializers.ValidationError(
+                {"latitude": ["latitude et longitude doivent être fournies ensemble."]}
+            )
+        return attrs
+
+
+class PropertyNearbySerializer(PropertySerializer):
+    """Utilisé uniquement par GET /api/properties/nearby/ — ajoute
+    `distance_km`, calculée côté SQL (annotation Haversine), jamais
+    recalculée côté Flutter."""
+
+    distance_km = serializers.FloatField(read_only=True)
+
+    class Meta(PropertySerializer.Meta):
+        fields = PropertySerializer.Meta.fields + ["distance_km"]
+
 
 class FavoriteSerializer(serializers.ModelSerializer):
     class Meta:

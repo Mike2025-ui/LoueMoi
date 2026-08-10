@@ -8,6 +8,7 @@ import '../features/gallery/screens/gallery_screen.dart';
 import '../features/gallery/screens/photo_viewer_screen.dart';
 import '../features/home/screens/home_screen.dart';
 import '../features/home/widgets/main_bottom_nav.dart';
+import '../features/map/screens/property_map_screen.dart';
 import '../features/messaging/screens/conversation_screen.dart';
 import '../features/messaging/screens/conversations_screen.dart';
 import '../features/notifications/screens/notifications_screen.dart';
@@ -98,6 +99,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.agentDashboard,
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const AgentDashboardScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.propertyMap,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const PropertyMapScreen(),
       ),
       GoRoute(
         path: AppRoutes.propertyDetail,

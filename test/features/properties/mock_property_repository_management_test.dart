@@ -62,4 +62,54 @@ void main() {
 
     expect(updated.viewsCount, target.viewsCount + 1);
   });
+
+  group('getNearbyProperties (Haversine en Dart, aucun appel réseau)', () {
+    // Coordonnées réelles des données mock (mock_properties.dart) : le bien
+    // '1' est exactement à l'origine, le bien '8' n'a pas de position.
+    const originLat = 5.359951;
+    const originLng = -4.008256;
+
+    test('returns properties within the radius, sorted nearest-first', () async {
+      final results = await repository.getNearbyProperties(
+        latitude: originLat,
+        longitude: originLng,
+        radiusKm: 5,
+      );
+
+      expect(results, isNotEmpty);
+      expect(results.first.id, '1');
+      expect(results.first.distanceKm, closeTo(0, 0.01));
+      for (var i = 1; i < results.length; i++) {
+        expect(results[i].distanceKm! >= results[i - 1].distanceKm!, isTrue);
+      }
+    });
+
+    test('excludes properties without coordinates, never crashes', () async {
+      final results = await repository.getNearbyProperties(
+        latitude: originLat,
+        longitude: originLng,
+        radiusKm: 1000,
+      );
+
+      expect(results.any((p) => p.id == '8'), isFalse);
+    });
+
+    test('a tight radius excludes everything but the origin property', () async {
+      final results = await repository.getNearbyProperties(
+        latitude: originLat,
+        longitude: originLng,
+        radiusKm: 0.01,
+      );
+
+      expect(results, hasLength(1));
+      expect(results.first.id, '1');
+    });
+  });
+
+  test('updatePropertyLocation sets latitude/longitude on the target property', () async {
+    final updated = await repository.updatePropertyLocation('8', 5.4, -4.05);
+
+    expect(updated.latitude, 5.4);
+    expect(updated.longitude, -4.05);
+  });
 }

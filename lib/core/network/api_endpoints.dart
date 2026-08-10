@@ -20,6 +20,7 @@ class ApiEndpoints {
   static String propertyFavorite(String id) => '/api/properties/$id/favorite/';
   static String propertyView(String id) => '/api/properties/$id/view/';
   static String propertyUploadImage(String id) => '/api/properties/$id/upload-image/';
+  static const String propertiesNearby = '/api/properties/nearby/';
 
   /// Annonces de l'agent connecté uniquement — filtré côté Django, jamais
   /// en filtrant /api/properties/ côté Flutter.

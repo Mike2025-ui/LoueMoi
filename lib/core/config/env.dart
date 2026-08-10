@@ -55,6 +55,20 @@ class Env {
     return 'https://api.louemoi.example.com';
   }
 
+  /// URL de tuiles carto (flutter_map). Par défaut : serveur public
+  /// OpenStreetMap — aucune clé requise, fonctionne dès l'installation.
+  /// Surchargeable par environnement (MAP_TILE_URL_TEMPLATE dans
+  /// assets/env/.env.*) pour brancher un fournisseur payant en production
+  /// sans jamais committer de clé : elle reste dans un fichier .env local,
+  /// non versionné.
+  static String get mapTileUrlTemplate {
+    const define = String.fromEnvironment('MAP_TILE_URL_TEMPLATE');
+    if (define.isNotEmpty) return define;
+    final fromFile = dotenv.isInitialized ? dotenv.env['MAP_TILE_URL_TEMPLATE'] : null;
+    if (fromFile != null && fromFile.isNotEmpty) return fromFile;
+    return 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+  }
+
   static bool get useMockData {
     const define = String.fromEnvironment('USE_MOCK_DATA');
     if (define.isNotEmpty) return define.toLowerCase() == 'true';

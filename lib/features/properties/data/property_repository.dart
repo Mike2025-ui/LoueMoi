@@ -1,4 +1,5 @@
 import 'package:image_picker/image_picker.dart';
+import '../../../core/utils/geo.dart';
 import '../../filters/models/filter_params.dart';
 import '../models/property.dart';
 import '../models/property_page.dart';
@@ -34,6 +35,21 @@ abstract class PropertyRepository {
 
   /// Incrémente le compteur de vues côté serveur (jamais côté Flutter).
   Future<Property> incrementView(String id);
+
+  /// Recherche géographique — GET /api/properties/nearby/ côté API. Le
+  /// calcul de distance est toujours fait côté serveur (Haversine, voir
+  /// backend/properties/views.py), jamais en récupérant toutes les
+  /// propriétés pour calculer les distances dans Flutter. En mode mock,
+  /// même contrat mais calcul en Dart pur (core/utils/geo.dart).
+  Future<List<Property>> getNearbyProperties({
+    required double latitude,
+    required double longitude,
+    required double radiusKm,
+  });
+
+  /// Définit/modifie uniquement la position d'une annonce — réservé au
+  /// propriétaire côté Django (même permission que updateProperty).
+  Future<Property> updatePropertyLocation(String id, double latitude, double longitude);
 }
 
 class MockPropertyRepository implements PropertyRepository {
@@ -183,6 +199,35 @@ class MockPropertyRepository implements PropertyRepository {
       ...current.toJson(),
       'views_count': current.viewsCount + 1,
     });
+    _properties[index] = updated;
+    return updated;
+  }
+
+  @override
+  Future<List<Property>> getNearbyProperties({
+    required double latitude,
+    required double longitude,
+    required double radiusKm,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    final withDistance = _properties
+        .where((p) => p.latitude != null && p.longitude != null)
+        .map(
+          (p) => p.copyWith(
+            distanceKm: haversineKm(latitude, longitude, p.latitude!, p.longitude!),
+          ),
+        )
+        .where((p) => p.distanceKm! <= radiusKm)
+        .toList()
+      ..sort((a, b) => a.distanceKm!.compareTo(b.distanceKm!));
+    return withDistance;
+  }
+
+  @override
+  Future<Property> updatePropertyLocation(String id, double latitude, double longitude) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    final index = _indexOrThrow(id);
+    final updated = _properties[index].copyWith(latitude: latitude, longitude: longitude);
     _properties[index] = updated;
     return updated;
   }

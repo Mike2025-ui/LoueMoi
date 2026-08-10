@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 
@@ -39,8 +40,25 @@ class Property(models.Model):
     commune = models.CharField(max_length=100)
     district = models.CharField(max_length=100)
     address = models.CharField(max_length=255, blank=True)
-    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    # Source de vérité géographique : simples DecimalField (pas de PointField/
+    # PostGIS — l'environnement de dev tourne sur SQLite sans GDAL/GEOS, voir
+    # l'audit de la phase géolocalisation). null=True/blank=True : les
+    # annonces existantes ou créées sans position restent valides, juste
+    # exclues de la carte et de /api/properties/nearby/.
+    latitude = models.DecimalField(
+        max_digits=9,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(-90), MaxValueValidator(90)],
+    )
+    longitude = models.DecimalField(
+        max_digits=9,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(-180), MaxValueValidator(180)],
+    )
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="disponible")
     is_future = models.BooleanField(default=False)

@@ -32,6 +32,11 @@ dependencies:
   cached_network_image: ^3.4.1
   image_picker: ^1.1.2
 
+  # Géolocalisation + carte (OpenStreetMap — pas de clé API requise)
+  geolocator: ^13.0.2
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
+
   # Icons
   lucide_icons: ^0.257.0
 
@@ -47,6 +52,12 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
   mocktail: ^1.0.4
+
+  # Mock de GeolocatorPlatform dans les tests (voir
+  # test/core/services/location_permission_service_test.dart) — déjà présents
+  # transitivement via geolocator, déclarés ici car importés directement.
+  geolocator_platform_interface: ^4.2.8
+  plugin_platform_interface: ^2.1.8
 
 flutter:
   uses-material-design: true

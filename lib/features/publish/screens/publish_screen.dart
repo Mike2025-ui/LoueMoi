@@ -1,15 +1,19 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:latlong2/latlong.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/services/location_permission_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/feedback.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/app_map_view.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/property_image.dart';
@@ -177,6 +181,8 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
           'commune': form.commune.trim(),
           'district': form.district.trim(),
           'address': form.address.trim(),
+          'latitude': form.latitude,
+          'longitude': form.longitude,
           'features': _buildFeatures(form),
           'amenities': form.characteristics.toList(),
         };
@@ -200,6 +206,8 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
           commune: form.commune.trim(),
           district: form.district.trim(),
           address: form.address.trim(),
+          latitude: form.latitude,
+          longitude: form.longitude,
           status: PropertyStatus.disponible,
           images: const [],
           coverImage: '',
@@ -631,6 +639,11 @@ class _StepLocalisationState extends ConsumerState<_StepLocalisation> {
   late final TextEditingController _communeCtrl;
   late final TextEditingController _districtCtrl;
   late final TextEditingController _addressCtrl;
+  final _mapController = MapController();
+  bool _locating = false;
+
+  // Cocody, Abidjan — centre par défaut tant qu'aucune position n'est choisie.
+  static const _defaultCenter = LatLng(5.359951, -4.008256);
 
   @override
   void initState() {
@@ -651,10 +664,32 @@ class _StepLocalisationState extends ConsumerState<_StepLocalisation> {
     super.dispose();
   }
 
+  void _setPosition(double latitude, double longitude) {
+    final form = ref.read(publishFormProvider);
+    ref.read(publishFormProvider.notifier).state =
+        form.copyWith(latitude: latitude, longitude: longitude);
+    _mapController.move(LatLng(latitude, longitude), _mapController.camera.zoom);
+  }
+
+  Future<void> _useMyPosition() async {
+    setState(() => _locating = true);
+    final result = await const LocationPermissionService().getCurrentPosition();
+    if (!mounted) return;
+    setState(() => _locating = false);
+    if (!result.isSuccess) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.message ?? 'Localisation indisponible.')),
+      );
+      return;
+    }
+    _setPosition(result.latitude!, result.longitude!);
+  }
+
   @override
   Widget build(BuildContext context) {
     final form = ref.watch(publishFormProvider);
     final notifier = ref.read(publishFormProvider.notifier);
+    final center = form.hasLocation ? LatLng(form.latitude!, form.longitude!) : _defaultCenter;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.screenPadding),
@@ -689,6 +724,62 @@ class _StepLocalisationState extends ConsumerState<_StepLocalisation> {
             hint: 'Adresse précise',
             controller: _addressCtrl,
             onChanged: (v) => notifier.state = form.copyWith(address: v),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          const Text('Position sur la carte (optionnel)', style: AppTextStyles.label),
+          const SizedBox(height: AppSpacing.xs),
+          const Text(
+            'Utilisez votre position actuelle ou touchez la carte pour placer le repère.',
+            style: AppTextStyles.caption,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            child: SizedBox(
+              height: 220,
+              child: AppMapView(
+                center: center,
+                mapController: _mapController,
+                markers: form.hasLocation
+                    ? [
+                        AppMapMarker(
+                          id: 'selected',
+                          latitude: form.latitude!,
+                          longitude: form.longitude!,
+                        ),
+                      ]
+                    : const [],
+                onTap: (point) => _setPosition(point.latitude, point.longitude),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          OutlinedButton.icon(
+            onPressed: _locating ? null : _useMyPosition,
+            icon: _locating
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.my_location, size: 18),
+            label: const Text('Utiliser ma position'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.primary,
+              side: const BorderSide(color: AppColors.primary),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              minimumSize: const Size.fromHeight(0),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            form.hasLocation
+                ? 'Position définie (${form.latitude!.toStringAsFixed(5)}, ${form.longitude!.toStringAsFixed(5)})'
+                : 'Aucune position définie — l’annonce reste publiable sans elle.',
+            style: AppTextStyles.small,
           ),
         ],
       ),

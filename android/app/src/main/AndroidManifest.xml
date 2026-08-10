@@ -5,6 +5,13 @@
          pourrait pas accéder au réseau. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Géolocalisation (bouton "Utiliser ma position" en publication) —
+         FINE pour la précision GPS, COARSE en repli si l'utilisateur ne
+         l'accorde pas. Toutes deux demandées à l'exécution par geolocator,
+         jamais automatiquement au lancement de l'app. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
     <application
         android:label="LoueMoi"
         android:name="${applicationName}"

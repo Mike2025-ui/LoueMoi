@@ -26,6 +26,11 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- Géolocalisation (bouton "Utiliser ma position" en publication
+	     d'annonce) — demandée uniquement au moment de l'action, jamais au
+	     lancement de l'app. -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>LoueMoi utilise votre position pour vous aider à placer précisément votre annonce sur la carte et pour vous proposer les biens à proximité.</string>
 	<!-- Autorise le HTTP en clair uniquement vers l'hôte de développement
 	     local (simulateur iOS), pour tester contre `python manage.py
 	     runserver` sans certificat HTTPS. Toute autre destination reste

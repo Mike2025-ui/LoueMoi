@@ -161,4 +161,47 @@ void main() {
       throwsA(isA<ForbiddenException>()),
     );
   });
+
+  test('getNearbyProperties calls GET /api/properties/nearby/ with lat/lng/radius', () async {
+    when(() => apiClient.get<Map<String, dynamic>>(any(), query: any(named: 'query')))
+        .thenAnswer((_) async => _fakeResponse({
+              'count': 1,
+              'next': null,
+              'previous': null,
+              'results': [_propertyJson(id: 1)..addAll({'distance_km': 2.4})],
+            }));
+
+    final results = await repository.getNearbyProperties(
+      latitude: 5.359951,
+      longitude: -4.008256,
+      radiusKm: 5,
+    );
+
+    expect(results, hasLength(1));
+    expect(results.first.distanceKm, 2.4);
+    final call = verify(
+      () => apiClient.get<Map<String, dynamic>>(
+        captureAny(),
+        query: captureAny(named: 'query'),
+      ),
+    ).captured;
+    expect(call.first, '/api/properties/nearby/');
+    final query = call[1] as Map<String, dynamic>;
+    expect(query['latitude'], 5.359951);
+    expect(query['longitude'], -4.008256);
+    expect(query['radius'], 5);
+  });
+
+  test('updatePropertyLocation PATCHes only latitude/longitude', () async {
+    when(() => apiClient.patch<Map<String, dynamic>>(any(), data: any(named: 'data')))
+        .thenAnswer((_) async => _fakeResponse(_propertyJson(id: 5)));
+
+    await repository.updatePropertyLocation('5', 5.35, -4.0);
+
+    final call = verify(
+      () => apiClient.patch<Map<String, dynamic>>(captureAny(), data: captureAny(named: 'data')),
+    ).captured;
+    expect(call.first, '/api/properties/5/');
+    expect(call[1], {'latitude': 5.35, 'longitude': -4.0});
+  });
 }

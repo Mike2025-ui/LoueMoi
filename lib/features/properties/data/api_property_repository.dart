@@ -150,4 +150,27 @@ class ApiPropertyRepository implements PropertyRepository {
     );
     return Property.fromJson(response.data!);
   }
+
+  @override
+  Future<List<Property>> getNearbyProperties({
+    required double latitude,
+    required double longitude,
+    required double radiusKm,
+  }) async {
+    final response = await _apiClient.get<Map<String, dynamic>>(
+      ApiEndpoints.propertiesNearby,
+      query: {
+        'latitude': latitude,
+        'longitude': longitude,
+        'radius': radiusKm,
+        'page_size': 100,
+      },
+    );
+    return _parsePage(response.data!).results;
+  }
+
+  @override
+  Future<Property> updatePropertyLocation(String id, double latitude, double longitude) {
+    return updateProperty(id, {'latitude': latitude, 'longitude': longitude});
+  }
 }

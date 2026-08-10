@@ -110,4 +110,35 @@ void main() {
     final withExisting = empty.copyWith(existingImages: const ['http://x/1.jpg']);
     expect(withExisting.hasAtLeastOnePhoto, isTrue);
   });
+
+  group('PublishFormState location', () {
+    test('hasLocation is false until both latitude and longitude are set', () {
+      const empty = PublishFormState();
+      expect(empty.hasLocation, isFalse);
+
+      final withPosition = empty.copyWith(latitude: 5.35, longitude: -4.0);
+      expect(withPosition.hasLocation, isTrue);
+    });
+
+    test('fromProperty seeds latitude/longitude when the property already has a position', () {
+      final state = PublishFormState.fromProperty(
+        _property(transactionType: TransactionType.location).copyWith(
+          latitude: 5.359951,
+          longitude: -4.008256,
+        ),
+      );
+
+      expect(state.hasLocation, isTrue);
+      expect(state.latitude, 5.359951);
+      expect(state.longitude, -4.008256);
+    });
+
+    test('fromProperty leaves latitude/longitude null for a property without a position', () {
+      final state = PublishFormState.fromProperty(
+        _property(transactionType: TransactionType.location),
+      );
+
+      expect(state.hasLocation, isFalse);
+    });
+  });
 }

@@ -28,6 +28,11 @@ class Property extends Equatable {
   final Agent agent;
   final int viewsCount;
   final int favoritesCount;
+
+  /// Non-null uniquement pour les résultats de recherche à proximité
+  /// (GET /api/properties/nearby/) — calculée côté serveur, jamais
+  /// recalculée côté Flutter.
+  final double? distanceKm;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -57,6 +62,7 @@ class Property extends Equatable {
     required this.agent,
     this.viewsCount = 0,
     this.favoritesCount = 0,
+    this.distanceKm,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -74,6 +80,9 @@ class Property extends Equatable {
     List<String>? images,
     String? coverImage,
     int? favoritesCount,
+    double? latitude,
+    double? longitude,
+    double? distanceKm,
   }) {
     return Property(
       id: id,
@@ -89,8 +98,8 @@ class Property extends Equatable {
       commune: commune,
       district: district,
       address: address,
-      latitude: latitude,
-      longitude: longitude,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
       status: status ?? this.status,
       isFuture: isFuture,
       isFavorite: isFavorite ?? this.isFavorite,
@@ -101,6 +110,7 @@ class Property extends Equatable {
       agent: agent,
       viewsCount: viewsCount,
       favoritesCount: favoritesCount ?? this.favoritesCount,
+      distanceKm: distanceKm ?? this.distanceKm,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );
@@ -134,6 +144,7 @@ class Property extends Equatable {
       agent: Agent.fromJson(json['agent'] as Map<String, dynamic>),
       viewsCount: json['views_count'] as int? ?? 0,
       favoritesCount: json['favorites_count'] as int? ?? 0,
+      distanceKm: (json['distance_km'] as num?)?.toDouble(),
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
@@ -165,6 +176,7 @@ class Property extends Equatable {
         'agent': agent.toJson(),
         'views_count': viewsCount,
         'favorites_count': favoritesCount,
+        if (distanceKm != null) 'distance_km': distanceKm,
         'created_at': createdAt.toIso8601String(),
         'updated_at': updatedAt.toIso8601String(),
       };
@@ -194,6 +206,7 @@ class Property extends Equatable {
         agent,
         viewsCount,
         favoritesCount,
+        distanceKm,
         createdAt,
         updatedAt,
       ];

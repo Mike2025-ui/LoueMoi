@@ -23,6 +23,8 @@ class PublishFormState {
     this.commune = '',
     this.district = '',
     this.address = '',
+    this.latitude,
+    this.longitude,
     this.existingImages = const [],
     this.newImages = const [],
   });
@@ -57,6 +59,14 @@ class PublishFormState {
   final String district;
   final String address;
 
+  /// Position choisie via la carte ("Utiliser ma position" ou marqueur
+  /// déplacé manuellement) — null tant que l'agent n'a rien confirmé. La
+  /// publication reste possible sans position (compatibilité).
+  final double? latitude;
+  final double? longitude;
+
+  bool get hasLocation => latitude != null && longitude != null;
+
   /// Édition uniquement : URLs déjà hébergées côté serveur. L'agent peut en
   /// retirer (bouton supprimer) ; jamais réordonnées par glisser-déposer
   /// dans cette phase — la première de la liste sert de photo principale.
@@ -87,6 +97,8 @@ class PublishFormState {
     String? commune,
     String? district,
     String? address,
+    double? latitude,
+    double? longitude,
     List<String>? existingImages,
     List<XFile>? newImages,
   }) {
@@ -109,6 +121,8 @@ class PublishFormState {
       commune: commune ?? this.commune,
       district: district ?? this.district,
       address: address ?? this.address,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
       existingImages: existingImages ?? this.existingImages,
       newImages: newImages ?? this.newImages,
     );
@@ -134,6 +148,8 @@ class PublishFormState {
       commune: property.commune,
       district: property.district,
       address: property.address,
+      latitude: property.latitude,
+      longitude: property.longitude,
       characteristics: {...property.features, ...property.amenities},
       existingImages: property.images,
     );

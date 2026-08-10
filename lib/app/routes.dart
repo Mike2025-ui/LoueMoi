@@ -20,6 +20,8 @@ class AppRoutes {
   static const String editProperty = '/publish/edit/:id';
   static String editPropertyPath(String id) => '/publish/edit/$id';
 
+  static const String propertyMap = '/map';
+
   static const String propertyDetail = '/property/:id';
   static String propertyDetailPath(String id) => '/property/$id';
 
