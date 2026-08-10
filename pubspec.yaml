@@ -1,0 +1,62 @@
+name: louemoi
+description: "LoueMoi - Application immobilière (recherche, location, vente)."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.3
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # State management
+  flutter_riverpod: ^2.6.1
+
+  # Navigation
+  go_router: ^14.8.1
+
+  # Networking
+  dio: ^5.7.0
+
+  # Secure storage (tokens)
+  flutter_secure_storage: ^9.2.2
+
+  # Share
+  share_plus: ^10.1.4
+
+  # Images
+  cached_network_image: ^3.4.1
+  image_picker: ^1.1.2
+
+  # Icons
+  lucide_icons: ^0.257.0
+
+  # Utils
+  intl: ^0.19.0
+  equatable: ^2.0.7
+
+  # Env config
+  flutter_dotenv: ^5.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  mocktail: ^1.0.4
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/illustrations/
+    - assets/images/properties/
+    - assets/images/agents/
+    - assets/images/onboarding/
+    - assets/icons/
+    - assets/env/.env.development
+    - assets/env/.env.staging
+    - assets/env/.env.production
