@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/env.dart';
 import '../../../core/network/network_providers.dart';
+import '../data/agent_profile_repository.dart';
 import '../data/agent_repository.dart';
 import '../models/agent_dashboard.dart';
 
@@ -12,4 +13,9 @@ final agentRepositoryProvider = Provider<AgentRepository>((ref) {
 final agentDashboardProvider = FutureProvider.autoDispose<AgentDashboard>((ref) async {
   final repository = ref.watch(agentRepositoryProvider);
   return repository.getDashboard();
+});
+
+final agentProfileRepositoryProvider = Provider<AgentProfileRepository>((ref) {
+  if (Env.useMockData) return MockAgentProfileRepository();
+  return ApiAgentProfileRepository(ref.watch(apiClientProvider));
 });

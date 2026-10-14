@@ -1,0 +1,23 @@
+from django.urls import path
+
+from . import views
+
+app_name = "dashboard"
+
+urlpatterns = [
+    path("login/", views.DashboardLoginView.as_view(), name="login"),
+    path("logout/", views.logout_view, name="logout"),
+    path("", views.index, name="index"),
+    path("users/", views.users_list, name="users_list"),
+    path("users/<int:pk>/", views.user_detail, name="user_detail"),
+    path("properties/", views.properties_list, name="properties_list"),
+    path("properties/<int:pk>/", views.property_detail, name="property_detail"),
+    path("reservations/", views.reservations_list, name="reservations_list"),
+    path("conversations/", views.conversations_list, name="conversations_list"),
+    path("conversations/<int:pk>/", views.conversation_detail, name="conversation_detail"),
+    path("notifications/", views.notifications_list, name="notifications_list"),
+    path("reviews/", views.reviews_list, name="reviews_list"),
+    path("agents/", views.agents_list, name="agents_list"),
+    path("fcm/", views.fcm_list, name="fcm_list"),
+    path("statistics/", views.statistics, name="statistics"),
+]

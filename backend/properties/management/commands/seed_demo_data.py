@@ -36,9 +36,16 @@ class Command(BaseCommand):
         # is_verified=True ici uniquement parce que c'est un script de seed
         # qui joue le rôle de l'administration — en conditions réelles, seul
         # Django Admin peut vérifier un agent (jamais l'agent lui-même).
+        # certification_status="approuvee" en cohérence : les deux avancent
+        # toujours ensemble sur le chemin normal (AgentProfileAdmin.
+        # approve_certification), jamais l'un sans l'autre.
         AgentProfile.objects.update_or_create(
             user=agent,
-            defaults={"is_verified": True, "rating": 4.8},
+            defaults={
+                "is_verified": True,
+                "certification_status": AgentProfile.CERTIFICATION_APPROVED,
+                "rating": 4.8,
+            },
         )
 
         client, created = User.objects.get_or_create(

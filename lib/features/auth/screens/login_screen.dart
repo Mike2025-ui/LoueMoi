@@ -92,7 +92,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   obscureText: true,
                   validator: Validators.password,
                 ),
-                const SizedBox(height: AppSpacing.xl),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => context.push(AppRoutes.forgotPassword),
+                    child: const Text('Mot de passe oublié ?', style: AppTextStyles.link),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
                 PrimaryButton(
                   label: 'Connexion',
                   isLoading: isLoading,

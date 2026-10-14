@@ -2,6 +2,11 @@ import '../models/app_notification.dart';
 
 abstract class NotificationRepository {
   Future<List<AppNotification>> fetchNotifications();
+
+  /// GET /api/notifications/unread-count/ côté API — jamais recompté à la
+  /// main depuis la liste (qui peut être partiellement chargée/périmée).
+  Future<int> fetchUnreadCount();
+
   Future<void> markAsRead(String id);
   Future<void> markAllAsRead();
 }
@@ -13,6 +18,8 @@ class MockNotificationRepository implements NotificationRepository {
       title: 'Nouveau message',
       message: 'Mme Kouakou vous a envoyé un message à propos de votre demande.',
       type: NotificationType.message,
+      rawType: 'new_message',
+      data: const {'conversation_id': 'conv-1'},
       createdAt: DateTime.now().subtract(const Duration(minutes: 12)),
     ),
     AppNotification(
@@ -20,6 +27,8 @@ class MockNotificationRepository implements NotificationRepository {
       title: 'Réservation confirmée',
       message: 'Votre réservation pour "Appartement meublé" a été validée.',
       type: NotificationType.reservation,
+      rawType: 'reservation_confirmed',
+      data: const {'reservation_id': '1', 'property_id': '1'},
       createdAt: DateTime.now().subtract(const Duration(hours: 3)),
     ),
     AppNotification(
@@ -27,6 +36,8 @@ class MockNotificationRepository implements NotificationRepository {
       title: 'Nouveau bien disponible',
       message: 'Une Villa correspondant à vos favoris vient d’être publiée à Cocody.',
       type: NotificationType.favorite,
+      rawType: 'property_available',
+      data: const {'property_id': '4'},
       createdAt: DateTime.now().subtract(const Duration(days: 1)),
       isRead: true,
     ),
@@ -35,6 +46,7 @@ class MockNotificationRepository implements NotificationRepository {
       title: 'Bienvenue sur LoueMoi',
       message: 'Complétez votre profil pour profiter de toutes les fonctionnalités.',
       type: NotificationType.system,
+      rawType: 'system',
       createdAt: DateTime.now().subtract(const Duration(days: 3)),
       isRead: true,
     ),
@@ -44,6 +56,12 @@ class MockNotificationRepository implements NotificationRepository {
   Future<List<AppNotification>> fetchNotifications() async {
     await Future.delayed(const Duration(milliseconds: 250));
     return List.unmodifiable(_notifications);
+  }
+
+  @override
+  Future<int> fetchUnreadCount() async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    return _notifications.where((n) => !n.isRead).length;
   }
 
   @override

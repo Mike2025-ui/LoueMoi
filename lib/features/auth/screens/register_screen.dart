@@ -92,10 +92,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         onTap: () => setState(() => _selectedRole = UserRole.client),
                       ),
                     ),
-                    const SizedBox(width: AppSpacing.md),
+                    const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: _RoleOption(
-                        label: 'Agent immobilier',
+                        label: 'Bailleur',
+                        isActive: _selectedRole == UserRole.bailleur,
+                        onTap: () => setState(() => _selectedRole = UserRole.bailleur),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: _RoleOption(
+                        label: 'Agent',
                         isActive: _selectedRole == UserRole.agent,
                         onTap: () => setState(() => _selectedRole = UserRole.agent),
                       ),

@@ -5,11 +5,13 @@ import '../../../app/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/network/api_exceptions.dart';
 import '../../../core/utils/feedback.dart';
 import '../../../core/utils/media_url.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../../properties/models/agent.dart';
-import '../../properties/widgets/agent_card.dart';
+import '../models/agent_profile.dart';
+import '../providers/agent_providers.dart';
 import '../widgets/profile_menu_tile.dart';
 
 /// Espace agent : utilise l'utilisateur réellement connecté (jamais de
@@ -23,6 +25,7 @@ class AgentSpaceScreen extends ConsumerWidget {
     final user = ref.watch(authControllerProvider).valueOrNull;
     final profile = user?.agentProfile;
     final isVerified = profile?.isVerified ?? false;
+    final certificationStatus = profile?.certificationStatus ?? CertificationStatus.nonDemandee;
 
     final agent = Agent(
       id: user?.id ?? '',
@@ -37,13 +40,12 @@ class AgentSpaceScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        titleSpacing: 0,
-        title: Padding(
-          padding: const EdgeInsets.only(right: AppSpacing.md),
-          child: AgentCard(agent: agent),
-        ),
-      ),
+      // AppBar volontairement simple (comme BailleurSpaceScreen) : afficher
+      // l'identité de l'agent ici EN PLUS du bloc avatar/nom/rôle déjà
+      // présent dans le corps de l'écran créait un en-tête dupliqué
+      // (confirmé sur téléphone : "Joseph Mike Agent immobilier" apparaissait
+      // deux fois à l'écran).
+      appBar: AppBar(title: const Text('Espace agent')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.screenPadding,
@@ -92,7 +94,7 @@ class AgentSpaceScreen extends ConsumerWidget {
                   ),
                 ),
                 TextButton.icon(
-                  onPressed: () => showComingSoonSnackbar(context, 'Modifier le profil'),
+                  onPressed: () => context.push(AppRoutes.editProfile),
                   icon: const Icon(Icons.edit_outlined, size: 16, color: AppColors.primary),
                   label: const Text('Modifier', style: AppTextStyles.link),
                 ),
@@ -108,17 +110,22 @@ class AgentSpaceScreen extends ConsumerWidget {
             ProfileMenuTile(
               icon: Icons.assignment_outlined,
               label: 'Mes réservations',
-              onTap: () => context.push(AppRoutes.reservationsList),
+              // Route d'un autre onglet du shell : go(), jamais push() (voir
+              // profile_screen.dart pour l'explication du crash évité).
+              onTap: () => context.go(AppRoutes.reservationsList),
             ),
             ProfileMenuTile(
               icon: Icons.sell_outlined,
               label: 'Propriétés vendues',
-              onTap: () => showComingSoonSnackbar(context, 'Propriétés vendues'),
+              onTap: () => context.push(AppRoutes.soldProperties),
             ),
             ProfileMenuTile(
               icon: Icons.find_in_page_outlined,
               label: 'Reconduire un bien',
-              onTap: () => showComingSoonSnackbar(context, 'Reconduire un bien'),
+              // La reconduction est une action par annonce (voir le bouton
+              // "Reconduire" sur chaque carte de Mes annonces) — ce raccourci
+              // amène directement à la liste où la choisir.
+              onTap: () => context.push(AppRoutes.myProperties),
             ),
             ProfileMenuTile(
               icon: Icons.dashboard_outlined,
@@ -126,9 +133,16 @@ class AgentSpaceScreen extends ConsumerWidget {
               onTap: () => context.push(AppRoutes.agentDashboard),
             ),
             ProfileMenuTile(
+              icon: Icons.search,
+              label: 'Rechercher un propriétaire',
+              onTap: () => context.push(AppRoutes.bailleurSearch),
+            ),
+            ProfileMenuTile(
               icon: Icons.verified_outlined,
-              label: 'Certification',
-              onTap: () => showComingSoonSnackbar(context, 'Certification'),
+              label: certificationStatus == CertificationStatus.nonDemandee
+                  ? 'Certification'
+                  : 'Certification (${certificationStatus.label})',
+              onTap: () => _requestCertification(context, ref, certificationStatus),
             ),
             const SizedBox(height: AppSpacing.xl),
             Center(
@@ -148,6 +162,39 @@ class AgentSpaceScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  /// Décision métier : Agent → demande → EN_ATTENTE → administrateur →
+  /// approuvée/refusée. Un agent ne peut jamais s'auto-certifier — cette
+  /// action ne fait QUE déclencher la demande, jamais l'approbation.
+  Future<void> _requestCertification(
+    BuildContext context,
+    WidgetRef ref,
+    CertificationStatus current,
+  ) async {
+    if (current == CertificationStatus.approuvee) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Votre compte est déjà certifié.')));
+      return;
+    }
+    if (current == CertificationStatus.enAttente) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Votre demande de certification est déjà en attente.')),
+      );
+      return;
+    }
+    try {
+      final repository = ref.read(agentProfileRepositoryProvider);
+      final updatedProfile = await repository.requestCertification();
+      ref.read(authControllerProvider.notifier).applyUpdatedAgentProfile(updatedProfile);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Demande de certification envoyée.')),
+        );
+      }
+    } on ApiException catch (e) {
+      if (context.mounted) showErrorSnackbar(context, e);
+    }
   }
 
   void _confirmDeletePage(BuildContext context) {

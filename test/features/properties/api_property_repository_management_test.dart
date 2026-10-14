@@ -192,6 +192,24 @@ void main() {
     expect(query['radius'], 5);
   });
 
+  test('fetchMyPropertiesAsBailleur requests /api/bailleur/properties/', () async {
+    when(() => apiClient.get<Map<String, dynamic>>(any(), query: any(named: 'query')))
+        .thenAnswer((_) async => _fakeResponse({
+              'count': 1,
+              'next': null,
+              'previous': null,
+              'results': [_propertyJson(id: 8)],
+            }));
+
+    final properties = await repository.fetchMyPropertiesAsBailleur();
+
+    expect(properties, hasLength(1));
+    verify(() => apiClient.get<Map<String, dynamic>>(
+          '/api/bailleur/properties/',
+          query: any(named: 'query'),
+        )).called(1);
+  });
+
   test('updatePropertyLocation PATCHes only latitude/longitude', () async {
     when(() => apiClient.patch<Map<String, dynamic>>(any(), data: any(named: 'data')))
         .thenAnswer((_) async => _fakeResponse(_propertyJson(id: 5)));

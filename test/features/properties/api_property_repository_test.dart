@@ -109,6 +109,8 @@ void main() {
           transactionType: TransactionType.vente,
           propertyType: PropertyType.terrain,
           commune: 'Cocody',
+          district: 'Angre',
+          category: 'Villa',
           isFuture: true,
           budgetMin: 1000,
           budgetMax: 5000,
@@ -123,10 +125,35 @@ void main() {
       expect(captured['transaction_type'], 'vente');
       expect(captured['type'], 'terrain');
       expect(captured['commune'], 'Cocody');
+      expect(captured['district'], 'Angre');
+      expect(captured['category'], 'Villa');
       expect(captured['is_future'], true);
       expect(captured['budget_min'], 1000);
       expect(captured['budget_max'], 5000);
       expect(captured['page'], 2);
+    });
+
+    test('omits commune/district/category when empty, and budget when unset', () async {
+      when(() => apiClient.get<Map<String, dynamic>>(any(), query: any(named: 'query')))
+          .thenAnswer((_) async => _fakeResponse({
+                'count': 0,
+                'next': null,
+                'previous': null,
+                'results': [],
+              }));
+
+      await repository.fetchProperties(filters: const FilterParams(), page: 1);
+
+      final captured = verify(
+        () => apiClient.get<Map<String, dynamic>>(any(), query: captureAny(named: 'query')),
+      ).captured.single as Map<String, dynamic>;
+
+      expect(captured.containsKey('commune'), isFalse);
+      expect(captured.containsKey('district'), isFalse);
+      expect(captured.containsKey('category'), isFalse);
+      expect(captured.containsKey('budget_min'), isFalse);
+      expect(captured.containsKey('budget_max'), isFalse);
+      expect(captured.containsKey('is_future'), isFalse);
     });
   });
 

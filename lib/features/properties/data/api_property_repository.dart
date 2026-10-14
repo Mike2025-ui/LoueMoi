@@ -3,8 +3,10 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/api_exceptions.dart';
+import '../../../core/utils/geo.dart';
 import '../../filters/models/filter_params.dart';
 import '../models/property.dart';
+import '../models/property_enums.dart';
 import '../models/property_page.dart';
 import 'property_repository.dart';
 
@@ -102,6 +104,15 @@ class ApiPropertyRepository implements PropertyRepository {
   }
 
   @override
+  Future<List<Property>> fetchMyPropertiesAsBailleur() async {
+    final response = await _apiClient.get<Map<String, dynamic>>(
+      ApiEndpoints.bailleurProperties,
+      query: {'page_size': 100},
+    );
+    return _parsePage(response.data!).results;
+  }
+
+  @override
   Future<Property> updateProperty(String id, Map<String, dynamic> changes) async {
     final response = await _apiClient.patch<Map<String, dynamic>>(
       ApiEndpoints.propertyDetail(id),
@@ -144,6 +155,32 @@ class ApiPropertyRepository implements PropertyRepository {
   }
 
   @override
+  Future<Property> uploadVideo(String propertyId, XFile file) async {
+    final formData = FormData.fromMap({
+      'video': await MultipartFile.fromFile(file.path, filename: file.name),
+    });
+    final response = await _apiClient.post<Map<String, dynamic>>(
+      ApiEndpoints.propertyUploadVideo(propertyId),
+      data: formData,
+    );
+    if (response.data == null) {
+      throw const UnknownApiException('La vidéo a été envoyée mais la réponse est vide.');
+    }
+    return Property.fromJson(response.data!);
+  }
+
+  @override
+  Future<Property> deleteVideo(String propertyId) async {
+    final response = await _apiClient.delete<Map<String, dynamic>>(
+      ApiEndpoints.propertyUploadVideo(propertyId),
+    );
+    if (response.data == null) {
+      throw const UnknownApiException('La vidéo a été supprimée mais la réponse est vide.');
+    }
+    return Property.fromJson(response.data!);
+  }
+
+  @override
   Future<Property> incrementView(String id) async {
     final response = await _apiClient.post<Map<String, dynamic>>(
       ApiEndpoints.propertyView(id),
@@ -171,6 +208,34 @@ class ApiPropertyRepository implements PropertyRepository {
 
   @override
   Future<Property> updatePropertyLocation(String id, double latitude, double longitude) {
-    return updateProperty(id, {'latitude': latitude, 'longitude': longitude});
+    return updateProperty(id, {
+      'latitude': normalizeCoordinate(latitude),
+      'longitude': normalizeCoordinate(longitude),
+    });
+  }
+
+  @override
+  Future<Property> renewProperty(String id) async {
+    final response = await _apiClient.post<Map<String, dynamic>>(ApiEndpoints.propertyRenew(id));
+    return Property.fromJson(response.data!);
+  }
+
+  @override
+  Future<List<Property>> fetchPropertiesByOwner(String ownerId) async {
+    final response = await _apiClient.get<Map<String, dynamic>>(
+      ApiEndpoints.properties,
+      query: {'agent': ownerId, 'page_size': 100},
+    );
+    final results = response.data!['results'] as List;
+    return results.map((json) => Property.fromJson(json as Map<String, dynamic>)).toList();
+  }
+
+  @override
+  Future<Property> updatePropertyStatus(String id, PropertyStatus status) async {
+    final response = await _apiClient.post<Map<String, dynamic>>(
+      ApiEndpoints.propertyMarkStatus(id),
+      data: {'status': status.name},
+    );
+    return Property.fromJson(response.data!);
   }
 }

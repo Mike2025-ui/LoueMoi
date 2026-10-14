@@ -36,10 +36,13 @@ INSTALLED_APPS = [
     # Apps LoueMoi
     "accounts",
     "agents",
+    "bailleurs",
     "properties",
     "reservations",
     "reviews",
     "messaging",
+    "notifications",
+    "dashboard",
 ]
 
 MIDDLEWARE = [
@@ -72,12 +75,26 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+# Base de données : bascule automatique sur PostgreSQL si configuré, sinon SQLite
+if os.environ.get("POSTGRES_DB"):
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ.get("POSTGRES_DB"),
+            "USER": os.environ.get("POSTGRES_USER", "postgres"),
+            "PASSWORD": os.environ.get("POSTGRES_PASSWORD", ""),
+            "HOST": os.environ.get("POSTGRES_HOST", "db"),
+            "PORT": os.environ.get("POSTGRES_PORT", "5432"),
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
+
 
 AUTH_USER_MODEL = "accounts.User"
 
@@ -94,8 +111,25 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# Point 2 — vidéo dans les annonces : la limite par défaut de Django
+# (~2.5 Mo) est trop basse pour un upload vidéo (≤50 Mo, voir
+# Property.MAX_VIDEO_SIZE_BYTES). Relevée avec une marge pour l'overhead
+# multipart, sans affecter les autres endpoints (photos, restent bien en
+# dessous de cette limite).
+DATA_UPLOAD_MAX_MEMORY_SIZE = 55 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 55 * 1024 * 1024
+
+# --- Dashboard administrateur personnalisé ------------------------------
+# Session/authentification Django standard (jamais de JWT ici) : le
+# dashboard vit sous /dashboard/, distinct de /admin/ (conservé tel quel) et
+# de /api/ (JWT, consommé par Flutter). Un utilisateur non authentifié
+# redirigé vers une vue protégée par @login_required/staff_required atterrit
+# ici plutôt que sur /admin/login/.
+LOGIN_URL = "dashboard:login"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -124,6 +158,15 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
+# --- Notifications push (FCM) -------------------------------------------
+# FIREBASE_CREDENTIALS_JSON : contenu JSON complet du compte de service
+# Firebase (Console Firebase > Paramètres du projet > Comptes de service >
+# Générer une nouvelle clé privée), fourni comme variable d'environnement —
+# JAMAIS un fichier committé dans Git. Lu directement par
+# notifications/services.py (os.environ.get), pas ici : cette section ne
+# sert qu'à documenter la variable attendue. Absente en dev : les
+# notifications restent créées en base, seul le push FCM est sauté.
+
 # --- CORS --------------------------------------------------------------
 # Dev uniquement : l'app mobile n'a pas d'origine web à restreindre.
 CORS_ALLOW_ALL_ORIGINS = DEBUG
@@ -132,3 +175,22 @@ CORS_ALLOWED_ORIGINS = [
     for origin in os.environ.get("DJANGO_CORS_ALLOWED_ORIGINS", "").split(",")
     if origin
 ]
+
+# --- Sécurité & Reverse Proxy (Nginx / SSL) ------------------------------
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
+
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",")
+    if origin.strip()
+]
+
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = "DENY"
+

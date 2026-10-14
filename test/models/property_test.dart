@@ -152,4 +152,70 @@ void main() {
       expect(withoutDistance.containsKey('distance_km'), isFalse);
     });
   });
+
+  group('Property.fromJson vidéo — résolution d\'URL (voir Property._resolveVideoUrl)', () {
+    Map<String, dynamic> buildPropertyJson({String? video}) {
+      return {
+        'id': 1,
+        'title': 'Bien vidéo',
+        'description': '',
+        'type': 'logement',
+        'category': 'Studio',
+        'transaction_type': 'location',
+        'price': 100000,
+        'deposit': null,
+        'advance': null,
+        'city': 'Abidjan',
+        'commune': 'Cocody',
+        'district': 'Vallon',
+        'address': '',
+        'latitude': null,
+        'longitude': null,
+        'status': 'disponible',
+        'is_future': false,
+        'is_favorite': false,
+        'images': <String>[],
+        'cover_image': '',
+        'video': video,
+        'features': <String>[],
+        'amenities': <String>[],
+        'agent': {
+          'id': 1,
+          'first_name': 'Agent',
+          'last_name': 'Test',
+          'phone': '0700000000',
+          'whatsapp': '0700000000',
+          'is_verified': true,
+          'rating': 4.8,
+        },
+        'views_count': 0,
+        'favorites_count': 0,
+        'created_at': '2026-01-01T00:00:00Z',
+        'updated_at': '2026-01-01T00:00:00Z',
+      };
+    }
+
+    test('une URL absolue (comportement normal du backend) est conservée telle quelle', () {
+      final property = Property.fromJson(
+        buildPropertyJson(video: 'http://192.168.34.98:8000/media/properties/1/video/clip.mp4'),
+      );
+      expect(property.video, 'http://192.168.34.98:8000/media/properties/1/video/clip.mp4');
+    });
+
+    test(
+        'filet de sécurité : une URL relative ("/media/...") est complétée avec Env.apiBaseUrl '
+        '(sans quoi video_player recevrait une URI sans schéma ni hôte)', () {
+      final property = Property.fromJson(
+        buildPropertyJson(video: '/media/properties/1/video/clip.mp4'),
+      );
+      expect(property.video, isNotNull);
+      expect(property.video, startsWith('http'));
+      expect(property.video, endsWith('/media/properties/1/video/clip.mp4'));
+    });
+
+    test('aucune vidéo (null) reste null, ne devient jamais une chaîne vide ou une URL invalide', () {
+      final property = Property.fromJson(buildPropertyJson());
+      expect(property.video, isNull);
+    });
+  });
 }

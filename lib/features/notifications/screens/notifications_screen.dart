@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../app/routes.dart';
+import '../../../core/services/notification_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/feedback.dart';
 import '../../../core/utils/formatters.dart';
 import '../models/app_notification.dart';
 import '../providers/notification_providers.dart';
@@ -20,7 +24,13 @@ class NotificationsScreen extends ConsumerWidget {
         title: const Text('Notifications'),
         actions: [
           TextButton(
-            onPressed: () => markAllNotificationsAsRead(ref),
+            onPressed: () async {
+              try {
+                await markAllNotificationsAsRead(ref);
+              } catch (e) {
+                if (context.mounted) showErrorSnackbar(context, e);
+              }
+            },
             child: const Text('Tout lire', style: AppTextStyles.link),
           ),
         ],
@@ -40,7 +50,51 @@ class NotificationsScreen extends ConsumerWidget {
               final notification = notifications[index];
               return _NotificationTile(
                 notification: notification,
-                onTap: () => markNotificationAsRead(ref, notification.id),
+                onTap: () async {
+                  // Marquer comme lu et naviguer sont deux actions
+                  // indépendantes : si le marquage échoue (réseau instable
+                  // sur téléphone réel), l'utilisateur doit quand même
+                  // pouvoir atteindre la conversation/réservation/propriété
+                  // concernée plutôt que de rester bloqué sur une exception
+                  // silencieuse (c'était le cas ici auparavant — un échec de
+                  // markNotificationAsRead empêchait aussi bien la mise à
+                  // jour du badge que la navigation).
+                  try {
+                    await markNotificationAsRead(ref, notification.id);
+                  } catch (e) {
+                    if (context.mounted) showErrorSnackbar(context, e);
+                  }
+                  if (!context.mounted) return;
+                  final path = const NotificationRouter()
+                      .resolvePath(notification.rawType, notification.data);
+                  if (path != null) {
+                    // AppRoutes.reservationsList appartient à une branche du
+                    // shell (StatefulShellRoute) : un push() depuis cet écran
+                    // (poussé sur le navigateur racine) créerait une 2e
+                    // instance du shell avec les mêmes GlobalKey de
+                    // Navigator par branche que l'instance déjà montée, ce
+                    // qui fait planter Flutter ("keyReservation.contains
+                    // (key)"). go() navigue vers l'onglet existant au lieu
+                    // d'en empiler un nouveau. Les autres destinations
+                    // (conversation, détail annonce) restent des routes
+                    // rattachées au navigateur racine (parentNavigatorKey),
+                    // donc push() y reste correct et préserve le bouton
+                    // retour vers les notifications.
+                    if (path == AppRoutes.reservationsList) {
+                      context.go(path);
+                    } else {
+                      context.push(path);
+                    }
+                  } else {
+                    // Type inconnu ou données insuffisantes pour retrouver
+                    // la source (ex: property_id manquant) : ne jamais
+                    // naviguer au hasard ni planter, mais le dire clairement
+                    // plutôt que de ne rien faire silencieusement.
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Impossible d'ouvrir cette notification.")),
+                    );
+                  }
+                },
               );
             },
           );

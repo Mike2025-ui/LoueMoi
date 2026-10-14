@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/env.dart';
 import '../../../core/network/api_exceptions.dart';
 import '../../../core/network/network_providers.dart';
+import '../../profile/models/agent_profile.dart';
 import '../data/api_auth_repository.dart';
 import '../data/auth_repository.dart';
 import '../models/user.dart';
@@ -74,6 +75,47 @@ class AuthController extends StateNotifier<AsyncValue<User?>> {
   Future<void> logout() async {
     await _repository.logout();
     state = const AsyncValue.data(null);
+  }
+
+  /// Désactivation du compte — voir [AuthRepository.deactivateAccount].
+  /// Propage l'exception (mot de passe incorrect) à l'appelant sans changer
+  /// l'état : l'utilisateur reste connecté tant que le mot de passe n'est
+  /// pas confirmé.
+  Future<void> deactivateAccount(String password) async {
+    await _repository.deactivateAccount(password);
+    state = const AsyncValue.data(null);
+  }
+
+  /// PATCH /api/users/me/ — "Modification du profil". Met à jour l'état
+  /// d'authentification avec la réponse serveur (source de vérité), pour
+  /// que tous les écrans qui lisent authControllerProvider (bell, écrans
+  /// agent/bailleur, etc.) reflètent immédiatement les nouvelles données.
+  Future<void> updateProfile(Map<String, dynamic> changes) async {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    final updated = await _repository.updateProfile(current, changes);
+    state = AsyncValue.data(updated);
+  }
+
+  /// Reflète localement un AgentProfile fraîchement mis à jour (voir
+  /// AgentProfileRepository.updateAgentProfile, distinct de /api/users/me/) —
+  /// évite un rechargement complet de session juste pour ça.
+  void applyUpdatedAgentProfile(AgentProfile profile) {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    state = AsyncValue.data(
+      User(
+        id: current.id,
+        firstName: current.firstName,
+        lastName: current.lastName,
+        phone: current.phone,
+        whatsapp: current.whatsapp,
+        photo: current.photo,
+        token: current.token,
+        role: current.role,
+        agentProfile: profile,
+      ),
+    );
   }
 
   /// Appelé quand l'intercepteur détecte une session expirée (401 + refresh

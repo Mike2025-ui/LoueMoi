@@ -51,4 +51,20 @@ class ApiReservationRepository implements ReservationRepository {
     );
     return Reservation.fromJson(response.data!);
   }
+
+  @override
+  Future<Reservation> completeReservation(String id) async {
+    final response = await _apiClient.post<Map<String, dynamic>>(
+      ApiEndpoints.reservationComplete(id),
+    );
+    return Reservation.fromJson(response.data!);
+  }
+
+  @override
+  Future<String> getOrCreateConversationId(String reservationId) async {
+    final response = await _apiClient.post<Map<String, dynamic>>(
+      ApiEndpoints.reservationConversation(reservationId),
+    );
+    return response.data!['id'].toString();
+  }
 }

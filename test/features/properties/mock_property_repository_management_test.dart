@@ -106,6 +106,11 @@ void main() {
     });
   });
 
+  test('fetchMyPropertiesAsBailleur starts empty (no demo bailleur listings)', () async {
+    final properties = await repository.fetchMyPropertiesAsBailleur();
+    expect(properties, isEmpty);
+  });
+
   test('updatePropertyLocation sets latitude/longitude on the target property', () async {
     final updated = await repository.updatePropertyLocation('8', 5.4, -4.05);
 

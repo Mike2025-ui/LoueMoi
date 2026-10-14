@@ -7,7 +7,19 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/media_url.dart';
+import '../models/message.dart';
 import '../providers/message_providers.dart';
+
+String _lastMessagePreview(Message? message) {
+  if (message == null) return '';
+  if (message.content.isNotEmpty) return message.content;
+  return switch (message.attachmentType) {
+    MessageAttachmentType.image => '📷 Photo',
+    MessageAttachmentType.video => '🎥 Vidéo',
+    MessageAttachmentType.audio => '🎤 Message vocal',
+    MessageAttachmentType.text => '',
+  };
+}
 
 class ConversationsScreen extends ConsumerWidget {
   const ConversationsScreen({super.key});
@@ -50,7 +62,7 @@ class ConversationsScreen extends ConsumerWidget {
                 ),
                 title: Text(conversation.participantName, style: AppTextStyles.bodyMedium),
                 subtitle: Text(
-                  conversation.lastMessage?.content ?? '',
+                  _lastMessagePreview(conversation.lastMessage),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppTextStyles.caption,

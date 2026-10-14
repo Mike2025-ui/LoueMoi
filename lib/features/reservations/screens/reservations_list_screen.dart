@@ -32,7 +32,7 @@ class _ReservationsListScreenState extends State<ReservationsListScreen>
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Mes reserves'),
+        title: const Text('Réservations'),
         automaticallyImplyLeading: false,
         bottom: TabBar(
           controller: _tabController,

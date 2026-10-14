@@ -16,3 +16,16 @@ double haversineKm(double lat1, double lon1, double lat2, double lon2) {
 }
 
 double _toRadians(double degrees) => degrees * pi / 180.0;
+
+/// Arrondit une coordonnée GPS à 6 décimales — même précision que
+/// `Property.latitude`/`longitude` côté Django (`DecimalField(decimal_places=6)`).
+/// Les valeurs venant du GPS (Geolocator) ou d'un tap sur la carte
+/// (flutter_map, conversion pixel -> LatLng) ont couramment 15+ décimales
+/// à cause de l'arithmétique flottante (ex: 5.355410000000004), ce que
+/// Django rejette avec "Assurez-vous qu'il n'y ait pas plus de 6 chiffres
+/// après la virgule.". À appliquer juste avant toute sérialisation
+/// POST/PATCH vers l'API, jamais sur la valeur affichée à l'utilisateur.
+double? normalizeCoordinate(double? value) {
+  if (value == null) return null;
+  return double.parse(value.toStringAsFixed(6));
+}

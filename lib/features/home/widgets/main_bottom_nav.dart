@@ -7,29 +7,37 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../auth/providers/auth_providers.dart';
+import '../../messaging/providers/message_providers.dart';
 
-/// Shell de navigation principal : bottom bar 5 items + FAB central "+"
-/// (Menu / Favoris / Publier / Reserves / Profil), conforme aux captures.
-/// Les icônes sont les visuels réels fournis (assets/icons), teintées selon
-/// l'état actif/inactif. Le FAB "Publier" n'apparaît que pour un agent —
-/// seul un agent peut créer une annonce (permission appliquée côté Django,
-/// ceci n'est qu'une politesse de navigation, pas la vraie barrière).
+/// Shell de navigation principal : bottom bar + FAB central "+"
+/// (Menu / Favoris / Publier / Réservations / Conversations / Profil), conforme
+/// aux captures. Les icônes Menu/Favoris/Réservations/Profil sont les visuels
+/// réels fournis (assets/icons) ; Conversations réutilise une icône
+/// Material (aucun asset PNG dédié fourni pour cet onglet) mais avec le
+/// même traitement visuel (taille, couleur active/inactive, style de
+/// label) pour rester cohérent avec le reste de la barre. Le FAB "Publier"
+/// n'apparaît que pour un agent ou un bailleur (deux rôles indépendants,
+/// tous deux habilités à publier — voir User.canOwnProperties), jamais pour
+/// un client. Permission appliquée côté Django, ceci n'est qu'une politesse
+/// de navigation, pas la vraie barrière.
 class MainBottomNav extends ConsumerWidget {
   const MainBottomNav({super.key, required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
 
+  // Plus de "null" en 3e position : le trou réservé au FAB n'est plus
+  // représenté comme un élément de cette liste (voir build(), qui le
+  // positionne désormais autrement) — chaque entrée correspond directement
+  // à une branche de navigationShell, dans l'ordre.
   static const _items = [
     _NavItem(asset: AppAssets.navMenu, label: 'Menu'),
     _NavItem(asset: AppAssets.navFavoris, label: 'Favoris'),
-    null,
-    _NavItem(asset: AppAssets.navReserves, label: 'Reserves'),
+    _NavItem(asset: AppAssets.navReserves, label: 'Réservations'),
+    _NavItem(icon: Icons.chat_bubble_outline, label: 'Messages'),
     _NavItem(asset: AppAssets.navProfil, label: 'Profil'),
   ];
 
-  void _onTap(int index) {
-    if (index == 2) return;
-    final branchIndex = index < 2 ? index : index - 1;
+  void _onTap(int branchIndex) {
     navigationShell.goBranch(
       branchIndex,
       initialLocation: branchIndex == navigationShell.currentIndex,
@@ -39,11 +47,28 @@ class MainBottomNav extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentBranch = navigationShell.currentIndex;
-    final isAgent = ref.watch(authControllerProvider).valueOrNull?.isAgent ?? false;
+    final canPublish = ref.watch(authControllerProvider).valueOrNull?.canOwnProperties ?? false;
+    final unreadMessages = ref.watch(totalUnreadConversationsCountProvider);
+
+    Widget navButton(int branchIndex) {
+      final item = _items[branchIndex];
+      // "Messages" est le seul onglet avec badge non-lu — les autres
+      // (Menu/Favoris/Réservations/Profil) n'ont jamais porté de badge,
+      // ce comportement n'est pas étendu ici sans raison métier.
+      final badgeCount = item.label == 'Messages' ? unreadMessages : 0;
+      return Expanded(
+        child: _NavButton(
+          item: item,
+          isActive: branchIndex == currentBranch,
+          badgeCount: badgeCount,
+          onTap: () => _onTap(branchIndex),
+        ),
+      );
+    }
 
     return Scaffold(
       body: navigationShell,
-      floatingActionButton: isAgent
+      floatingActionButton: canPublish
           ? FloatingActionButton(
               onPressed: () => context.push(AppRoutes.publish),
               backgroundColor: AppColors.primary,
@@ -61,19 +86,36 @@ class MainBottomNav extends ConsumerWidget {
         child: Container(
           height: AppSizes.bottomNavHeight,
           decoration: const BoxDecoration(boxShadow: AppShadows.bottomBar),
+          // Avec 5 destinations autour d'un FAB central, la répartition est
+          // nécessairement asymétrique (2 boutons à gauche : Menu/Favoris,
+          // 3 à droite : Réservations/Messages/Profil). L'ancienne structure
+          // donnait un Expanded(flex:1) à chacun des 5 boutons DANS LA MÊME
+          // Row que l'espace réservé au FAB — le "trou" se retrouvait alors
+          // décalé vers la gauche du centre réel de l'écran (2 boutons avant
+          // le trou, 3 après), alors que le FAB (positionné par
+          // centerDocked, toujours au centre EXACT de l'écran, indépendamment
+          // de cette Row) restait, lui, parfaitement centré. Résultat
+          // confirmé sur téléphone : l'encoche du FAB débordait sur le
+          // bouton "Réservations", qui semblait compressé/mal aligné.
+          //
+          // Correctif : deux groupes Expanded(flex:1) DE MÊME POIDS
+          // encadrant le trou fixe de 64px — la largeur de chaque groupe
+          // ((largeur écran - 64) / 2) est donc TOUJOURS identique des deux
+          // côtés, quel que soit le nombre de boutons qu'il contient. Le
+          // trou reste ainsi mathématiquement centré, exactement là où
+          // centerDocked place le FAB. À l'intérieur de chaque groupe, les
+          // boutons se répartissent entre eux à parts égales (Menu/Favoris
+          // ont donc une largeur individuelle légèrement supérieure à celle
+          // de Réservations/Messages/Profil — c'est le seul compromis
+          // possible pour un partage 2/3, mais chaque groupe reste
+          // lui-même régulier, et FittedBox continue de garantir qu'aucun
+          // libellé n'est jamais tronqué, quelle que soit sa largeur).
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: List.generate(_items.length, (index) {
-              final item = _items[index];
-              if (item == null) return const SizedBox(width: 40);
-              final navIndex = index < 2 ? index : index - 1;
-              final isActive = navIndex == currentBranch;
-              return _NavButton(
-                item: item,
-                isActive: isActive,
-                onTap: () => _onTap(index),
-              );
-            }),
+            children: [
+              Expanded(child: Row(children: [navButton(0), navButton(1)])),
+              const SizedBox(width: 64),
+              Expanded(child: Row(children: [navButton(2), navButton(3), navButton(4)])),
+            ],
           ),
         ),
       ),
@@ -82,17 +124,24 @@ class MainBottomNav extends ConsumerWidget {
 }
 
 class _NavItem {
-  const _NavItem({required this.asset, required this.label});
-  final String asset;
+  const _NavItem({this.asset, this.icon, required this.label}) : assert(asset != null || icon != null);
+  final String? asset;
+  final IconData? icon;
   final String label;
 }
 
 class _NavButton extends StatelessWidget {
-  const _NavButton({required this.item, required this.isActive, required this.onTap});
+  const _NavButton({
+    required this.item,
+    required this.isActive,
+    required this.onTap,
+    this.badgeCount = 0,
+  });
 
   final _NavItem item;
   final bool isActive;
   final VoidCallback onTap;
+  final int badgeCount;
 
   @override
   Widget build(BuildContext context) {
@@ -101,18 +150,57 @@ class _NavButton extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppRadius.sm),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ColorFiltered(
-              colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
-              child: Image.asset(item.asset, width: 24, height: 24),
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                item.asset != null
+                    ? ColorFiltered(
+                        colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+                        child: Image.asset(item.asset!, width: 24, height: 24),
+                      )
+                    : Icon(item.icon, size: 24, color: color),
+                if (badgeCount > 0)
+                  Positioned(
+                    top: -2,
+                    right: -4,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                      constraints: const BoxConstraints(minWidth: 14),
+                      decoration: const BoxDecoration(
+                        color: AppColors.danger,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        badgeCount > 9 ? '9+' : '$badgeCount',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 9,
+                          color: AppColors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 2),
-            Text(
-              item.label,
-              style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w500),
+            // FittedBox plutôt qu'un overflow ellipsis : sur un écran
+            // étroit (~360dp), "Réservations"/"Messages"/"Favoris" ne
+            // tenaient jamais dans la largeur d'un bouton (5 boutons +
+            // l'encoche FAB) et s'affichaient tronqués en "Rése...",
+            // "Mess...", "Favor..." — illisible et peu professionnel. Le
+            // texte se réduit maintenant pour tenir en entier, jamais coupé.
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                item.label,
+                maxLines: 1,
+                style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w500),
+              ),
             ),
           ],
         ),

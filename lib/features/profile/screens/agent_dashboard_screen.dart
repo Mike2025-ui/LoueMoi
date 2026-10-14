@@ -26,53 +26,91 @@ class AgentDashboardScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                GridView.count(
-                  crossAxisCount: 2,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisSpacing: AppSpacing.md,
-                  mainAxisSpacing: AppSpacing.md,
-                  childAspectRatio: 1.5,
+                // Une grille à childAspectRatio fixe force chaque carte dans
+                // une hauteur calculée, indépendante de son contenu réel :
+                // sur un vrai téléphone (métriques de police/densité d'écran
+                // différentes du simulateur), l'icône + les deux lignes de
+                // texte ne tenaient plus dans cette hauteur imposée
+                // ("BOTTOM OVERFLOWED BY 6.7 PIXELS", reproduit sur
+                // appareil réel). Des Row de cartes en Expanded laissent
+                // chaque carte prendre la hauteur dont son contenu a
+                // réellement besoin — plus aucune hauteur n'est imposée.
+                Row(
                   children: [
-                    _StatCard(
-                      icon: Icons.apartment_outlined,
-                      value: '${dashboard.propertiesCount}',
-                      label: 'Mes annonces',
+                    Expanded(
+                      child: _StatCard(
+                        icon: Icons.apartment_outlined,
+                        value: '${dashboard.propertiesCount}',
+                        label: 'Mes annonces',
+                      ),
                     ),
-                    _StatCard(
-                      icon: Icons.check_circle_outline,
-                      value: '${dashboard.availableCount}',
-                      label: 'Disponibles',
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: _StatCard(
+                        icon: Icons.check_circle_outline,
+                        value: '${dashboard.availableCount}',
+                        label: 'Disponibles',
+                      ),
                     ),
-                    _StatCard(
-                      icon: Icons.lock_clock_outlined,
-                      value: '${dashboard.occupiedCount}',
-                      label: 'Occupées',
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _StatCard(
+                        icon: Icons.lock_clock_outlined,
+                        value: '${dashboard.occupiedCount}',
+                        label: 'Occupées',
+                      ),
                     ),
-                    _StatCard(
-                      icon: Icons.assignment_outlined,
-                      value: '${dashboard.reservationsCount}',
-                      label: 'Réservations',
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: _StatCard(
+                        icon: Icons.assignment_outlined,
+                        value: '${dashboard.reservationsCount}',
+                        label: 'Réservations',
+                      ),
                     ),
-                    _StatCard(
-                      icon: Icons.favorite_outline,
-                      value: '${dashboard.favoritesReceived}',
-                      label: 'Favoris reçus',
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _StatCard(
+                        icon: Icons.favorite_outline,
+                        value: '${dashboard.favoritesReceived}',
+                        label: 'Favoris reçus',
+                      ),
                     ),
-                    _StatCard(
-                      icon: Icons.visibility_outlined,
-                      value: '${dashboard.viewsCount}',
-                      label: 'Vues',
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: _StatCard(
+                        icon: Icons.visibility_outlined,
+                        value: '${dashboard.viewsCount}',
+                        label: 'Vues',
+                      ),
                     ),
-                    _StatCard(
-                      icon: Icons.chat_bubble_outline,
-                      value: '${dashboard.messagesCount}',
-                      label: 'Messages',
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _StatCard(
+                        icon: Icons.chat_bubble_outline,
+                        value: '${dashboard.messagesCount}',
+                        label: 'Messages',
+                      ),
                     ),
-                    _StatCard(
-                      icon: Icons.star_border,
-                      value: dashboard.averageRating.toStringAsFixed(1),
-                      label: 'Note moyenne',
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: _StatCard(
+                        icon: Icons.star_border,
+                        value: dashboard.averageRating.toStringAsFixed(1),
+                        label: 'Note moyenne',
+                      ),
                     ),
                   ],
                 ),
@@ -106,8 +144,8 @@ class _StatCard extends StatelessWidget {
         border: Border.all(color: AppColors.border),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(icon, color: AppColors.primary, size: 22),
           const SizedBox(height: AppSpacing.sm),

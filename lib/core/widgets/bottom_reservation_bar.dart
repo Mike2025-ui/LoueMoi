@@ -7,7 +7,9 @@ import '../utils/formatters.dart';
 import 'primary_button.dart';
 
 /// Barre d'action fixe en bas de l'écran de détail : prix + bouton Reserver,
-/// ou message "Propriété occupée" quand la propriété n'est plus disponible.
+/// ou un message ("Propriété occupée"/"Propriété vendue"...) quand la
+/// propriété n'est plus disponible — le message exact dépend de la raison
+/// (occupee vs vendue), jamais codé en dur ici.
 class BottomReservationBar extends StatelessWidget {
   const BottomReservationBar({
     super.key,
@@ -15,12 +17,14 @@ class BottomReservationBar extends StatelessWidget {
     required this.priceSuffix,
     required this.isAvailable,
     required this.onReserve,
+    this.unavailableLabel = 'Propriété occupée',
   });
 
   final double price;
   final String priceSuffix;
   final bool isAvailable;
   final VoidCallback onReserve;
+  final String unavailableLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -59,10 +63,10 @@ class BottomReservationBar extends StatelessWidget {
                     ),
                   ],
                 )
-              : const Center(
+              : Center(
                   child: Text(
-                    'Propriété occupée',
-                    style: TextStyle(
+                    unavailableLabel,
+                    style: const TextStyle(
                       color: AppColors.danger,
                       fontWeight: FontWeight.w600,
                       fontSize: 15,

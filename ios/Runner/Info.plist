@@ -31,6 +31,15 @@
 	     lancement de l'app. -->
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>LoueMoi utilise votre position pour vous aider à placer précisément votre annonce sur la carte et pour vous proposer les biens à proximité.</string>
+	<!-- Messagerie multimédia (bailleur ↔ agent) — demandées uniquement au
+	     moment de l'action (choisir une photo/vidéo, enregistrer un vocal),
+	     jamais au lancement de l'app. -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>LoueMoi utilise le microphone pour enregistrer vos messages vocaux dans la messagerie.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>LoueMoi utilise l'appareil photo pour ajouter des photos ou vidéos à vos annonces et messages.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>LoueMoi accède à vos photos et vidéos pour les ajouter à vos annonces et messages.</string>
 	<!-- Autorise le HTTP en clair uniquement vers l'hôte de développement
 	     local (simulateur iOS), pour tester contre `python manage.py
 	     runserver` sans certificat HTTPS. Toute autre destination reste

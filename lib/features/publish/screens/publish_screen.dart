@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:video_player/video_player.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/location_permission_service.dart';
 import '../../../core/theme/app_colors.dart';
@@ -13,6 +14,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/feedback.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/utils/geo.dart';
 import '../../../core/widgets/app_map_view.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/primary_button.dart';
@@ -22,6 +24,7 @@ import '../../properties/models/agent.dart';
 import '../../properties/models/property.dart';
 import '../../properties/models/property_enums.dart';
 import '../../properties/providers/property_providers.dart';
+import '../../properties/widgets/property_video_player.dart';
 import '../providers/publish_form_provider.dart';
 import '../widgets/publish_dropdown_field.dart';
 
@@ -46,12 +49,33 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
   bool _submitting = false;
   String? _loadError;
 
+  // Publication en deux phases (créer la propriété, puis envoyer les
+  // photos) : si l'upload d'une photo échoue après une création réussie,
+  // on garde la propriété déjà créée et le nombre de photos déjà envoyées
+  // pour qu'un nouveau clic sur "Publier" reprenne l'envoi au lieu de
+  // recréer un doublon ou de renvoyer une photo déjà envoyée.
+  Property? _createdProperty;
+  int _uploadedImageCount = 0;
+  bool _videoUploaded = false;
+
   bool get _isEditing => widget.editPropertyId != null;
 
   @override
   void initState() {
     super.initState();
-    _loadInitial();
+    // Pour une nouvelle publication (pas une édition), _loadInitial() mute
+    // publishFormProvider de façon synchrone (aucun await avant cette
+    // écriture) — appelé directement depuis initState(), cela survient donc
+    // pendant que l'arbre de widgets est en construction, provoquant "Tried
+    // to modify a provider while the widget tree was building" (reproduit
+    // sur téléphone). addPostFrameCallback reporte l'appel au frame suivant,
+    // une fois le build initial terminé — la remise à zéro du formulaire
+    // reste nécessaire ici (le provider n'est pas autoDispose, il faut
+    // repartir d'un état vierge à chaque ouverture d'une nouvelle
+    // publication) mais s'exécute désormais au bon moment.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _loadInitial();
+    });
   }
 
   Future<void> _loadInitial() async {
@@ -146,6 +170,7 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
   }
 
   Future<void> _submit() async {
+    if (_submitting) return; // un clic pendant une publication en cours est ignoré
     final error = _validateStep(4);
     if (error != null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
@@ -181,12 +206,18 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
           'commune': form.commune.trim(),
           'district': form.district.trim(),
           'address': form.address.trim(),
-          'latitude': form.latitude,
-          'longitude': form.longitude,
+          'latitude': normalizeCoordinate(form.latitude),
+          'longitude': normalizeCoordinate(form.longitude),
           'features': _buildFeatures(form),
           'amenities': form.characteristics.toList(),
         };
         saved = await repository.updateProperty(widget.editPropertyId!, payload);
+      } else if (_createdProperty != null) {
+        // Tentative précédente : la propriété a déjà été créée côté serveur
+        // mais l'envoi d'une photo avait échoué. On ne recrée jamais la
+        // propriété (pas de doublon) — on reprend seulement l'envoi des
+        // photos restantes ci-dessous.
+        saved = _createdProperty!;
       } else {
         final user = ref.read(authControllerProvider).valueOrNull;
         final now = DateTime.now();
@@ -227,14 +258,27 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
           updatedAt: now,
         );
         saved = await repository.addProperty(draft);
+        _createdProperty = saved;
       }
 
-      for (final file in form.newImages) {
+      // Ne renvoie que les photos pas encore envoyées avec succès — évite
+      // un doublon si un clic précédent avait déjà réussi une partie de
+      // l'envoi avant d'échouer sur une autre photo.
+      final pendingImages = form.newImages.skip(_uploadedImageCount);
+      for (final file in pendingImages) {
         saved = await repository.uploadImage(
           saved.id,
           file,
           isCover: saved.images.isEmpty,
         );
+        _uploadedImageCount++;
+        _createdProperty = saved;
+      }
+
+      if (form.newVideo != null && !_videoUploaded) {
+        saved = await repository.uploadVideo(saved.id, form.newVideo!);
+        _videoUploaded = true;
+        _createdProperty = saved;
       }
 
       ref.invalidate(propertiesListProvider);
@@ -249,19 +293,82 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
       );
       context.pop();
     } catch (e) {
-      if (mounted) showErrorSnackbar(context, e);
+      if (!mounted) return;
+      if (!_isEditing && _createdProperty != null) {
+        // La propriété existe déjà côté serveur (créée lors d'une tentative
+        // précédente ou juste avant l'échec sur cette photo) : ne jamais
+        // afficher un succès, mais ne pas non plus laisser croire que rien
+        // n'a été fait — l'utilisateur peut réessayer, l'envoi reprendra là
+        // où il s'est arrêté (voir _uploadedImageCount ci-dessus).
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(
+                "L'annonce a été créée mais l'envoi d'une photo ou de la vidéo a échoué "
+                '(${e.toString()}). Réessayez pour terminer l\'envoi.',
+              ),
+            ),
+          );
+      } else {
+        showErrorSnackbar(context, e);
+      }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
   }
 
+  /// Abandonne la publication depuis l'aperçu. Si une tentative précédente
+  /// a déjà créé la propriété côté serveur (photo en échec, voir _submit),
+  /// on la supprime pour ne pas laisser un brouillon fantôme — jamais en
+  /// mode modification, où la propriété existait déjà avant cet écran.
+  Future<void> _cancel() async {
+    final hasData = _createdProperty != null ||
+        ref.read(publishFormProvider).title.trim().isNotEmpty;
+    if (hasData) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Annuler la publication ?'),
+          content: Text(
+            _isEditing
+                ? 'Les modifications non enregistrées seront perdues.'
+                : "L'annonce ne sera pas publiée.",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Continuer'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Annuler'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
+
+    if (!_isEditing && _createdProperty != null) {
+      try {
+        await ref.read(propertyRepositoryProvider).deleteProperty(_createdProperty!.id);
+      } catch (_) {
+        // Best-effort : même si la suppression échoue, on ne bloque jamais
+        // l'annulation — l'utilisateur ne doit pas rester coincé ici.
+      }
+    }
+    if (mounted) context.pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     // Politesse de navigation : la vraie barrière est côté Django
-    // (IsAgent sur POST /api/properties/). Un client qui atteindrait quand
-    // même cet écran (deep link, etc.) ne doit pas pouvoir publier.
-    final isAgent = ref.watch(authControllerProvider).valueOrNull?.isAgent ?? false;
-    if (!isAgent) {
+    // (CanOwnProperties sur POST /api/properties/). Un client qui
+    // atteindrait quand même cet écran (deep link, etc.) ne doit pas
+    // pouvoir publier. Agent et bailleur sont tous deux habilités.
+    final canPublish = ref.watch(authControllerProvider).valueOrNull?.canOwnProperties ?? false;
+    if (!canPublish) {
       return Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(title: const Text('Publier une propriété')),
@@ -326,12 +433,24 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
               top: false,
               child: Padding(
                 padding: const EdgeInsets.all(AppSpacing.screenPadding),
-                child: PrimaryButton(
-                  label: _step == _totalSteps - 1
-                      ? (_isEditing ? 'Enregistrer' : 'Publier')
-                      : 'Suivant',
-                  isLoading: _submitting,
-                  onPressed: _next,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_step == _totalSteps - 1) ...[
+                      TextButton(
+                        onPressed: _submitting ? null : _cancel,
+                        child: const Text('Annuler', style: AppTextStyles.link),
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                    ],
+                    PrimaryButton(
+                      label: _step == _totalSteps - 1
+                          ? (_isEditing ? 'Enregistrer' : 'Publier')
+                          : 'Suivant',
+                      isLoading: _submitting,
+                      onPressed: _next,
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -879,8 +998,185 @@ class _StepPhotos extends ConsumerWidget {
               ),
             ],
           ),
+          const Divider(height: AppSpacing.xl),
+          _VideoPickerSection(editPropertyId: editPropertyId),
         ],
       ),
+    );
+  }
+}
+
+/// Sélection/aperçu/remplacement/suppression de LA vidéo de l'annonce
+/// (facultative, une seule au maximum). Validation client (format/taille/
+/// durée) immédiate — feedback rapide avant d'atteindre la validation
+/// serveur, qui reste la source de vérité (voir PropertyViewSet.upload_video).
+class _VideoPickerSection extends ConsumerStatefulWidget {
+  const _VideoPickerSection({required this.editPropertyId});
+
+  final String? editPropertyId;
+
+  @override
+  ConsumerState<_VideoPickerSection> createState() => _VideoPickerSectionState();
+}
+
+class _VideoPickerSectionState extends ConsumerState<_VideoPickerSection> {
+  static const _maxSizeBytes = 50 * 1024 * 1024;
+  static const _maxDuration = Duration(seconds: 60);
+
+  bool _processing = false;
+  String? _error;
+
+  Future<void> _pickVideo(PublishFormState form) async {
+    setState(() {
+      _processing = true;
+      _error = null;
+    });
+    try {
+      final picked = await ImagePicker().pickVideo(source: ImageSource.gallery);
+      if (picked == null) {
+        if (mounted) setState(() => _processing = false);
+        return;
+      }
+      if (!picked.name.toLowerCase().endsWith('.mp4')) {
+        if (mounted) {
+          setState(() {
+            _processing = false;
+            _error = 'Format vidéo non pris en charge (MP4 uniquement).';
+          });
+        }
+        return;
+      }
+
+      final sizeBytes = await File(picked.path).length();
+      if (sizeBytes > _maxSizeBytes) {
+        if (mounted) {
+          setState(() {
+            _processing = false;
+            _error = 'La vidéo dépasse la taille maximale de 50 Mo.';
+          });
+        }
+        return;
+      }
+
+      final controller = VideoPlayerController.file(File(picked.path));
+      try {
+        await controller.initialize();
+        if (controller.value.duration > _maxDuration) {
+          if (mounted) {
+            setState(() {
+              _processing = false;
+              _error = 'La vidéo dépasse la durée maximale de 60 secondes.';
+            });
+          }
+          return;
+        }
+      } finally {
+        await controller.dispose();
+      }
+
+      final notifier = ref.read(publishFormProvider.notifier);
+      notifier.state = form.copyWith(newVideo: picked, clearExistingVideoUrl: true);
+      if (mounted) setState(() => _processing = false);
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _processing = false;
+          _error = 'Impossible de sélectionner la vidéo.';
+        });
+      }
+    }
+  }
+
+  Future<void> _removeExistingVideo(BuildContext context, PublishFormState form) async {
+    if (widget.editPropertyId == null) return;
+    setState(() {
+      _processing = true;
+      _error = null;
+    });
+    try {
+      await ref.read(propertyRepositoryProvider).deleteVideo(widget.editPropertyId!);
+      final notifier = ref.read(publishFormProvider.notifier);
+      notifier.state = form.copyWith(clearExistingVideoUrl: true);
+    } catch (e) {
+      if (context.mounted) showErrorSnackbar(context, e);
+    } finally {
+      if (mounted) setState(() => _processing = false);
+    }
+  }
+
+  void _removeNewVideo(PublishFormState form) {
+    final notifier = ref.read(publishFormProvider.notifier);
+    notifier.state = form.copyWith(clearNewVideo: true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final form = ref.watch(publishFormProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Vidéo du bien (optionnel)', style: AppTextStyles.h3),
+        const SizedBox(height: AppSpacing.xs),
+        const Text(
+          'Une vidéo MP4, 60 secondes et 50 Mo maximum.',
+          style: AppTextStyles.caption,
+        ),
+        const SizedBox(height: AppSpacing.md),
+        if (_processing)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          )
+        else if (form.hasVideo) ...[
+          PropertyVideoPlayer(
+            source: form.newVideo?.path ?? form.existingVideoUrl!,
+            isLocalFile: form.newVideo != null,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Row(
+            children: [
+              Flexible(
+                child: TextButton.icon(
+                  onPressed: () => _pickVideo(form),
+                  icon: const Icon(Icons.swap_horiz, size: 16),
+                  label: const Text('Remplacer', overflow: TextOverflow.ellipsis),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Flexible(
+                child: TextButton.icon(
+                  onPressed: () => form.newVideo != null
+                      ? _removeNewVideo(form)
+                      : _removeExistingVideo(context, form),
+                  icon: const Icon(Icons.delete_outline, size: 16, color: AppColors.danger),
+                  label: const Text(
+                    'Supprimer',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: AppColors.danger),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ] else
+          OutlinedButton.icon(
+            onPressed: () => _pickVideo(form),
+            icon: const Icon(Icons.videocam_outlined, size: 18),
+            label: const Text('Ajouter une vidéo'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.primary,
+              side: const BorderSide(color: AppColors.primary),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              minimumSize: const Size.fromHeight(0),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.pill)),
+            ),
+          ),
+        if (_error != null) ...[
+          const SizedBox(height: AppSpacing.xs),
+          Text(_error!, style: const TextStyle(color: AppColors.danger, fontSize: 12)),
+        ],
+      ],
     );
   }
 }

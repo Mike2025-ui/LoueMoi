@@ -6,15 +6,25 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
+from .media_views import serve_media
+
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("dashboard/", include("dashboard.urls")),
     path("api/", include("accounts.urls")),
     path("api/", include("agents.urls")),
+    path("api/", include("bailleurs.urls")),
     path("api/", include("properties.urls")),
     path("api/", include("reviews.urls")),
     path("api/", include("reservations.urls")),
     path("api/", include("messaging.urls")),
+    path("api/", include("notifications.urls")),
 ]
 
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    # view=serve_media (au lieu de la vue par défaut django.views.static.
+    # serve) : seule cette vue gère les requêtes HTTP Range, indispensables
+    # à la lecture vidéo réseau (voir config/media_views.py pour la cause
+    # exacte). N'affecte que le développement/LAN — DEBUG=False en
+    # production, où les fichiers media sont servis autrement.
+    urlpatterns += static(settings.MEDIA_URL, view=serve_media, document_root=settings.MEDIA_ROOT)

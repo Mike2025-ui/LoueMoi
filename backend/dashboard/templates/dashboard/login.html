@@ -1,0 +1,28 @@
+{% load static %}<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Connexion · LoueMoi Admin</title>
+  <link rel="stylesheet" href="{% static 'dashboard/css/dashboard.css' %}">
+</head>
+<body class="login-body">
+  <div class="login-card">
+    <div class="login-brand">LoueMoi <span>Admin</span></div>
+    {% if form.errors %}
+      <p class="error-msg">
+        {% if form.non_field_errors %}{{ form.non_field_errors.0 }}{% else %}Numéro de téléphone ou mot de passe incorrect.{% endif %}
+      </p>
+    {% endif %}
+    <form method="post">
+      {% csrf_token %}
+      <label for="id_username">Téléphone</label>
+      <input type="text" name="username" id="id_username" autofocus required>
+      <label for="id_password">Mot de passe</label>
+      <input type="password" name="password" id="id_password" required>
+      <input type="hidden" name="next" value="{{ next }}">
+      <button type="submit" class="btn-primary">Se connecter</button>
+    </form>
+  </div>
+</body>
+</html>

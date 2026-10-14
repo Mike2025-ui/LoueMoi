@@ -36,7 +36,11 @@ class RegisterSerializer(serializers.ModelSerializer):
     # toute autre valeur) est rejeté automatiquement par la validation DRF,
     # impossible de créer un compte admin depuis l'inscription publique.
     role = serializers.ChoiceField(
-        choices=[(User.ROLE_CLIENT, "Client"), (User.ROLE_AGENT, "Agent immobilier")],
+        choices=[
+            (User.ROLE_CLIENT, "Client"),
+            (User.ROLE_BAILLEUR, "Bailleur"),
+            (User.ROLE_AGENT, "Agent immobilier"),
+        ],
         default=User.ROLE_CLIENT,
     )
 

@@ -8,6 +8,8 @@ import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/section_divider_title.dart';
 import '../../properties/models/property_enums.dart';
+import '../../properties/providers/property_providers.dart';
+import '../models/filter_params.dart';
 import '../providers/filter_providers.dart';
 import '../widgets/filter_toggle_chip.dart';
 
@@ -39,14 +41,19 @@ class _FiltersSheetState extends ConsumerState<FiltersSheet> {
   @override
   void initState() {
     super.initState();
-    final applied = ref.read(appliedFilterParamsProvider);
-    if (applied != null) {
-      ref.read(draftFilterParamsProvider.notifier).state = applied;
-      _communeController.text = applied.commune;
-      _quartierController.text = applied.district;
-      _budgetMinController.text = applied.budgetMin?.toStringAsFixed(0) ?? '';
-      _budgetMaxController.text = applied.budgetMax?.toStringAsFixed(0) ?? '';
-    }
+    // Uniquement des LECTURES ici (ref.read d'une valeur déjà résolue, sur
+    // des TextEditingController Flutter classiques) — jamais une écriture
+    // de provider (`.notifier.state = ...`) pendant initState(), qui
+    // provoquait "Tried to modify a provider while the widget tree was
+    // building" sur téléphone. La valeur initiale de draftFilterParamsProvider
+    // (Location/Vente synchronisé avec HomeScreen) est désormais dérivée
+    // directement dans sa définition (voir filter_providers.dart), donc plus
+    // rien à écrire ici.
+    final draft = ref.read(draftFilterParamsProvider);
+    _communeController.text = draft.commune;
+    _quartierController.text = draft.district;
+    _budgetMinController.text = draft.budgetMin?.toStringAsFixed(0) ?? '';
+    _budgetMaxController.text = draft.budgetMax?.toStringAsFixed(0) ?? '';
   }
 
   @override
@@ -83,6 +90,11 @@ class _FiltersSheetState extends ConsumerState<FiltersSheet> {
       budgetMax: double.tryParse(_budgetMaxController.text),
     );
     ref.read(appliedFilterParamsProvider.notifier).state = updated;
+    // homeTransactionTypeProvider reste la source de vérité pour le toggle
+    // Location/Vente affiché sur HomeScreen (voir _effectiveFilters côté
+    // property_providers.dart) — sans cette synchronisation, choisir
+    // "Vente" ici n'aurait aucun effet sur la recherche réellement lancée.
+    ref.read(homeTransactionTypeProvider.notifier).state = updated.transactionType;
     Navigator.of(context).pop();
   }
 
@@ -117,7 +129,19 @@ class _FiltersSheetState extends ConsumerState<FiltersSheet> {
                       style: AppTextStyles.h3,
                     ),
                   ),
-                  const SizedBox(width: 22),
+                  InkWell(
+                    onTap: () {
+                      // Réinitialise tout sauf Location/Vente, qui reste
+                      // piloté par le toggle déjà visible sur HomeScreen.
+                      notifier.state =
+                          const FilterParams().copyWith(transactionType: draft.transactionType);
+                      _communeController.clear();
+                      _quartierController.clear();
+                      _budgetMinController.clear();
+                      _budgetMaxController.clear();
+                    },
+                    child: const Text('Réinitialiser', style: AppTextStyles.link),
+                  ),
                 ],
               ),
             ),

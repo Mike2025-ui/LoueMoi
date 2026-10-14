@@ -64,11 +64,14 @@ class PropertySerializer(serializers.ModelSerializer):
             "is_favorite",
             "images",
             "cover_image",
+            "video",
             "features",
             "amenities",
             "agent",
             "views_count",
             "favorites_count",
+            "published_at",
+            "expires_at",
             "created_at",
             "updated_at",
         ]
@@ -77,11 +80,22 @@ class PropertySerializer(serializers.ModelSerializer):
         # champ `agent_id` écrivable — empêche un agent de publier une
         # annonce au nom d'un autre agent. views_count/favorites_count sont
         # incrémentés uniquement côté serveur (actions dédiées), jamais
-        # écrivables directement par le client.
+        # écrivables directement par le client. `status` en lecture seule
+        # ici : un PATCH générique contournait sinon complètement la
+        # validation métier de PropertyViewSet.mark_status (occupee/vendue
+        # cohérents avec transaction_type) — un seul chemin API pour
+        # changer le statut, jamais deux. Même raisonnement pour `video` :
+        # un PATCH générique contournerait la validation (taille/format/
+        # durée) et le nettoyage de fichier de PropertyViewSet.upload_video
+        # — un seul chemin API pour la modifier.
         read_only_fields = [
             "id",
+            "status",
             "views_count",
             "favorites_count",
+            "video",
+            "published_at",
+            "expires_at",
             "created_at",
             "updated_at",
         ]

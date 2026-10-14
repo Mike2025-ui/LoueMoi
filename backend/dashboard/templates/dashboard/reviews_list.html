@@ -1,0 +1,38 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Avis{% endblock %}
+{% block page_title %}Avis{% endblock %}
+{% block content %}
+<form class="filters" method="get">
+  <input type="text" name="q" placeholder="Propriété, auteur..." value="{{ q }}">
+  <select name="rating">
+    <option value="">Toutes les notes</option>
+    {% for n in "12345" %}
+      <option value="{{ n }}" {% if rating == n %}selected{% endif %}>{{ n }} ★</option>
+    {% endfor %}
+  </select>
+  <button type="submit">Filtrer</button>
+</form>
+
+<div class="card">
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Auteur</th><th>Propriété</th><th>Propriétaire</th><th>Note</th><th>Commentaire</th><th>Date</th></tr></thead>
+    <tbody>
+      {% for rv in page_obj %}
+      <tr>
+        <td><a href="{% url 'dashboard:user_detail' rv.user.pk %}">{{ rv.user }}</a></td>
+        <td><a href="{% url 'dashboard:property_detail' rv.property.pk %}">{{ rv.property.title }}</a></td>
+        <td>{{ rv.property.agent }}</td>
+        <td>{{ rv.rating }} ★</td>
+        <td>{{ rv.comment|truncatechars:60 }}</td>
+        <td>{{ rv.created_at|date:"d/m/Y" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="empty-state">Aucun avis trouvé.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% include "dashboard/_pagination.html" %}
+</div>
+{% endblock %}

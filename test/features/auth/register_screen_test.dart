@@ -5,7 +5,7 @@ import 'package:louemoi/core/theme/app_colors.dart';
 import 'package:louemoi/features/auth/screens/register_screen.dart';
 
 void main() {
-  testWidgets('account type selector defaults to Client and can switch to Agent immobilier',
+  testWidgets('account type selector defaults to Client and can switch to Bailleur/Agent',
       (tester) async {
     await tester.pumpWidget(
       const ProviderScope(
@@ -29,13 +29,21 @@ void main() {
     expect(find.text('Type de compte'), findsOneWidget);
     // Client sélectionné par défaut, conformément au cahier des charges.
     expect(pillColor('Client'), AppColors.primary);
-    expect(pillColor('Agent immobilier'), AppColors.white);
+    expect(pillColor('Bailleur'), AppColors.white);
+    expect(pillColor('Agent'), AppColors.white);
 
-    await tester.tap(find.text('Agent immobilier'));
+    await tester.tap(find.text('Bailleur'));
     await tester.pump();
 
     expect(pillColor('Client'), AppColors.white);
-    expect(pillColor('Agent immobilier'), AppColors.primary);
+    expect(pillColor('Bailleur'), AppColors.primary);
+    expect(pillColor('Agent'), AppColors.white);
+
+    await tester.tap(find.text('Agent'));
+    await tester.pump();
+
+    expect(pillColor('Bailleur'), AppColors.white);
+    expect(pillColor('Agent'), AppColors.primary);
   });
 
   testWidgets('shows a mismatch error when passwords differ', (tester) async {

@@ -27,6 +27,8 @@ class PublishFormState {
     this.longitude,
     this.existingImages = const [],
     this.newImages = const [],
+    this.existingVideoUrl,
+    this.newVideo,
   });
 
   final TransactionType transactionType;
@@ -76,7 +78,21 @@ class PublishFormState {
   /// au moment de la publication/modification.
   final List<XFile> newImages;
 
+  /// Édition uniquement : URL déjà hébergée côté serveur — la suppression
+  /// (bouton "Supprimer") appelle immédiatement PropertyRepository.deleteVideo,
+  /// exactement comme pour une photo existante. Jamais renvoyée à
+  /// l'existingImages/newImages ci-dessus : vidéo et photos restent deux
+  /// éléments distincts du formulaire.
+  final String? existingVideoUrl;
+
+  /// Nouvelle vidéo sélectionnée localement, à uploader au moment de la
+  /// publication/modification — déjà validée côté client (format/taille/
+  /// durée) avant d'arriver ici (voir _VideoPickerSection).
+  final XFile? newVideo;
+
   bool get hasAtLeastOnePhoto => existingImages.isNotEmpty || newImages.isNotEmpty;
+
+  bool get hasVideo => newVideo != null || (existingVideoUrl?.isNotEmpty ?? false);
 
   PublishFormState copyWith({
     TransactionType? transactionType,
@@ -101,6 +117,10 @@ class PublishFormState {
     double? longitude,
     List<String>? existingImages,
     List<XFile>? newImages,
+    String? existingVideoUrl,
+    bool clearExistingVideoUrl = false,
+    XFile? newVideo,
+    bool clearNewVideo = false,
   }) {
     return PublishFormState(
       transactionType: transactionType ?? this.transactionType,
@@ -125,6 +145,9 @@ class PublishFormState {
       longitude: longitude ?? this.longitude,
       existingImages: existingImages ?? this.existingImages,
       newImages: newImages ?? this.newImages,
+      existingVideoUrl:
+          clearExistingVideoUrl ? null : (existingVideoUrl ?? this.existingVideoUrl),
+      newVideo: clearNewVideo ? null : (newVideo ?? this.newVideo),
     );
   }
 
@@ -152,6 +175,7 @@ class PublishFormState {
       longitude: property.longitude,
       characteristics: {...property.features, ...property.amenities},
       existingImages: property.images,
+      existingVideoUrl: property.video,
     );
   }
 
@@ -181,5 +205,18 @@ List<String> characteristicsOptionsFor(PropertyType type) {
   }
 }
 
-final publishFormProvider =
-    StateProvider.autoDispose<PublishFormState>((ref) => const PublishFormState());
+/// Volontairement PAS autoDispose : PublishScreen._loadInitial() écrit
+/// l'état initial (const PublishFormState() pour une nouvelle annonce,
+/// PublishFormState.fromProperty(property) — après un await réseau — pour
+/// une édition) AVANT que la première page du PageView (seule à observer ce
+/// provider) ne soit montée, puisque cette page n'apparaît qu'une fois
+/// _loadingInitial passé à false par ce même appel. Avec autoDispose, le
+/// provider n'a donc aucun watcher actif au moment de cette écriture :
+/// Riverpod le libère aussitôt (faute d'observateur), et l'écriture est
+/// perdue — le formulaire d'édition revenait à son état par défaut (vide)
+/// au lieu des données réelles de l'annonce. Le cycle de vie de cet état
+/// est de toute façon déjà entièrement piloté par PublishScreen elle-même
+/// (réinitialisé explicitement à CHAQUE ouverture, aussi bien en création
+/// qu'en édition) : autoDispose n'apportait donc aucun bénéfice réel ici,
+/// seulement ce risque de perte de données.
+final publishFormProvider = StateProvider<PublishFormState>((ref) => const PublishFormState());

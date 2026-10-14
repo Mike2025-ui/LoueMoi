@@ -1,0 +1,32 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Agents{% endblock %}
+{% block page_title %}Agents{% endblock %}
+{% block content %}
+<form class="filters" method="get">
+  <input type="text" name="q" placeholder="Nom, téléphone, agence..." value="{{ q }}">
+  <button type="submit">Rechercher</button>
+</form>
+
+<div class="card">
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Nom</th><th>Téléphone</th><th>Agence</th><th>WhatsApp</th><th>Vérifié</th><th>Note</th></tr></thead>
+    <tbody>
+      {% for a in page_obj %}
+      <tr onclick="window.location='{% url 'dashboard:user_detail' a.user.pk %}'" style="cursor:pointer">
+        <td>{{ a.user }}</td>
+        <td>{{ a.user.phone }}</td>
+        <td>{{ a.agency_name|default:"—" }}</td>
+        <td>{{ a.whatsapp|default:"—" }}</td>
+        <td>{% if a.is_verified %}<span class="badge badge-success">Vérifié</span>{% else %}<span class="badge badge-muted">Non vérifié</span>{% endif %}</td>
+        <td>{{ a.rating }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="empty-state">Aucun profil agent trouvé.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% include "dashboard/_pagination.html" %}
+</div>
+{% endblock %}

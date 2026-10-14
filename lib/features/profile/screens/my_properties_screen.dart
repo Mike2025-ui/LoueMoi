@@ -55,6 +55,57 @@ class MyPropertiesScreen extends ConsumerWidget {
     }
   }
 
+  /// CORRECTION MÉTIER : une réservation ne rend plus une annonce "occupee"
+  /// automatiquement (voir ReservationViewSet.perform_create côté Django) —
+  /// c'est désormais au propriétaire de décider explicitement ici. Passe par
+  /// markPropertyStatus (l'action dédiée /status/), jamais le PATCH
+  /// générique : `status` y est désormais en lecture seule côté Django
+  /// (voir PropertySerializer.read_only_fields) précisément pour empêcher
+  /// de contourner la validation occupee/vendue cohérente avec
+  /// transaction_type — "occupee" n'a de sens qu'en location, "vendue"
+  /// qu'en vente, jamais l'inverse.
+  Future<void> _toggleStatus(BuildContext context, WidgetRef ref, Property property) async {
+    final isLocation = property.transactionType == TransactionType.location;
+    final newStatus = property.status == PropertyStatus.disponible
+        ? (isLocation ? PropertyStatus.occupee : PropertyStatus.vendue)
+        : PropertyStatus.disponible;
+    try {
+      await markPropertyStatus(ref, propertyId: property.id, status: newStatus);
+      // markPropertyStatus n'invalide que propertyByIdProvider (suffisant
+      // pour ReservationCard) — cet écran a besoin des deux autres pour que
+      // "Mes annonces" et la recherche publique reflètent le nouveau statut
+      // immédiatement.
+      ref.invalidate(myPropertiesProvider);
+      ref.invalidate(propertiesListProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Annonce marquée ${newStatus.label.toLowerCase()}.')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) showErrorSnackbar(context, e);
+    }
+  }
+
+  /// "Reconduire un bien" — voir PropertyRepository.renewProperty : aucune
+  /// notion d'expiration n'existe dans le modèle actuel, donc ceci se
+  /// contente de rafraîchir l'annonce (updated_at côté Django), sans créer
+  /// de doublon ni perdre de données/photos.
+  Future<void> _renew(BuildContext context, WidgetRef ref, Property property) async {
+    try {
+      final repository = ref.read(propertyRepositoryProvider);
+      await repository.renewProperty(property.id);
+      ref.invalidate(myPropertiesProvider);
+      ref.invalidate(propertiesListProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Annonce reconduite avec succès.')));
+      }
+    } catch (e) {
+      if (context.mounted) showErrorSnackbar(context, e);
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final propertiesAsync = ref.watch(myPropertiesProvider);
@@ -83,6 +134,8 @@ class MyPropertiesScreen extends ConsumerWidget {
                   onTap: () => context.push(AppRoutes.propertyDetailPath(property.id)),
                   onEdit: () => context.push(AppRoutes.editPropertyPath(property.id)),
                   onDelete: () => _confirmDelete(context, ref, property),
+                  onToggleStatus: () => _toggleStatus(context, ref, property),
+                  onRenew: () => _renew(context, ref, property),
                 );
               },
             ),
@@ -103,12 +156,16 @@ class _MyPropertyTile extends StatelessWidget {
     required this.onTap,
     required this.onEdit,
     required this.onDelete,
+    required this.onToggleStatus,
+    required this.onRenew,
   });
 
   final Property property;
   final VoidCallback onTap;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onToggleStatus;
+  final VoidCallback onRenew;
 
   @override
   Widget build(BuildContext context) {
@@ -168,14 +225,20 @@ class _MyPropertyTile extends StatelessWidget {
                         spacing: AppSpacing.xs,
                         runSpacing: 4,
                         children: [
-                          property.status == PropertyStatus.occupee
-                              ? StatusBadge.occupee()
-                              : const StatusBadge(
+                          InkWell(
+                            onTap: onToggleStatus,
+                            borderRadius: BorderRadius.circular(AppRadius.pill),
+                            child: switch (property.status) {
+                              PropertyStatus.occupee => StatusBadge.occupee(),
+                              PropertyStatus.vendue => StatusBadge.vendue(),
+                              PropertyStatus.disponible => const StatusBadge(
                                   label: 'Disponible',
                                   backgroundColor: AppColors.statusLocationBg,
                                   textColor: AppColors.statusLocationText,
                                   fontSize: 11,
                                 ),
+                            },
+                          ),
                           StatusBadge.category(property.category),
                         ],
                       ),
@@ -187,6 +250,11 @@ class _MyPropertyTile extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             const Divider(height: 1),
             const SizedBox(height: AppSpacing.sm),
+            // Colonne plutôt qu'une seule Row surchargée : sur un écran
+            // étroit ou avec une date longue, tasser stats + 3 boutons sur
+            // une seule ligne non contrainte provoquait un débordement
+            // horizontal (RenderFlex overflow). Le Wrap ci-dessous laisse
+            // les actions passer à la ligne proprement si nécessaire.
             Row(
               children: [
                 const Icon(Icons.visibility_outlined, size: 14, color: AppColors.textHint),
@@ -199,8 +267,29 @@ class _MyPropertyTile extends StatelessWidget {
                 const SizedBox(width: AppSpacing.md),
                 const Icon(Icons.event_outlined, size: 14, color: AppColors.textHint),
                 const SizedBox(width: 4),
-                Text(Formatters.shortDate(property.createdAt), style: AppTextStyles.small),
-                const Spacer(),
+                Flexible(
+                  child: Text(
+                    Formatters.shortDate(property.createdAt),
+                    style: AppTextStyles.small,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 2),
+            Wrap(
+              alignment: WrapAlignment.end,
+              children: [
+                TextButton.icon(
+                  onPressed: onRenew,
+                  icon: const Icon(Icons.refresh, size: 16, color: AppColors.primary),
+                  label: const Text('Reconduire', style: AppTextStyles.link),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
                 TextButton.icon(
                   onPressed: onEdit,
                   icon: const Icon(Icons.edit_outlined, size: 16, color: AppColors.primary),

@@ -14,6 +14,11 @@ void main() {
     // d'interagir : le bouton affiche un spinner tant qu'elle est en cours.
     await tester.pump();
 
+    // Le formulaire (avec le lien "Mot de passe oublié ?") dépasse la
+    // hauteur par défaut du viewport de test (800x600) — un vrai
+    // utilisateur défilerait pour voir "Connexion" dans un écran aussi
+    // court, ce que le test doit reproduire avant de taper.
+    await tester.ensureVisible(find.text('Connexion'));
     await tester.tap(find.text('Connexion'));
     await tester.pump();
 

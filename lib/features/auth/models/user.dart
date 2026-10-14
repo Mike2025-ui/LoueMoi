@@ -31,6 +31,11 @@ class User extends Equatable {
   String get fullName => '$firstName $lastName';
 
   bool get isAgent => role == UserRole.agent;
+  bool get isBailleur => role == UserRole.bailleur;
+
+  /// Agent et bailleur sont deux rôles indépendants pouvant tous deux
+  /// publier/posséder des annonces — aucune délégation entre eux.
+  bool get canOwnProperties => isAgent || isBailleur;
 
   factory User.fromJson(Map<String, dynamic> json) {
     final agentProfileJson = json['agent_profile'] as Map<String, dynamic>?;

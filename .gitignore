@@ -43,3 +43,14 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Déploiement & Secrets
+.env
+backups/
+nginx/conf.d/louemoi.conf
+*.sql
+*.tar.gz
+backend/staticfiles/
+backend/media/*
+!backend/media/.gitkeep
+

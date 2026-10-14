@@ -1,0 +1,57 @@
+{% load static %}<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Tableau de bord{% endblock %} · LoueMoi Admin</title>
+  <link rel="stylesheet" href="{% static 'dashboard/css/dashboard.css' %}">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">LoueMoi <span>Admin</span></div>
+      <nav class="sidebar-nav">
+        <a href="{% url 'dashboard:index' %}" class="{% if active == 'index' %}active{% endif %}">🏠 Tableau de bord</a>
+        <a href="{% url 'dashboard:users_list' %}" class="{% if active == 'users' %}active{% endif %}">👥 Utilisateurs</a>
+        <a href="{% url 'dashboard:properties_list' %}" class="{% if active == 'properties' %}active{% endif %}">🏘️ Propriétés</a>
+        <a href="{% url 'dashboard:reservations_list' %}" class="{% if active == 'reservations' %}active{% endif %}">📅 Réservations</a>
+        <a href="{% url 'dashboard:conversations_list' %}" class="{% if active == 'conversations' %}active{% endif %}">💬 Conversations</a>
+        <a href="{% url 'dashboard:notifications_list' %}" class="{% if active == 'notifications' %}active{% endif %}">🔔 Notifications</a>
+        <a href="{% url 'dashboard:reviews_list' %}" class="{% if active == 'reviews' %}active{% endif %}">⭐ Avis</a>
+        <a href="{% url 'dashboard:agents_list' %}" class="{% if active == 'agents' %}active{% endif %}">👔 Agents</a>
+        <a href="{% url 'dashboard:fcm_list' %}" class="{% if active == 'fcm' %}active{% endif %}">📱 FCM</a>
+        <a href="{% url 'dashboard:statistics' %}" class="{% if active == 'statistics' %}active{% endif %}">📊 Statistiques</a>
+        <div class="sidebar-divider"></div>
+        <a href="/admin/" target="_blank" rel="noopener">⚙️ Django Admin</a>
+      </nav>
+    </aside>
+    <div class="main">
+      <header class="topbar">
+        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Ouvrir le menu" type="button">☰</button>
+        <h1 class="page-title">{% block page_title %}Tableau de bord{% endblock %}</h1>
+        <div class="topbar-right">
+          <span class="admin-name">{{ request.user.first_name }} {{ request.user.last_name }}</span>
+          <a href="{% url 'dashboard:logout' %}" class="btn-link">Déconnexion</a>
+        </div>
+      </header>
+      <main class="content">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var toggle = document.getElementById('sidebarToggle');
+      var sidebar = document.getElementById('sidebar');
+      toggle.addEventListener('click', function () {
+        sidebar.classList.toggle('open');
+      });
+      document.addEventListener('click', function (e) {
+        if (sidebar.classList.contains('open') && !sidebar.contains(e.target) && e.target !== toggle) {
+          sidebar.classList.remove('open');
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

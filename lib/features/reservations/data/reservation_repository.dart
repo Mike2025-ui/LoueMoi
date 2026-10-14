@@ -9,6 +9,20 @@ abstract class ReservationRepository {
     required double advance,
   });
   Future<Reservation> cancelReservation(String id);
+
+  /// Valide la réservation (fin de location/vente réalisée) — réservé au
+  /// propriétaire du bien, voir le bouton "Valider" de ReservationCard.
+  /// Idempotent côté serveur : rappeler sur une réservation déjà accomplie
+  /// ne fait rien de plus.
+  Future<Reservation> completeReservation(String id);
+
+  /// Ouvre (ou récupère) la conversation avec le client qui a réservé, et
+  /// retourne son id — réservé au propriétaire du bien, voir le bouton
+  /// "Discuter" de ReservationCard. Contrairement à
+  /// MessageRepository.getOrCreateConversationId (qui exige un
+  /// destinataire agent), cette méthode fonctionne aussi quand le client
+  /// n'a pas le rôle agent.
+  Future<String> getOrCreateConversationId(String reservationId);
 }
 
 class MockReservationRepository implements ReservationRepository {
@@ -98,5 +112,32 @@ class MockReservationRepository implements ReservationRepository {
     );
     _reservations[index] = updated;
     return updated;
+  }
+
+  @override
+  Future<Reservation> completeReservation(String id) async {
+    final index = _reservations.indexWhere((r) => r.id == id);
+    final updated = Reservation(
+      id: _reservations[index].id,
+      propertyId: _reservations[index].propertyId,
+      userId: _reservations[index].userId,
+      rent: _reservations[index].rent,
+      deposit: _reservations[index].deposit,
+      advance: _reservations[index].advance,
+      status: ReservationStatus.accomplie,
+      createdAt: _reservations[index].createdAt,
+    );
+    _reservations[index] = updated;
+    return updated;
+  }
+
+  @override
+  Future<String> getOrCreateConversationId(String reservationId) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    // Même convention que MockMessageRepository.getOrCreateConversationId :
+    // en mode démo, l'id de l'autre participant sert directement d'id de
+    // conversation.
+    final reservation = _reservations.firstWhere((r) => r.id == reservationId);
+    return reservation.userId;
   }
 }

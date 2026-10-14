@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../models/message.dart';
@@ -39,11 +40,30 @@ class ApiMessageRepository implements MessageRepository {
   @override
   Future<Message> sendMessage({
     required String conversationId,
-    required String content,
+    String content = '',
+    String? attachmentPath,
+    MessageAttachmentType attachmentType = MessageAttachmentType.text,
+    int? duration,
   }) async {
+    if (attachmentPath == null) {
+      final response = await _apiClient.post<Map<String, dynamic>>(
+        ApiEndpoints.messages,
+        data: {'conversation_id': conversationId, 'content': content},
+      );
+      return Message.fromJson(response.data!);
+    }
+
+    final fields = <String, dynamic>{
+      'conversation_id': conversationId,
+      'content': content,
+      'attachment_type': attachmentType.toJson(),
+      'attachment': await MultipartFile.fromFile(attachmentPath),
+    };
+    if (duration != null) fields['duration'] = duration;
+    final formData = FormData.fromMap(fields);
     final response = await _apiClient.post<Map<String, dynamic>>(
       ApiEndpoints.messages,
-      data: {'conversation_id': conversationId, 'content': content},
+      data: formData,
     );
     return Message.fromJson(response.data!);
   }
@@ -61,5 +81,12 @@ class ApiMessageRepository implements MessageRepository {
       },
     );
     return response.data!['id'].toString();
+  }
+
+  @override
+  Future<void> markConversationRead(String conversationId) async {
+    await _apiClient.post<Map<String, dynamic>>(
+      ApiEndpoints.conversationMarkRead(conversationId),
+    );
   }
 }

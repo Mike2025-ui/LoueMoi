@@ -1,0 +1,106 @@
+{% extends "dashboard/base.html" %}
+{% block title %}{{ obj }}{% endblock %}
+{% block page_title %}{{ obj.first_name }} {{ obj.last_name }}{% endblock %}
+{% block content %}
+<a href="{% url 'dashboard:users_list' %}">&laquo; Retour aux utilisateurs</a>
+
+<div class="card">
+  <h2>Informations</h2>
+  <div class="detail-grid">
+    <div class="detail-field"><div class="label">Téléphone</div><div class="value">{{ obj.phone }}</div></div>
+    <div class="detail-field"><div class="label">WhatsApp</div><div class="value">{{ obj.whatsapp|default:"—" }}</div></div>
+    <div class="detail-field"><div class="label">Rôle</div><div class="value"><span class="badge badge-primary">{{ obj.get_role_display }}</span></div></div>
+    <div class="detail-field"><div class="label">Actif</div><div class="value">{% if obj.is_active %}<span class="badge badge-success">Actif</span>{% else %}<span class="badge badge-danger">Inactif</span>{% endif %}</div></div>
+    <div class="detail-field"><div class="label">Staff</div><div class="value">{% if obj.is_staff %}✅{% else %}—{% endif %}</div></div>
+    <div class="detail-field"><div class="label">Superuser</div><div class="value">{% if obj.is_superuser %}✅{% else %}—{% endif %}</div></div>
+    <div class="detail-field"><div class="label">Inscrit le</div><div class="value">{{ obj.date_joined|date:"d/m/Y H:i" }}</div></div>
+    <div class="detail-field"><div class="label">Dernière connexion</div><div class="value">{{ obj.last_login|date:"d/m/Y H:i"|default:"Jamais" }}</div></div>
+  </div>
+</div>
+
+{% if agent_profile %}
+<div class="card">
+  <h2>Profil agent</h2>
+  <div class="detail-grid">
+    <div class="detail-field"><div class="label">Agence</div><div class="value">{{ agent_profile.agency_name|default:"—" }}</div></div>
+    <div class="detail-field"><div class="label">WhatsApp pro.</div><div class="value">{{ agent_profile.whatsapp|default:"—" }}</div></div>
+    <div class="detail-field"><div class="label">Vérifié</div><div class="value">{% if agent_profile.is_verified %}<span class="badge badge-success">Vérifié</span>{% else %}<span class="badge badge-muted">Non vérifié</span>{% endif %}</div></div>
+    <div class="detail-field"><div class="label">Note</div><div class="value">{{ agent_profile.rating }}</div></div>
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>Propriétés ({{ properties|length }})</h2>
+  {% if properties %}
+  <div class="table-wrap"><table>
+    <thead><tr><th>Titre</th><th>Statut</th><th>Prix</th><th>Créée le</th></tr></thead>
+    <tbody>
+      {% for p in properties %}
+      <tr onclick="window.location='{% url 'dashboard:property_detail' p.pk %}'" style="cursor:pointer">
+        <td>{{ p.title }}</td><td>{{ p.get_status_display }}</td><td>{{ p.price }}</td><td>{{ p.created_at|date:"d/m/Y" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<div class="empty-state">Aucune propriété.</div>{% endif %}
+</div>
+
+<div class="card">
+  <h2>Réservations ({{ reservations|length }})</h2>
+  {% if reservations %}
+  <div class="table-wrap"><table>
+    <thead><tr><th>Propriété</th><th>Statut</th><th>Loyer</th><th>Date</th></tr></thead>
+    <tbody>
+      {% for r in reservations %}
+      <tr><td>{{ r.property.title }}</td><td>{{ r.get_status_display }}</td><td>{{ r.rent }}</td><td>{{ r.created_at|date:"d/m/Y" }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<div class="empty-state">Aucune réservation.</div>{% endif %}
+</div>
+
+<div class="card">
+  <h2>Conversations ({{ conversations|length }})</h2>
+  {% if conversations %}
+  <div class="table-wrap"><table>
+    <thead><tr><th>Client</th><th>Agent</th><th>Propriété</th><th>Date</th></tr></thead>
+    <tbody>
+      {% for c in conversations %}
+      <tr onclick="window.location='{% url 'dashboard:conversation_detail' c.pk %}'" style="cursor:pointer">
+        <td>{{ c.client }}</td><td>{{ c.agent }}</td><td>{{ c.property|default:"—" }}</td><td>{{ c.created_at|date:"d/m/Y" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<div class="empty-state">Aucune conversation.</div>{% endif %}
+</div>
+
+<div class="card">
+  <h2>Avis ({{ reviews|length }})</h2>
+  {% if reviews %}
+  <div class="table-wrap"><table>
+    <thead><tr><th>Propriété</th><th>Note</th><th>Commentaire</th><th>Date</th></tr></thead>
+    <tbody>
+      {% for rv in reviews %}
+      <tr><td>{{ rv.property.title }}</td><td>{{ rv.rating }}</td><td>{{ rv.comment|truncatechars:60 }}</td><td>{{ rv.created_at|date:"d/m/Y" }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<div class="empty-state">Aucun avis.</div>{% endif %}
+</div>
+
+<div class="card">
+  <h2>Notifications ({{ notifications|length }})</h2>
+  {% if notifications %}
+  <div class="table-wrap"><table>
+    <thead><tr><th>Type</th><th>Titre</th><th>Lue</th><th>Date</th></tr></thead>
+    <tbody>
+      {% for n in notifications %}
+      <tr><td>{{ n.get_type_display }}</td><td>{{ n.title }}</td><td>{% if n.is_read %}✅{% else %}—{% endif %}</td><td>{{ n.created_at|date:"d/m/Y H:i" }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<div class="empty-state">Aucune notification.</div>{% endif %}
+</div>
+{% endblock %}

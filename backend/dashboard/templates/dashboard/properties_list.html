@@ -1,0 +1,53 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Propriétés{% endblock %}
+{% block page_title %}Propriétés{% endblock %}
+{% block content %}
+<form class="filters" method="get">
+  <input type="text" name="q" placeholder="Titre, quartier, propriétaire..." value="{{ q }}">
+  <select name="transaction_type">
+    <option value="">Location/Vente</option>
+    {% for value, label in transaction_choices %}
+      <option value="{{ value }}" {% if transaction_type == value %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <select name="status">
+    <option value="">Tous les statuts</option>
+    {% for value, label in status_choices %}
+      <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit">Filtrer</button>
+</form>
+
+<div class="card">
+  <div class="table-wrap">
+  <table>
+    <thead><tr>
+      <th>Titre</th><th>Type</th><th>Transaction</th><th>Statut</th><th>Prix</th>
+      <th>Quartier</th><th>Propriétaire</th><th>Créée le</th>
+    </tr></thead>
+    <tbody>
+      {% for p in page_obj %}
+      <tr onclick="window.location='{% url 'dashboard:property_detail' p.pk %}'" style="cursor:pointer">
+        <td>{{ p.title }}</td>
+        <td>{{ p.get_type_display }}</td>
+        <td>{{ p.get_transaction_type_display }}</td>
+        <td>
+          {% if p.status == "disponible" %}<span class="badge badge-success">Disponible</span>
+          {% elif p.status == "occupee" %}<span class="badge badge-warning">Occupée</span>
+          {% else %}<span class="badge badge-muted">{{ p.get_status_display }}</span>{% endif %}
+        </td>
+        <td>{{ p.price }}</td>
+        <td>{{ p.commune }}, {{ p.district }}</td>
+        <td>{{ p.agent }} <span class="badge badge-muted">{{ p.agent.get_role_display }}</span></td>
+        <td>{{ p.created_at|date:"d/m/Y" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8" class="empty-state">Aucune propriété trouvée.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% include "dashboard/_pagination.html" %}
+</div>
+{% endblock %}

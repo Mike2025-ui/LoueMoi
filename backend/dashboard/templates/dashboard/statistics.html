@@ -1,0 +1,80 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Statistiques{% endblock %}
+{% block page_title %}Statistiques{% endblock %}
+{% block content %}
+<p style="color:var(--text-hint);font-size:12px">
+  Uniquement des agrégats calculés en direct sur la base — aucune statistique financière (aucun système de paiement n'existe dans le modèle actuel).
+</p>
+
+<div class="card">
+  <h2>Utilisateurs par rôle</h2>
+  {% for row in users_by_role.rows %}
+  <div class="bar-row">
+    <div class="bar-label">{{ row.role|default:"—" }}</div>
+    <div class="bar-track"><div class="bar-fill" style="width:{% widthratio row.total users_by_role.max 100 %}%"></div></div>
+    <div class="bar-value">{{ row.total }}</div>
+  </div>
+  {% empty %}<div class="empty-state">Aucune donnée.</div>{% endfor %}
+</div>
+
+<div class="card">
+  <h2>Propriétés par statut</h2>
+  {% for row in properties_by_status.rows %}
+  <div class="bar-row">
+    <div class="bar-label">{{ row.status|default:"—" }}</div>
+    <div class="bar-track"><div class="bar-fill" style="width:{% widthratio row.total properties_by_status.max 100 %}%"></div></div>
+    <div class="bar-value">{{ row.total }}</div>
+  </div>
+  {% empty %}<div class="empty-state">Aucune donnée.</div>{% endfor %}
+</div>
+
+<div class="card">
+  <h2>Propriétés — location / vente</h2>
+  {% for row in properties_by_transaction.rows %}
+  <div class="bar-row">
+    <div class="bar-label">{{ row.transaction_type|default:"—" }}</div>
+    <div class="bar-track"><div class="bar-fill" style="width:{% widthratio row.total properties_by_transaction.max 100 %}%"></div></div>
+    <div class="bar-value">{{ row.total }}</div>
+  </div>
+  {% empty %}<div class="empty-state">Aucune donnée.</div>{% endfor %}
+</div>
+
+<div class="card">
+  <h2>Réservations par statut</h2>
+  {% for row in reservations_by_status.rows %}
+  <div class="bar-row">
+    <div class="bar-label">{{ row.status|default:"—" }}</div>
+    <div class="bar-track"><div class="bar-fill" style="width:{% widthratio row.total reservations_by_status.max 100 %}%"></div></div>
+    <div class="bar-value">{{ row.total }}</div>
+  </div>
+  {% empty %}<div class="empty-state">Aucune donnée.</div>{% endfor %}
+</div>
+
+<div class="card">
+  <h2>Avis par note</h2>
+  {% for row in reviews_by_rating.rows %}
+  <div class="bar-row">
+    <div class="bar-label">{{ row.rating }} ★</div>
+    <div class="bar-track"><div class="bar-fill" style="width:{% widthratio row.total reviews_by_rating.max 100 %}%"></div></div>
+    <div class="bar-value">{{ row.total }}</div>
+  </div>
+  {% empty %}<div class="empty-state">Aucune donnée.</div>{% endfor %}
+</div>
+
+<div class="card">
+  <h2>Propriétaires les plus actifs (agents et bailleurs, par nombre d'annonces)</h2>
+  {% if top_agents %}
+  <div class="table-wrap"><table>
+    <thead><tr><th>Propriétaire</th><th>Annonces</th></tr></thead>
+    <tbody>
+      {% for row in top_agents %}
+      <tr>
+        <td><a href="{% url 'dashboard:user_detail' row.agent__id %}">{{ row.agent__first_name }} {{ row.agent__last_name }}</a></td>
+        <td>{{ row.total }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<div class="empty-state">Aucune donnée.</div>{% endif %}
+</div>
+{% endblock %}

@@ -46,3 +46,11 @@ Future<void> cancelReservation(WidgetRef ref, String id) async {
   await repository.cancelReservation(id);
   ref.invalidate(reservationsListProvider);
 }
+
+/// Réservé au propriétaire du bien — voir le bouton "Valider" de
+/// ReservationCard.
+Future<void> completeReservation(WidgetRef ref, String id) async {
+  final repository = ref.read(reservationRepositoryProvider);
+  await repository.completeReservation(id);
+  ref.invalidate(reservationsListProvider);
+}

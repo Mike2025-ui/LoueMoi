@@ -2,6 +2,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/utils/geo.dart';
 import '../../filters/models/filter_params.dart';
 import '../models/property.dart';
+import '../models/property_enums.dart';
 import '../models/property_page.dart';
 import 'mock_properties.dart';
 
@@ -18,6 +19,10 @@ abstract class PropertyRepository {
   /// filtrant fetchProperties() côté Flutter).
   Future<List<Property>> fetchMyProperties();
 
+  /// Même principe pour le rôle bailleur — endpoint indépendant, jamais les
+  /// mêmes annonces qu'un agent ni qu'un autre bailleur.
+  Future<List<Property>> fetchMyPropertiesAsBailleur();
+
   /// Modification partielle — réservée au propriétaire côté Django (403
   /// sinon). Le statut n'est jamais modifié par cet appel : pas de
   /// ré-approbation, l'annonce garde son statut courant.
@@ -32,6 +37,15 @@ abstract class PropertyRepository {
 
   /// Retire une photo déjà hébergée (par URL).
   Future<Property> deleteImage(String propertyId, String url);
+
+  /// Ajoute OU remplace LA vidéo de l'annonce (multipart, une seule au
+  /// maximum — un nouvel envoi remplace toujours l'ancienne côté serveur).
+  /// Réservé au propriétaire côté Django. Fonctionnalité distincte de la
+  /// vidéo de messagerie — jamais le même endpoint/modèle.
+  Future<Property> uploadVideo(String propertyId, XFile file);
+
+  /// Retire la vidéo déjà hébergée de l'annonce.
+  Future<Property> deleteVideo(String propertyId);
 
   /// Incrémente le compteur de vues côté serveur (jamais côté Flutter).
   Future<Property> incrementView(String id);
@@ -50,6 +64,26 @@ abstract class PropertyRepository {
   /// Définit/modifie uniquement la position d'une annonce — réservé au
   /// propriétaire côté Django (même permission que updateProperty).
   Future<Property> updatePropertyLocation(String id, double latitude, double longitude);
+
+  /// "Reconduire un bien" — fixe une nouvelle période de validité de 30
+  /// jours (voir Property.PROPERTY_VALIDITY_DAYS côté Django) : mêmes
+  /// données, mêmes photos, aucun doublon. Réservé au propriétaire côté
+  /// Django.
+  Future<Property> renewProperty(String id);
+
+  /// Annonces PUBLIQUES d'un propriétaire donné (agent ou bailleur) — pour
+  /// "Rechercher un propriétaire" côté agent : voir son profil, voir ses
+  /// annonces publiques, jamais un transfert de propriété. Passe par le
+  /// même filtre que la recherche publique (`?agent=ID`), donc respecte
+  /// automatiquement les mêmes règles de visibilité (annonces expirées/
+  /// désactivées déjà exclues côté Django).
+  Future<List<Property>> fetchPropertiesByOwner(String ownerId);
+
+  /// "Marquer occupé" / "Marquer disponible" — passe toujours par l'action
+  /// dédiée /api/properties/{id}/status/, jamais par updateProperty() (le
+  /// statut n'est jamais modifié par un PATCH générique, voir sa
+  /// documentation ci-dessus). Réservé au propriétaire côté Django.
+  Future<Property> updatePropertyStatus(String id, PropertyStatus status);
 }
 
 class MockPropertyRepository implements PropertyRepository {
@@ -137,6 +171,16 @@ class MockPropertyRepository implements PropertyRepository {
     return _properties.where((p) => p.agent.id == MockProperties.agentKouakou.id).toList();
   }
 
+  @override
+  Future<List<Property>> fetchMyPropertiesAsBailleur() async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    // Aucun bailleur de démo dans MockProperties.all (univers mock construit
+    // autour d'un unique agent) : une nouvelle "Mes biens" bailleur en mode
+    // mock démarre donc vide, exactement comme un vrai bailleur qui vient de
+    // s'inscrire côté Django et n'a encore rien publié.
+    return const [];
+  }
+
   int _indexOrThrow(String id) {
     final index = _properties.indexWhere((p) => p.id == id);
     if (index == -1) {
@@ -192,6 +236,30 @@ class MockPropertyRepository implements PropertyRepository {
   }
 
   @override
+  Future<Property> uploadVideo(String propertyId, XFile file) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    final index = _indexOrThrow(propertyId);
+    final updated = Property.fromJson({
+      ..._properties[index].toJson(),
+      'video': file.path,
+    });
+    _properties[index] = updated;
+    return updated;
+  }
+
+  @override
+  Future<Property> deleteVideo(String propertyId) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    final index = _indexOrThrow(propertyId);
+    final updated = Property.fromJson({
+      ..._properties[index].toJson(),
+      'video': null,
+    });
+    _properties[index] = updated;
+    return updated;
+  }
+
+  @override
   Future<Property> incrementView(String id) async {
     final index = _indexOrThrow(id);
     final current = _properties[index];
@@ -228,6 +296,33 @@ class MockPropertyRepository implements PropertyRepository {
     await Future.delayed(const Duration(milliseconds: 300));
     final index = _indexOrThrow(id);
     final updated = _properties[index].copyWith(latitude: latitude, longitude: longitude);
+    _properties[index] = updated;
+    return updated;
+  }
+
+  @override
+  Future<Property> renewProperty(String id) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    final index = _indexOrThrow(id);
+    final updated = Property.fromJson({
+      ..._properties[index].toJson(),
+      'updated_at': DateTime.now().toIso8601String(),
+    });
+    _properties[index] = updated;
+    return updated;
+  }
+
+  @override
+  Future<List<Property>> fetchPropertiesByOwner(String ownerId) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    return _properties.where((p) => p.agent.id == ownerId).toList();
+  }
+
+  @override
+  Future<Property> updatePropertyStatus(String id, PropertyStatus status) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    final index = _indexOrThrow(id);
+    final updated = _properties[index].copyWith(status: status);
     _properties[index] = updated;
     return updated;
   }

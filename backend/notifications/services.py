@@ -1,0 +1,183 @@
+"""Service FCM isolé — jamais de logique Firebase directement dans les
+ViewSets (properties/messaging/reviews/reservations n'importent que
+`NotificationService.notify`, rien d'autre).
+
+Comportement sans credentials Firebase (FIREBASE_CREDENTIALS_JSON absente,
+ou package firebase-admin non installé) : la Notification est quand même
+créée en base, le push est simplement sauté avec un warning loggé — jamais
+d'exception remontée à l'appelant, jamais de blocage d'une opération métier
+(réservation, message, avis) à cause d'un souci FCM.
+"""
+
+import json
+import logging
+import os
+from django.db import transaction
+
+from .models import DeviceToken, Notification
+
+logger = logging.getLogger(__name__)
+
+try:
+    import firebase_admin
+    from firebase_admin import credentials as firebase_credentials
+    from firebase_admin import messaging as firebase_messaging
+except ImportError:  # pragma: no cover - environnement sans firebase-admin
+    firebase_admin = None
+    firebase_credentials = None
+    firebase_messaging = None
+
+_firebase_app = None
+_firebase_app_init_attempted = False
+
+
+def _get_firebase_app():
+    """Initialise Firebase Admin une seule fois (mise en cache), à partir de
+    la variable d'environnement FIREBASE_CREDENTIALS_JSON (le contenu JSON
+    du compte de service — jamais un chemin de fichier committé dans Git).
+    Retourne None si le SDK n'est pas installé, si la variable est absente,
+    ou si l'initialisation échoue — jamais d'exception propagée."""
+    global _firebase_app, _firebase_app_init_attempted
+
+    if firebase_admin is None:
+        return None
+    if _firebase_app is not None:
+        return _firebase_app
+    if _firebase_app_init_attempted:
+        return None
+    _firebase_app_init_attempted = True
+
+    credentials_json = os.environ.get("FIREBASE_CREDENTIALS_JSON")
+    if not credentials_json:
+        logger.info(
+            "FIREBASE_CREDENTIALS_JSON absente : notifications créées en base, "
+            "aucun push FCM ne sera envoyé."
+        )
+        return None
+
+    try:
+        cred = firebase_credentials.Certificate(json.loads(credentials_json))
+        _firebase_app = firebase_admin.initialize_app(cred)
+    except Exception:
+        logger.warning("Impossible d'initialiser Firebase Admin.", exc_info=True)
+        return None
+    return _firebase_app
+
+
+def _is_unregistered_token_error(exc) -> bool:
+    """Détecte les erreurs FCM signifiant que le token n'est plus valide
+    (application désinstallée, token expiré...) pour le désactiver."""
+    if firebase_messaging is None:
+        return False
+    return isinstance(
+        exc,
+        (
+            firebase_messaging.UnregisteredError,
+            getattr(firebase_messaging, "SenderIdMismatchError", ()),
+        ),
+    )
+
+
+class NotificationService:
+    """Point d'entrée unique pour créer une notification métier. Ne JAMAIS
+    appeler firebase_admin directement ailleurs dans le code."""
+
+    @staticmethod
+    def notify(
+        recipient,
+        notif_type,
+        title,
+        body="",
+        data=None,
+        property=None,
+        reservation=None,
+        conversation=None,
+        actor=None,
+    ):
+        """Garde-fou centralisé : l'acteur d'une action ne doit jamais
+        recevoir sa propre notification (ex: un client qui réserve n'est
+        pas notifié de sa propre réservation ; un agent qui envoie un
+        message n'est pas notifié de son propre message). Chaque appelant
+        doit passer `actor` (l'utilisateur qui a déclenché l'événement) dès
+        qu'il est connu — silencieusement no-op si recipient == actor,
+        plutôt que de laisser chaque site d'appel réimplémenter ce contrôle."""
+        if actor is not None and recipient is not None and actor.pk == recipient.pk:
+            return None
+
+        notification = Notification.objects.create(
+            recipient=recipient,
+            type=notif_type,
+            title=title,
+            body=body,
+            data=data or {},
+            property=property,
+            reservation=reservation,
+            conversation=conversation,
+        )
+        # Le push n'est tenté qu'après validation définitive de la
+        # transaction DB en cours (si on est dans un bloc atomic) — une
+        # réservation/un message ne doit jamais être annulé à cause d'un
+        # souci FCM, et on n'envoie jamais un push pour une opération qui
+        # aurait finalement été annulée (rollback). `_send_push` gère déjà
+        # ses propres erreurs, mais ce filet de sécurité supplémentaire
+        # garantit qu'AUCUNE exception ne peut jamais s'échapper de ce
+        # callback, quoi qu'il arrive à l'intérieur.
+        transaction.on_commit(lambda: NotificationService._safe_send_push(notification))
+        return notification
+
+    @staticmethod
+    def _safe_send_push(notification):
+        try:
+            NotificationService._send_push(notification)
+        except Exception:
+            logger.warning(
+                "Erreur inattendue lors de l'envoi du push pour la notification %s.",
+                notification.id,
+                exc_info=True,
+            )
+
+    @staticmethod
+    def _send_push(notification):
+        try:
+            app = _get_firebase_app()
+            if app is None:
+                return
+
+            tokens = list(
+                DeviceToken.objects.filter(
+                    user=notification.recipient, is_active=True
+                ).values_list("token", flat=True)
+            )
+            if not tokens:
+                return
+
+            data_payload = {"type": notification.type}
+            data_payload.update({k: str(v) for k, v in (notification.data or {}).items()})
+            # Ajouté APRÈS le .update() ci-dessus : ne doit jamais pouvoir
+            # être écrasé par un data{} fourni par l'appelant. Sans cet id,
+            # Flutter ne peut pas marquer CETTE notification comme lue au
+            # clic sur un push réel (_handleNotificationTap, app.dart) —
+            # seul le clic depuis l'écran Notifications in-app le pouvait
+            # jusqu'ici.
+            data_payload["notification_id"] = str(notification.id)
+
+            message = firebase_messaging.MulticastMessage(
+                notification=firebase_messaging.Notification(
+                    title=notification.title, body=notification.body
+                ),
+                data=data_payload,
+                tokens=tokens,
+            )
+            response = firebase_messaging.send_each_for_multicast(message, app=app)
+
+            for token, result in zip(tokens, response.responses):
+                if not result.success and _is_unregistered_token_error(result.exception):
+                    DeviceToken.objects.filter(token=token).update(is_active=False)
+        except Exception:
+            # Ne jamais laisser une erreur FCM remonter — la notification
+            # est déjà en base, c'est tout ce qui est garanti.
+            logger.warning(
+                "Échec d'envoi du push FCM pour la notification %s.",
+                notification.id,
+                exc_info=True,
+            )

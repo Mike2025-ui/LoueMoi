@@ -5,6 +5,19 @@ from properties.models import Property
 from .models import Reservation
 
 
+class ReservationClientSerializer(serializers.Serializer):
+    """Coordonnées publiques du client qui a réservé — exposées au
+    propriétaire du bien (agent ou bailleur) pour qu'il sache qui a
+    réservé. Jamais de champ sensible (password, tokens...) : mêmes champs
+    que la fiche agent publique (AgentSearchSerializer)."""
+
+    id = serializers.IntegerField()
+    first_name = serializers.CharField()
+    last_name = serializers.CharField()
+    phone = serializers.CharField()
+    whatsapp = serializers.CharField()
+
+
 class ReservationSerializer(serializers.ModelSerializer):
     # Noms alignés sur Reservation.fromJson côté Flutter
     # (lib/features/reservations/models/reservation.dart) : property_id/user_id,
@@ -14,6 +27,12 @@ class ReservationSerializer(serializers.ModelSerializer):
     )
     user_id = serializers.PrimaryKeyRelatedField(source="user", read_only=True)
     total = serializers.SerializerMethodField()
+    # Qui a réservé — voir le cahier des charges "RÉSERVATIONS — VOIR QUI A
+    # RÉSERVÉ" : le queryset (ReservationViewSet.get_queryset) est déjà le
+    # seul rempart de permission nécessaire ici (un agent/bailleur ne reçoit
+    # dans ses résultats que les réservations de ses propres biens), donc ce
+    # champ peut être renvoyé sans condition supplémentaire.
+    client = ReservationClientSerializer(source="user", read_only=True)
 
     class Meta:
         model = Reservation
@@ -21,6 +40,7 @@ class ReservationSerializer(serializers.ModelSerializer):
             "id",
             "property_id",
             "user_id",
+            "client",
             "rent",
             "deposit",
             "advance",

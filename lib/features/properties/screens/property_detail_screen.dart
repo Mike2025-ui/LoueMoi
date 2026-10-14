@@ -23,6 +23,7 @@ import '../providers/property_providers.dart';
 import '../widgets/agent_card.dart';
 import '../widgets/property_details_table.dart';
 import '../widgets/property_image_header.dart';
+import '../widgets/property_video_player.dart';
 
 enum _DetailTab { apropos, gallerie, avis }
 
@@ -80,7 +81,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
           priceSuffix: property.transactionType == TransactionType.location
               ? '/ mois'
               : '',
-          isAvailable: !property.isOccupee,
+          isAvailable: !property.isUnavailable,
+          unavailableLabel: property.isVendue ? 'Propriété vendue' : 'Propriété occupée',
           onReserve: () =>
               context.push(AppRoutes.reservationSummaryPath(property.id)),
         ),
@@ -121,8 +123,19 @@ class _Content extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                // Row(spaceBetween) sans Expanded/Flexible sur aucun des
+                // deux badges : leurs largeurs naturelles combinées
+                // dépassaient la largeur d'écran sur les téléphones étroits
+                // (RenderFlex overflow reproduit à 320px et 360px). Wrap
+                // conserve le même rendu "poussé aux extrémités" tant que
+                // les deux badges tiennent sur une ligne
+                // (WrapAlignment.spaceBetween), et fait redescendre le
+                // second sur une nouvelle ligne sinon — jamais de troncature
+                // ni de perte d'information.
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  runSpacing: 4,
                   children: [
                     StatusBadge.category(property.type.label),
                     Container(
@@ -154,11 +167,14 @@ class _Content extends ConsumerWidget {
                     Expanded(
                       child: Text(property.title, style: AppTextStyles.h2),
                     ),
-                    property.isOccupee
-                        ? StatusBadge.occupee()
-                        : (property.transactionType == TransactionType.location
+                    switch (property.status) {
+                      PropertyStatus.occupee => StatusBadge.occupee(),
+                      PropertyStatus.vendue => StatusBadge.vendue(),
+                      PropertyStatus.disponible =>
+                        property.transactionType == TransactionType.location
                             ? StatusBadge.location()
-                            : StatusBadge.vente()),
+                            : StatusBadge.vente(),
+                    },
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -172,24 +188,37 @@ class _Content extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: AppSpacing.md),
+                // Les 3 onglets se dimensionnaient à leur contenu naturel
+                // dans un Row non contraint : leur largeur combinée dépassait
+                // la largeur d'écran sur tout téléphone réel (RenderFlex
+                // overflow reproduit aux 5 largeurs testées, y compris
+                // 412px — le débordement le plus sévère et le plus constant
+                // de cet écran). Expanded fait partager la largeur
+                // disponible à parts égales, comme pour MainBottomNav.
                 Row(
                   children: [
-                    _TabButton(
-                      label: 'A propos',
-                      isActive: tab == _DetailTab.apropos,
-                      onTap: () => onTabChanged(_DetailTab.apropos),
+                    Expanded(
+                      child: _TabButton(
+                        label: 'A propos',
+                        isActive: tab == _DetailTab.apropos,
+                        onTap: () => onTabChanged(_DetailTab.apropos),
+                      ),
                     ),
                     const SizedBox(width: AppSpacing.sm),
-                    _TabButton(
-                      label: 'Gallerie',
-                      isActive: tab == _DetailTab.gallerie,
-                      onTap: () => onTabChanged(_DetailTab.gallerie),
+                    Expanded(
+                      child: _TabButton(
+                        label: 'Gallerie',
+                        isActive: tab == _DetailTab.gallerie,
+                        onTap: () => onTabChanged(_DetailTab.gallerie),
+                      ),
                     ),
                     const SizedBox(width: AppSpacing.sm),
-                    _TabButton(
-                      label: 'Avis',
-                      isActive: tab == _DetailTab.avis,
-                      onTap: () => onTabChanged(_DetailTab.avis),
+                    Expanded(
+                      child: _TabButton(
+                        label: 'Avis',
+                        isActive: tab == _DetailTab.avis,
+                        onTap: () => onTabChanged(_DetailTab.avis),
+                      ),
                     ),
                   ],
                 ),
@@ -230,8 +259,15 @@ class _TabButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppRadius.pill),
           border: Border.all(color: isActive ? AppColors.primary : AppColors.border),
         ),
+        // Centré + ellipsis en filet de sécurité : maintenant que le bouton
+        // occupe une largeur partagée (Expanded) plutôt que sa largeur
+        // naturelle, son contenu doit rester centré comme avant plutôt que
+        // collé au bord gauche de sa nouvelle largeur.
+        alignment: Alignment.center,
         child: Text(
           label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
@@ -299,6 +335,14 @@ class _AProposTab extends ConsumerWidget {
         PropertyDetailsTable(property: property),
         const SizedBox(height: AppSpacing.md),
         Text(property.description, style: AppTextStyles.body),
+        // Vidéo facultative : rendue uniquement si l'annonce en a une, sans
+        // laisser d'espace vide sinon (voir Property.video côté modèle).
+        if (property.video != null && property.video!.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.lg),
+          const SectionDividerTitle(title: 'Vidéo'),
+          const SizedBox(height: AppSpacing.md),
+          PropertyVideoPlayer(source: property.video!),
+        ],
         const SizedBox(height: AppSpacing.lg),
         const SectionDividerTitle(title: 'Localisation'),
         const SizedBox(height: AppSpacing.md),

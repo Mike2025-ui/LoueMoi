@@ -61,6 +61,39 @@ class ApiAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<void> deactivateAccount(String password) async {
+    final refresh = await _authStorage.getRefreshToken();
+    // Laisse l'ApiException (401, mot de passe incorrect) remonter telle
+    // quelle à l'appelant — la désactivation locale (clearTokens) ne doit
+    // jamais avoir lieu si le serveur a refusé la demande.
+    await _apiClient.post(
+      ApiEndpoints.deactivateAccount,
+      data: {'password': password, if (refresh != null) 'refresh': refresh},
+    );
+    await _authStorage.clearTokens();
+  }
+
+  @override
+  Future<void> requestPasswordReset(String phone) async {
+    await _apiClient.post<Map<String, dynamic>>(
+      ApiEndpoints.passwordResetRequest,
+      data: {'phone': phone},
+    );
+  }
+
+  @override
+  Future<void> confirmPasswordReset({
+    required String phone,
+    required String code,
+    required String newPassword,
+  }) async {
+    await _apiClient.post<Map<String, dynamic>>(
+      ApiEndpoints.passwordResetConfirm,
+      data: {'phone': phone, 'code': code, 'new_password': newPassword},
+    );
+  }
+
+  @override
   Future<User?> restoreSession() async {
     final access = await _authStorage.getAccessToken();
     if (access == null) return null;
@@ -70,6 +103,15 @@ class ApiAuthRepository implements AuthRepository {
     } on ApiException {
       return null;
     }
+  }
+
+  @override
+  Future<User> updateProfile(User current, Map<String, dynamic> changes) async {
+    final response = await _apiClient.patch<Map<String, dynamic>>(
+      ApiEndpoints.profile,
+      data: changes,
+    );
+    return User.fromJson(response.data!);
   }
 
   Future<User> _persistAndParse(Map<String, dynamic> data) async {

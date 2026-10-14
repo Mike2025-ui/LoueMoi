@@ -28,14 +28,21 @@ enum TransactionType {
       .firstWhere((e) => e.name == value, orElse: () => TransactionType.location);
 }
 
-/// Statut de disponibilité d'une propriété.
+/// Statut de disponibilité d'une propriété. "occupee" (bien loué) et
+/// "vendue" (transaction terminée) sont deux statuts distincts, jamais
+/// interchangeables : "occupee" n'a de sens que pour une annonce en
+/// location, "vendue" que pour une annonce en vente (voir
+/// PropertyViewSet.mark_status côté Django, qui refuse toute combinaison
+/// incohérente avec transaction_type).
 enum PropertyStatus {
   disponible,
-  occupee;
+  occupee,
+  vendue;
 
   String get label => switch (this) {
         PropertyStatus.disponible => 'Disponible',
         PropertyStatus.occupee => 'Occupée',
+        PropertyStatus.vendue => 'Vendue',
       };
 
   static PropertyStatus fromString(String value) => PropertyStatus.values

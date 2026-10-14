@@ -12,6 +12,10 @@ void main() {
       expect(UserRole.fromString('agent'), UserRole.agent);
     });
 
+    test('parses "bailleur"', () {
+      expect(UserRole.fromString('bailleur'), UserRole.bailleur);
+    });
+
     test('falls back to client for "admin" — never a mobile-facing role', () {
       expect(UserRole.fromString('admin'), UserRole.client);
     });
@@ -61,6 +65,37 @@ void main() {
       expect(user.agentProfile, isNotNull);
       expect(user.agentProfile!.isVerified, isTrue);
       expect(user.agentProfile!.rating, 4.8);
+    });
+
+    test('parses a bailleur: no agent_profile, canOwnProperties is true', () {
+      final user = User.fromJson({
+        'id': 1,
+        'first_name': 'Adjoua',
+        'last_name': 'N\'Guessan',
+        'phone': '0700000000',
+        'whatsapp': '0700000000',
+        'role': 'bailleur',
+        'agent_profile': null,
+      });
+
+      expect(user.role, UserRole.bailleur);
+      expect(user.isBailleur, isTrue);
+      expect(user.isAgent, isFalse);
+      expect(user.agentProfile, isNull);
+      expect(user.canOwnProperties, isTrue);
+    });
+
+    test('canOwnProperties is false for a client', () {
+      final user = User.fromJson({
+        'id': 1,
+        'first_name': 'Jean',
+        'last_name': 'Kouassi',
+        'phone': '0700000000',
+        'whatsapp': '0700000000',
+        'role': 'client',
+      });
+
+      expect(user.canOwnProperties, isFalse);
     });
 
     test('missing role key defaults to client (backward-compatible parsing)', () {

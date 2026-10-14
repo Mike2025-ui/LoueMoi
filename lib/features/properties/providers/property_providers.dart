@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/env.dart';
 import '../../../core/network/network_providers.dart';
+import '../../auth/providers/auth_providers.dart';
 import '../../filters/models/filter_params.dart';
 import '../../filters/providers/filter_providers.dart';
 import '../data/api_property_repository.dart';
@@ -123,10 +124,25 @@ final favoritesListProvider = FutureProvider<List<Property>>((ref) async {
   return repository.fetchFavorites();
 });
 
-/// Annonces de l'agent connecté ("Mes annonces") — filtrage 100% côté
-/// Django (/api/agent/properties/), jamais recalculé côté Flutter.
+/// Annonces publiques d'un propriétaire donné — "Rechercher un
+/// propriétaire" côté agent (voir features/bailleurs).
+final propertiesByOwnerProvider =
+    FutureProvider.autoDispose.family<List<Property>, String>((ref, ownerId) async {
+  final repository = ref.watch(propertyRepositoryProvider);
+  return repository.fetchPropertiesByOwner(ownerId);
+});
+
+/// Annonces de l'utilisateur connecté ("Mes annonces" / "Mes biens") —
+/// filtrage 100% côté Django, jamais recalculé côté Flutter. Réutilisé tel
+/// quel par MyPropertiesScreen pour l'agent ET le bailleur (deux rôles
+/// indépendants, chacun avec son propre endpoint /api/agent/properties/ ou
+/// /api/bailleur/properties/) — un seul écran, un seul provider.
 final myPropertiesProvider = FutureProvider.autoDispose<List<Property>>((ref) async {
   final repository = ref.watch(propertyRepositoryProvider);
+  final user = ref.watch(authControllerProvider).valueOrNull;
+  if (user?.isBailleur ?? false) {
+    return repository.fetchMyPropertiesAsBailleur();
+  }
   return repository.fetchMyProperties();
 });
 
@@ -134,6 +150,21 @@ final myPropertiesProvider = FutureProvider.autoDispose<List<Property>>((ref) as
 /// immédiatement si la propriété y est affichée), puis confirme côté
 /// serveur ; en cas d'échec, l'état est restauré. Le Détail et les Favoris
 /// se resynchronisent via invalidate (source de vérité : la réponse serveur).
+/// "Marquer occupé" / "Marquer disponible" depuis la carte de réservation —
+/// réservé au propriétaire du bien côté Django (403 sinon, voir
+/// IsPropertyOwnerOrReadOnly). Invalide propertyByIdProvider, seule source
+/// affichée par ReservationCard : pas de mise à jour optimiste ici, l'action
+/// est rare et la confirmation serveur est immédiate.
+Future<void> markPropertyStatus(
+  WidgetRef ref, {
+  required String propertyId,
+  required PropertyStatus status,
+}) async {
+  final repository = ref.read(propertyRepositoryProvider);
+  await repository.updatePropertyStatus(propertyId, status);
+  ref.invalidate(propertyByIdProvider(propertyId));
+}
+
 Future<void> toggleFavorite(WidgetRef ref, String propertyId) async {
   final controller = ref.read(propertiesControllerProvider.notifier);
   final currentList = ref.read(propertiesControllerProvider).valueOrNull ?? const [];

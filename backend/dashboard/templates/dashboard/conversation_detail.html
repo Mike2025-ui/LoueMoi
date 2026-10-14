@@ -1,0 +1,43 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Conversation{% endblock %}
+{% block page_title %}{{ obj.client }} ↔ {{ obj.agent }}{% endblock %}
+{% block content %}
+<a href="{% url 'dashboard:conversations_list' %}">&laquo; Retour aux conversations</a>
+
+<div class="card">
+  <h2>Participants</h2>
+  <div class="detail-grid">
+    <div class="detail-field"><div class="label">Client / Bailleur</div><div class="value"><a href="{% url 'dashboard:user_detail' obj.client.pk %}">{{ obj.client }}</a></div></div>
+    <div class="detail-field"><div class="label">Agent</div><div class="value"><a href="{% url 'dashboard:user_detail' obj.agent.pk %}">{{ obj.agent }}</a></div></div>
+    <div class="detail-field"><div class="label">Propriété</div><div class="value">
+      {% if obj.property %}<a href="{% url 'dashboard:property_detail' obj.property.pk %}">{{ obj.property.title }}</a>{% else %}—{% endif %}
+    </div></div>
+    <div class="detail-field"><div class="label">Créée le</div><div class="value">{{ obj.created_at|date:"d/m/Y H:i" }}</div></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Messages ({{ messages|length }})</h2>
+  <p style="color:var(--text-hint);font-size:12px;margin-top:-8px">
+    Consultation en lecture seule, réservée à l'administration. Aucune fonctionnalité de réponse ou d'usurpation d'utilisateur.
+  </p>
+  {% if messages %}
+  <div class="table-wrap"><table>
+    <thead><tr><th>Expéditeur</th><th>Destinataire</th><th>Contenu</th><th>Type</th><th>Pièce jointe</th><th>Lu</th><th>Date</th></tr></thead>
+    <tbody>
+      {% for m in messages %}
+      <tr>
+        <td>{{ m.sender }}</td>
+        <td>{{ m.receiver }}</td>
+        <td>{{ m.content|default:"—"|truncatechars:60 }}</td>
+        <td>{{ m.get_attachment_type_display }}</td>
+        <td>{% if m.attachment %}✅{% else %}—{% endif %}</td>
+        <td>{% if m.is_read %}✅{% else %}—{% endif %}</td>
+        <td>{{ m.created_at|date:"d/m/Y H:i" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<div class="empty-state">Aucun message.</div>{% endif %}
+</div>
+{% endblock %}

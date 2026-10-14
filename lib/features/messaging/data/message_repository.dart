@@ -5,12 +5,28 @@ import '../models/message.dart';
 abstract class MessageRepository {
   Future<List<Conversation>> fetchConversations();
   Future<List<Message>> fetchMessages(String conversationId);
-  Future<Message> sendMessage({required String conversationId, required String content});
+
+  /// Envoie un message texte et/ou une pièce jointe (image/vidéo/audio).
+  /// [attachmentPath] null => message texte simple ; sinon un fichier local
+  /// (photo/vidéo sélectionnée, ou vocal enregistré) est uploadé en
+  /// multipart, et [attachmentType] doit être renseigné en conséquence.
+  Future<Message> sendMessage({
+    required String conversationId,
+    String content = '',
+    String? attachmentPath,
+    MessageAttachmentType attachmentType = MessageAttachmentType.text,
+    int? duration,
+  });
 
   /// Récupère (ou crée) la conversation avec cet agent, à propos d'une
   /// propriété donnée, et retourne son id — à appeler avant de naviguer vers
   /// l'écran de conversation depuis "Contacter l'agent".
   Future<String> getOrCreateConversationId({required String agentId, String? propertyId});
+
+  /// Marque comme lus tous les messages reçus dans cette conversation — à
+  /// appeler à l'ouverture de l'écran de conversation, jamais recalculé
+  /// côté Flutter (unread_count reste calculé par Django).
+  Future<void> markConversationRead(String conversationId);
 }
 
 class MockMessageRepository implements MessageRepository {
@@ -59,7 +75,10 @@ class MockMessageRepository implements MessageRepository {
   @override
   Future<Message> sendMessage({
     required String conversationId,
-    required String content,
+    String content = '',
+    String? attachmentPath,
+    MessageAttachmentType attachmentType = MessageAttachmentType.text,
+    int? duration,
   }) async {
     await Future.delayed(const Duration(milliseconds: 150));
     final message = Message(
@@ -68,6 +87,12 @@ class MockMessageRepository implements MessageRepository {
       senderId: 'user-1',
       receiverId: 'agent-1',
       content: content,
+      attachmentType: attachmentType,
+      // En mode mock, le chemin local sert directement d'URL — même
+      // convention que le reste de l'app (ex: aperçu photo en publication)
+      // pour afficher un fichier local sans backend.
+      attachmentUrl: attachmentPath,
+      duration: duration,
       createdAt: DateTime.now(),
       isRead: false,
     );
@@ -83,5 +108,16 @@ class MockMessageRepository implements MessageRepository {
     // En mode démo, une seule conversation mock existe ('conv-1') ; l'id de
     // l'agent sert directement d'id de conversation pour toute autre entrée.
     return agentId;
+  }
+
+  @override
+  Future<void> markConversationRead(String conversationId) async {
+    final messages = _messages[conversationId];
+    if (messages == null) return;
+    for (var i = 0; i < messages.length; i++) {
+      if (!messages[i].isRead) {
+        messages[i] = Message.fromJson({...messages[i].toJson(), 'is_read': true});
+      }
+    }
   }
 }

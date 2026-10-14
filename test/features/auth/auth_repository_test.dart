@@ -52,5 +52,34 @@ void main() {
       // Un agent ne peut jamais s'auto-vérifier — même côté mock.
       expect(user.agentProfile!.isVerified, isFalse);
     });
+
+    test('returns a bailleur user with no agent profile and canOwnProperties true',
+        () async {
+      final repository = MockAuthRepository();
+      final user = await repository.register(
+        firstName: 'Adjoua',
+        lastName: 'N\'Guessan',
+        phone: '0700000002',
+        password: 'secret1',
+        role: UserRole.bailleur,
+      );
+      expect(user.role, UserRole.bailleur);
+      expect(user.isBailleur, isTrue);
+      expect(user.isAgent, isFalse);
+      // Rôle indépendant de l'agent : pas de profil professionnel structuré.
+      expect(user.agentProfile, isNull);
+      expect(user.canOwnProperties, isTrue);
+    });
+  });
+
+  group('MockAuthRepository.login for a bailleur', () {
+    test('a bailleur can log in through the same mock flow as any role', () async {
+      final repository = MockAuthRepository();
+      final user = await repository.login(phone: '0700000002', password: 'secret1');
+      // MockAuthRepository.login ne connaît pas le rôle réel (pas de
+      // backend) : on vérifie seulement que le flux ne casse jamais pour
+      // un numéro par ailleurs enregistré comme bailleur.
+      expect(user.token, isNotNull);
+    });
   });
 }

@@ -10,6 +10,14 @@ class PropertyFilter(filters.FilterSet):
     district = filters.CharFilter(field_name="district", lookup_expr="icontains")
     budget_min = filters.NumberFilter(field_name="price", lookup_expr="gte")
     budget_max = filters.NumberFilter(field_name="price", lookup_expr="lte")
+    # ?agent=<id> — annonces publiques d'un propriétaire donné (agent ou
+    # bailleur, colonne `agent` conservée pour compatibilité). Utilisé par
+    # "Rechercher un propriétaire" côté agent (voir bailleurs.views.
+    # BailleurSearchView) : passe par ce filtre plutôt qu'un nouvel
+    # endpoint, donc respecte automatiquement les mêmes règles de
+    # visibilité publique que le reste de /api/properties/ (annonces
+    # expirées/désactivées déjà exclues par PropertyViewSet.get_queryset).
+    agent = filters.NumberFilter(field_name="agent_id")
 
     # Utilisé par l'écran Favoris (favoritesListProvider côté Flutter) :
     # ?favorites_only=true ne renvoie que les biens favoris de l'utilisateur

@@ -1,0 +1,40 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Tableau de bord{% endblock %}
+{% block page_title %}Tableau de bord{% endblock %}
+{% block content %}
+<div class="stat-grid">
+  <div class="stat-card"><div class="label">Utilisateurs</div><div class="value">{{ stats.users_total }}</div></div>
+  <div class="stat-card"><div class="label">Clients</div><div class="value">{{ stats.clients }}</div></div>
+  <div class="stat-card"><div class="label">Bailleurs</div><div class="value">{{ stats.bailleurs }}</div></div>
+  <div class="stat-card"><div class="label">Agents</div><div class="value">{{ stats.agents }}</div></div>
+  <div class="stat-card"><div class="label">Propriétés</div><div class="value">{{ stats.properties_total }}</div></div>
+  <div class="stat-card"><div class="label">Disponibles</div><div class="value">{{ stats.properties_disponible }}</div></div>
+  <div class="stat-card"><div class="label">Occupées</div><div class="value">{{ stats.properties_occupee }}</div></div>
+  <div class="stat-card"><div class="label">Réservations</div><div class="value">{{ stats.reservations_total }}</div></div>
+  <div class="stat-card"><div class="label">Résa. en cours</div><div class="value">{{ stats.reservations_en_cours }}</div></div>
+  <div class="stat-card"><div class="label">Conversations</div><div class="value">{{ stats.conversations_total }}</div></div>
+  <div class="stat-card"><div class="label">Messages</div><div class="value">{{ stats.messages_total }}</div></div>
+  <div class="stat-card"><div class="label">Notifications</div><div class="value">{{ stats.notifications_total }}</div></div>
+  <div class="stat-card"><div class="label">Non lues</div><div class="value">{{ stats.notifications_non_lues }}</div></div>
+  <div class="stat-card"><div class="label">Avis</div><div class="value">{{ stats.reviews_total }}</div></div>
+</div>
+
+<div class="card">
+  <h2>Activité récente</h2>
+  {% if events %}
+  <div class="activity-list">
+    {% for e in events %}
+    <div class="activity-item">
+      <div class="activity-dot"></div>
+      <div class="activity-body">
+        <div class="activity-type">{{ e.type }} — {{ e.label }}</div>
+        <div class="activity-meta">{{ e.role }} · {{ e.when|date:"d/m/Y H:i" }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">Aucune activité pour le moment.</div>
+  {% endif %}
+</div>
+{% endblock %}

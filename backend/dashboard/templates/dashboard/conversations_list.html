@@ -1,0 +1,38 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Conversations{% endblock %}
+{% block page_title %}Conversations{% endblock %}
+{% block content %}
+<form class="filters" method="get">
+  <input type="text" name="q" placeholder="Client, agent, propriété..." value="{{ q }}">
+  <button type="submit">Rechercher</button>
+</form>
+
+<div class="card">
+  <div class="table-wrap">
+  <table>
+    <thead><tr>
+      <th>Client / Bailleur</th><th>Agent</th><th>Propriété</th><th>Dernier message</th><th>Messages</th><th>Créée le</th>
+    </tr></thead>
+    <tbody>
+      {% for c in page_obj %}
+      <tr onclick="window.location='{% url 'dashboard:conversation_detail' c.pk %}'" style="cursor:pointer">
+        <td>{{ c.client }}</td>
+        <td>{{ c.agent }}</td>
+        <td>{{ c.property|default:"—" }}</td>
+        <td>
+          {% if c.last_message_content %}{{ c.last_message_content|truncatechars:40 }}
+          {% elif c.last_message_attachment_type and c.last_message_attachment_type != "text" %}[pièce jointe]
+          {% else %}—{% endif %}
+        </td>
+        <td>{{ c.messages_count }}</td>
+        <td>{{ c.created_at|date:"d/m/Y" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="empty-state">Aucune conversation trouvée.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% include "dashboard/_pagination.html" %}
+</div>
+{% endblock %}

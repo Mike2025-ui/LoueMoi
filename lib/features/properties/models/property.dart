@@ -1,4 +1,6 @@
 import 'package:equatable/equatable.dart';
+import '../../../core/config/env.dart';
+import '../../../core/utils/geo.dart';
 import 'agent.dart';
 import 'property_enums.dart';
 
@@ -23,6 +25,11 @@ class Property extends Equatable {
   final bool isFavorite;
   final List<String> images;
   final String coverImage;
+
+  /// Vidéo facultative de l'annonce (une seule au maximum) — URL absolue
+  /// hébergée côté serveur, null tant qu'aucune vidéo n'a été envoyée.
+  /// Fonctionnalité distincte de la vidéo de messagerie : jamais mélangée.
+  final String? video;
   final List<String> features; // Douche, Cuisine, Parking...
   final List<String> amenities; // Eau, Courant...
   final Agent agent;
@@ -57,6 +64,7 @@ class Property extends Equatable {
     this.isFavorite = false,
     required this.images,
     required this.coverImage,
+    this.video,
     required this.features,
     required this.amenities,
     required this.agent,
@@ -68,6 +76,12 @@ class Property extends Equatable {
   });
 
   bool get isOccupee => status == PropertyStatus.occupee;
+  bool get isVendue => status == PropertyStatus.vendue;
+
+  /// Bien non réservable, quelle qu'en soit la raison (loué ou vendu) —
+  /// jamais les deux à la fois : "occupee" n'existe que pour une location,
+  /// "vendue" que pour une vente (voir PropertyStatus).
+  bool get isUnavailable => isOccupee || isVendue;
 
   /// Total réservation = loyer + caution + avance (calcul dynamique).
   double get reservationTotal => price + (deposit ?? 0) + (advance ?? 0);
@@ -139,6 +153,7 @@ class Property extends Equatable {
       isFavorite: json['is_favorite'] as bool? ?? false,
       images: (json['images'] as List).map((e) => e as String).toList(),
       coverImage: json['cover_image'] as String,
+      video: _resolveVideoUrl(json['video'] as String?),
       features: (json['features'] as List).map((e) => e as String).toList(),
       amenities: (json['amenities'] as List).map((e) => e as String).toList(),
       agent: Agent.fromJson(json['agent'] as Map<String, dynamic>),
@@ -148,6 +163,21 @@ class Property extends Equatable {
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
+  }
+
+  /// Le backend renvoie normalement déjà une URL absolue (voir
+  /// PropertyViewSet.get_serializer_context côté Django, qui fournit
+  /// `request` à DRF pour que FileField.to_representation construise l'URL
+  /// via request.build_absolute_uri() plutôt que de renvoyer un simple
+  /// "/media/..."). Ce filet de sécurité ne fait que compléter une URL
+  /// relative avec Env.apiBaseUrl si jamais elle en arrivait une malgré
+  /// tout — sans lui, video_player recevrait une URI sans schéma ni hôte et
+  /// échouerait silencieusement (voir PropertyVideoPlayer._init).
+  static String? _resolveVideoUrl(String? raw) {
+    if (raw == null || raw.isEmpty) return null;
+    if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
+    final base = Env.apiBaseUrl;
+    return raw.startsWith('/') ? '$base$raw' : '$base/$raw';
   }
 
   Map<String, dynamic> toJson() => {
@@ -164,13 +194,14 @@ class Property extends Equatable {
         'commune': commune,
         'district': district,
         'address': address,
-        'latitude': latitude,
-        'longitude': longitude,
+        'latitude': normalizeCoordinate(latitude),
+        'longitude': normalizeCoordinate(longitude),
         'status': status.name,
         'is_future': isFuture,
         'is_favorite': isFavorite,
         'images': images,
         'cover_image': coverImage,
+        'video': video,
         'features': features,
         'amenities': amenities,
         'agent': agent.toJson(),
@@ -201,6 +232,7 @@ class Property extends Equatable {
         isFavorite,
         images,
         coverImage,
+        video,
         features,
         amenities,
         agent,

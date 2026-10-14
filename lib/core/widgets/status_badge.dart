@@ -35,6 +35,15 @@ class StatusBadge extends StatelessWidget {
         textColor: AppColors.statusOccupeeText,
       );
 
+  /// Même palette que .occupee() : les deux signifient "plus disponible",
+  /// juste pour des transactions différentes (location vs vente) — pas
+  /// besoin d'une troisième couleur pour la même sémantique visuelle.
+  factory StatusBadge.vendue() => const StatusBadge(
+        label: 'Vendue',
+        backgroundColor: AppColors.statusOccupeeBg,
+        textColor: AppColors.statusOccupeeText,
+      );
+
   factory StatusBadge.category(String label) => StatusBadge(
         label: label,
         backgroundColor: AppColors.primaryLight,

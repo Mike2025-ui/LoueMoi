@@ -28,9 +28,18 @@ dependencies:
   # Share
   share_plus: ^10.1.4
 
+  # Téléphonie native (bouton "Appeler" — jamais de VoIP propriétaire)
+  url_launcher: ^6.3.1
+
   # Images
   cached_network_image: ^3.4.1
   image_picker: ^1.1.2
+
+  # Messagerie multimédia (vidéo + messages vocaux)
+  video_player: ^2.9.2
+  record: 6.2.1
+  just_audio: ^0.9.42
+  path_provider: ^2.1.5
 
   # Géolocalisation + carte (OpenStreetMap — pas de clé API requise)
   geolocator: ^13.0.2
@@ -46,6 +55,8 @@ dependencies:
 
   # Env config
   flutter_dotenv: ^5.2.1
+  firebase_core: ^4.13.0
+  firebase_messaging: ^16.5.0
 
 dev_dependencies:
   flutter_test:
@@ -57,6 +68,11 @@ dev_dependencies:
   # test/core/services/location_permission_service_test.dart) — déjà présents
   # transitivement via geolocator, déclarés ici car importés directement.
   geolocator_platform_interface: ^4.2.8
+
+  # Mock d'ImagePickerPlatform dans les tests vidéo (voir
+  # test/features/publish/publish_video_test.dart) — même principe que
+  # geolocator_platform_interface ci-dessus.
+  image_picker_platform_interface: ^2.11.1
   plugin_platform_interface: ^2.1.8
 
 flutter:

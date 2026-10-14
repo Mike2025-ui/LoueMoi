@@ -51,7 +51,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final transactionType = ref.watch(homeTransactionTypeProvider);
     final propertiesAsync = ref.watch(propertiesListProvider);
-    final unreadCount = ref.watch(unreadNotificationsCountProvider);
+    final unreadCount = ref.watch(unreadNotificationsCountProvider).valueOrNull ?? 0;
 
     return Scaffold(
       backgroundColor: AppColors.background,
