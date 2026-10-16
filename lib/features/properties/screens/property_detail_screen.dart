@@ -14,6 +14,7 @@ import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/property_image.dart';
 import '../../../core/widgets/section_divider_title.dart';
 import '../../../core/widgets/status_badge.dart';
+import '../../auth/providers/auth_providers.dart';
 import '../../messaging/providers/message_providers.dart';
 import '../../reviews/providers/review_providers.dart';
 import '../../reviews/widgets/review_card.dart';
@@ -76,16 +77,32 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
       ),
       bottomNavigationBar: propertyAsync.maybeWhen(
         skipLoadingOnReload: true,
-        data: (property) => BottomReservationBar(
-          price: property.price,
-          priceSuffix: property.transactionType == TransactionType.location
-              ? '/ mois'
-              : '',
-          isAvailable: !property.isUnavailable,
-          unavailableLabel: property.isVendue ? 'Propriété vendue' : 'Propriété occupée',
-          onReserve: () =>
-              context.push(AppRoutes.reservationSummaryPath(property.id)),
-        ),
+        data: (property) {
+          final currentUser = ref.watch(authControllerProvider).valueOrNull;
+          final isOwner = currentUser != null && currentUser.id == property.agent.id;
+          if (isOwner) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.screenPadding),
+                child: PrimaryButton(
+                  label: 'Modifier mon annonce',
+                  onPressed: () =>
+                      context.push(AppRoutes.editPropertyPath(property.id)),
+                ),
+              ),
+            );
+          }
+          return BottomReservationBar(
+            price: property.price,
+            priceSuffix: property.transactionType == TransactionType.location
+                ? '/ mois'
+                : '',
+            isAvailable: !property.isUnavailable,
+            unavailableLabel: property.isVendue ? 'Propriété vendue' : 'Propriété occupée',
+            onReserve: () =>
+                context.push(AppRoutes.reservationSummaryPath(property.id)),
+          );
+        },
         orElse: () => null,
       ),
     );
@@ -303,31 +320,63 @@ class _AProposTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final currentUser = ref.watch(authControllerProvider).valueOrNull;
+    final isOwner = currentUser != null && currentUser.id == property.agent.id;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         AgentCard(
           agent: property.agent,
-          onMessageTap: () => _contactAgent(context, ref),
+          onMessageTap: isOwner ? null : () => _contactAgent(context, ref),
         ),
         const SizedBox(height: AppSpacing.md),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: () => _contactAgent(context, ref),
-            icon: const Icon(Icons.chat_bubble_outline, size: 18),
-            label: const Text('Contacter l’agent'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.primary,
-              side: const BorderSide(color: AppColors.primary),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppRadius.pill),
+        if (!isOwner) ...[
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _contactAgent(context, ref),
+              icon: const Icon(Icons.chat_bubble_outline, size: 18),
+              label: const Text('Contacter l’agent'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                side: const BorderSide(color: AppColors.primary),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                ),
               ),
             ),
           ),
-        ),
-        const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.lg),
+        ] else ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.primaryLight.withOpacity(0.4),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.info_outline, color: AppColors.primary, size: 20),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Vous êtes l’auteur de cette annonce.',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+        ],
         const SectionDividerTitle(title: 'Détails'),
         const SizedBox(height: AppSpacing.md),
         const Text('Configuration', style: AppTextStyles.caption),

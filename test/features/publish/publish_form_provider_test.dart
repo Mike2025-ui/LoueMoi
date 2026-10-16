@@ -47,6 +47,9 @@ void main() {
       final options = characteristicsOptionsFor(PropertyType.logement);
       expect(options, contains('Salon'));
       expect(options, contains('Climatisation'));
+      expect(options, contains('Placard'));
+      expect(options, contains('Plafonné'));
+      expect(options, contains('Carrelé'));
     });
 
     test('offers terrain-specific options, distinct from logement', () {

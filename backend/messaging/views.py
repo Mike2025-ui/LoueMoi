@@ -20,11 +20,17 @@ class ConversationViewSet(viewsets.ModelViewSet):
 
     serializer_class = ConversationSerializer
     permission_classes = [permissions.IsAuthenticated]
-    http_method_names = ["get", "post", "head", "options"]
+    http_method_names = ["get", "post", "delete", "head", "options"]
 
     def get_queryset(self):
         user = self.request.user
-        return Conversation.objects.filter(Q(client=user) | Q(agent=user))
+        # Ne renvoie que les conversations qui contiennent au moins un message réel
+        # pour éviter d'afficher des conversations fantômes non démarrées
+        return (
+            Conversation.objects.filter(Q(client=user) | Q(agent=user))
+            .filter(messages__isnull=False)
+            .distinct()
+        )
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -32,15 +38,25 @@ class ConversationViewSet(viewsets.ModelViewSet):
         return context
 
     def perform_create(self, serializer):
+        agent = serializer.validated_data["agent"]
+        if self.request.user == agent:
+            raise serializers.ValidationError("Vous ne pouvez pas démarrer une conversation avec vous-même.")
         # get_or_create plutôt que save() : "Contacter l'agent" doit pouvoir
         # être appelé plusieurs fois (sessions différentes, etc.) et retomber
         # sur la même conversation au lieu d'échouer ou d'en créer une copie.
         conversation, _created = Conversation.objects.get_or_create(
             client=self.request.user,
-            agent=serializer.validated_data["agent"],
+            agent=agent,
             property=serializer.validated_data.get("property"),
         )
         serializer.instance = conversation
+
+    def perform_destroy(self, instance):
+        user = self.request.user
+        if user not in (instance.client, instance.agent):
+            raise PermissionDenied("Vous ne faites pas partie de cette conversation.")
+        instance.delete()
+
 
     @action(detail=True, methods=["post"], url_path="mark-read")
     def mark_read(self, request, pk=None):

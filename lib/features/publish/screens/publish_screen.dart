@@ -121,6 +121,14 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
         }
         return null;
       case 4:
+        if (form.existingImages.isEmpty) {
+          if (form.coverImageFile == null) {
+            return 'La photo de couverture est obligatoire.';
+          }
+          if (form.propertyType != PropertyType.terrain && form.chambreImages.isEmpty) {
+            return 'Au moins une photo pour la ou les chambre(s) est obligatoire.';
+          }
+        }
         if (!form.hasAtLeastOnePhoto) return 'Ajoutez au moins une photo.';
         return null;
       default:
@@ -911,12 +919,32 @@ class _StepPhotos extends ConsumerWidget {
 
   final String? editPropertyId;
 
-  Future<void> _pickImages(BuildContext context, WidgetRef ref, PublishFormState form) async {
+  Future<void> _pickCoverPhoto(BuildContext context, WidgetRef ref, PublishFormState form) async {
+    try {
+      final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85);
+      if (picked == null) return;
+      final notifier = ref.read(publishFormProvider.notifier);
+      notifier.state = form.copyWith(coverImageFile: picked);
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Impossible d'ouvrir la galerie de photos.")),
+        );
+      }
+    }
+  }
+
+  Future<void> _pickMultiCategoryPhotos({
+    required BuildContext context,
+    required WidgetRef ref,
+    required PublishFormState form,
+    required List<XFile> currentList,
+    required void Function(List<XFile> updated) onUpdated,
+  }) async {
     try {
       final picked = await ImagePicker().pickMultiImage(imageQuality: 85);
       if (picked.isEmpty) return;
-      final notifier = ref.read(publishFormProvider.notifier);
-      notifier.state = form.copyWith(newImages: [...form.newImages, ...picked]);
+      onUpdated([...currentList, ...picked]);
     } catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -945,16 +973,11 @@ class _StepPhotos extends ConsumerWidget {
     }
   }
 
-  void _removeNewImage(WidgetRef ref, PublishFormState form, XFile file) {
-    final notifier = ref.read(publishFormProvider.notifier);
-    notifier.state = form.copyWith(
-      newImages: form.newImages.where((f) => f.path != file.path).toList(),
-    );
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final form = ref.watch(publishFormProvider);
+    final notifier = ref.read(publishFormProvider.notifier);
+    final isTerrain = form.propertyType == PropertyType.terrain;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.screenPadding),
@@ -964,44 +987,230 @@ class _StepPhotos extends ConsumerWidget {
           const Text('Photos du bien', style: AppTextStyles.h3),
           const SizedBox(height: AppSpacing.xs),
           const Text(
-            'La première photo devient la photo principale.',
+            'Sélectionnez les photos dans l’ordre recommandé pour une publication optimale.',
             style: AppTextStyles.caption,
           ),
-          const SizedBox(height: AppSpacing.md),
-          Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.sm,
-            children: [
-              for (final url in form.existingImages)
-                _PhotoThumb(
-                  child: PropertyImage(url, fit: BoxFit.cover),
-                  onRemove: () => _removeExistingImage(context, ref, form, url),
-                ),
-              for (final file in form.newImages)
-                _PhotoThumb(
-                  child: Image.file(File(file.path), fit: BoxFit.cover),
-                  onRemove: () => _removeNewImage(ref, form, file),
-                ),
-              InkWell(
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                onTap: () => _pickImages(context, ref, form),
-                child: Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: const Icon(Icons.add_photo_alternate_outlined,
-                      color: AppColors.textHint, size: 28),
-                ),
-              ),
-            ],
+          const SizedBox(height: AppSpacing.lg),
+
+          // 1. Photo de couverture (obligatoire)
+          _PhotoCategorySection(
+            title: '1. Photo de couverture',
+            subtitle: 'Obligatoire — Image principale qui apparaîtra en premier sur votre annonce.',
+            isRequired: form.existingImages.isEmpty,
+            images: form.coverImageFile != null ? [form.coverImageFile!] : const [],
+            allowMultiple: false,
+            onPick: () => _pickCoverPhoto(context, ref, form),
+            onRemove: (_) => notifier.state = form.copyWith(clearCoverImage: true),
           ),
+          const SizedBox(height: AppSpacing.lg),
+
+          // 2. Chambre(s) (obligatoire pour logement/magasin)
+          _PhotoCategorySection(
+            title: isTerrain ? '2. Photos du terrain' : '2. Chambre(s)',
+            subtitle: isTerrain
+                ? 'Facultatif — Vue générale ou détails du terrain.'
+                : 'Obligatoire — Vous pouvez sélectionner plusieurs photos.',
+            isRequired: !isTerrain && form.existingImages.isEmpty,
+            images: form.chambreImages,
+            onPick: () => _pickMultiCategoryPhotos(
+              context: context,
+              ref: ref,
+              form: form,
+              currentList: form.chambreImages,
+              onUpdated: (list) => notifier.state = form.copyWith(chambreImages: list),
+            ),
+            onRemove: (f) => notifier.state = form.copyWith(
+              chambreImages: form.chambreImages.where((img) => img.path != f.path).toList(),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+
+          // 3. Salon et terrasse (facultative)
+          _PhotoCategorySection(
+            title: '3. Salon et terrasse',
+            subtitle: 'Facultative — Vous pouvez sélectionner plusieurs photos.',
+            isRequired: false,
+            images: form.salonImages,
+            onPick: () => _pickMultiCategoryPhotos(
+              context: context,
+              ref: ref,
+              form: form,
+              currentList: form.salonImages,
+              onUpdated: (list) => notifier.state = form.copyWith(salonImages: list),
+            ),
+            onRemove: (f) => notifier.state = form.copyWith(
+              salonImages: form.salonImages.where((img) => img.path != f.path).toList(),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+
+          // 4. Cuisine (facultative)
+          _PhotoCategorySection(
+            title: '4. Cuisine',
+            subtitle: 'Facultative — Vous pouvez sélectionner plusieurs photos.',
+            isRequired: false,
+            images: form.cuisineImages,
+            onPick: () => _pickMultiCategoryPhotos(
+              context: context,
+              ref: ref,
+              form: form,
+              currentList: form.cuisineImages,
+              onUpdated: (list) => notifier.state = form.copyWith(cuisineImages: list),
+            ),
+            onRemove: (f) => notifier.state = form.copyWith(
+              cuisineImages: form.cuisineImages.where((img) => img.path != f.path).toList(),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+
+          // 5. Salle(s) de bain (facultative)
+          _PhotoCategorySection(
+            title: '5. Salle(s) de bain',
+            subtitle: 'Facultative — Vous pouvez sélectionner plusieurs photos.',
+            isRequired: false,
+            images: form.salleDeBainImages,
+            onPick: () => _pickMultiCategoryPhotos(
+              context: context,
+              ref: ref,
+              form: form,
+              currentList: form.salleDeBainImages,
+              onUpdated: (list) => notifier.state = form.copyWith(salleDeBainImages: list),
+            ),
+            onRemove: (f) => notifier.state = form.copyWith(
+              salleDeBainImages: form.salleDeBainImages.where((img) => img.path != f.path).toList(),
+            ),
+          ),
+
+          // Photos déjà existantes (édition)
+          if (form.existingImages.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.lg),
+            const Text('Photos existantes enregistrées', style: AppTextStyles.label),
+            const SizedBox(height: AppSpacing.sm),
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: [
+                for (final url in form.existingImages)
+                  _PhotoThumb(
+                    child: PropertyImage(url, fit: BoxFit.cover),
+                    onRemove: () => _removeExistingImage(context, ref, form, url),
+                  ),
+              ],
+            ),
+          ],
+
           const Divider(height: AppSpacing.xl),
           _VideoPickerSection(editPropertyId: editPropertyId),
         ],
       ),
+    );
+  }
+}
+
+class _PhotoCategorySection extends StatelessWidget {
+  const _PhotoCategorySection({
+    required this.title,
+    required this.subtitle,
+    required this.isRequired,
+    required this.images,
+    required this.onPick,
+    required this.onRemove,
+    this.allowMultiple = true,
+  });
+
+  final String title;
+  final String subtitle;
+  final bool isRequired;
+  final List<XFile> images;
+  final VoidCallback onPick;
+  final ValueChanged<XFile> onRemove;
+  final bool allowMultiple;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      title,
+                      style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (isRequired) ...[
+                    const SizedBox(width: 4),
+                    const Text('*', style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.bold)),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            Text(
+              images.isNotEmpty ? '${images.length} photo(s)' : (isRequired ? 'Requis' : 'Optionnel'),
+              style: AppTextStyles.caption.copyWith(
+                color: isRequired && images.isEmpty ? AppColors.danger : AppColors.textSecondary,
+                fontWeight: isRequired && images.isEmpty ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(subtitle, style: AppTextStyles.caption),
+        const SizedBox(height: AppSpacing.sm),
+        Wrap(
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.sm,
+          children: [
+            for (final file in images)
+              _PhotoThumb(
+                child: Image.file(File(file.path), fit: BoxFit.cover),
+                onRemove: () => onRemove(file),
+              ),
+            if (allowMultiple || images.isEmpty)
+              InkWell(
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                onTap: onPick,
+                child: Container(
+                  width: 90,
+                  height: 90,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    border: Border.all(
+                      color: isRequired && images.isEmpty ? AppColors.primary : AppColors.border,
+                    ),
+                    color: isRequired && images.isEmpty ? AppColors.primaryLight.withOpacity(0.15) : AppColors.surfaceMuted,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.add_photo_alternate_outlined,
+                        color: isRequired && images.isEmpty ? AppColors.primary : AppColors.textHint,
+                        size: 26,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        allowMultiple && images.isNotEmpty ? 'Ajouter' : 'Choisir',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isRequired && images.isEmpty ? AppColors.primary : AppColors.textHint,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ],
     );
   }
 }

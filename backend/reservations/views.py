@@ -39,8 +39,11 @@ class ReservationViewSet(viewsets.ModelViewSet):
 
     @transaction.atomic
     def perform_create(self, serializer):
+        property_obj = serializer.validated_data["property"]
+        if self.request.user == property_obj.agent:
+            raise ValidationError("Vous ne pouvez pas réserver votre propre annonce.")
         reservation = serializer.save(user=self.request.user, status="enCours")
-        property_obj = reservation.property
+
 
         # CORRECTION MÉTIER : une réservation ne rend plus l'annonce
         # "occupee" automatiquement — Property.status reste inchangé

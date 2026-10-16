@@ -70,6 +70,7 @@ class MainBottomNav extends ConsumerWidget {
       body: navigationShell,
       floatingActionButton: canPublish
           ? FloatingActionButton(
+              heroTag: 'publish_property_fab',
               onPressed: () => context.push(AppRoutes.publish),
               backgroundColor: AppColors.primary,
               shape: const CircleBorder(),
@@ -77,44 +78,21 @@ class MainBottomNav extends ConsumerWidget {
               child: const Icon(Icons.add, color: AppColors.white, size: 28),
             )
           : null,
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8,
         color: AppColors.white,
         elevation: 0,
+        padding: EdgeInsets.zero,
         child: Container(
           height: AppSizes.bottomNavHeight,
           decoration: const BoxDecoration(boxShadow: AppShadows.bottomBar),
-          // Avec 5 destinations autour d'un FAB central, la répartition est
-          // nécessairement asymétrique (2 boutons à gauche : Menu/Favoris,
-          // 3 à droite : Réservations/Messages/Profil). L'ancienne structure
-          // donnait un Expanded(flex:1) à chacun des 5 boutons DANS LA MÊME
-          // Row que l'espace réservé au FAB — le "trou" se retrouvait alors
-          // décalé vers la gauche du centre réel de l'écran (2 boutons avant
-          // le trou, 3 après), alors que le FAB (positionné par
-          // centerDocked, toujours au centre EXACT de l'écran, indépendamment
-          // de cette Row) restait, lui, parfaitement centré. Résultat
-          // confirmé sur téléphone : l'encoche du FAB débordait sur le
-          // bouton "Réservations", qui semblait compressé/mal aligné.
-          //
-          // Correctif : deux groupes Expanded(flex:1) DE MÊME POIDS
-          // encadrant le trou fixe de 64px — la largeur de chaque groupe
-          // ((largeur écran - 64) / 2) est donc TOUJOURS identique des deux
-          // côtés, quel que soit le nombre de boutons qu'il contient. Le
-          // trou reste ainsi mathématiquement centré, exactement là où
-          // centerDocked place le FAB. À l'intérieur de chaque groupe, les
-          // boutons se répartissent entre eux à parts égales (Menu/Favoris
-          // ont donc une largeur individuelle légèrement supérieure à celle
-          // de Réservations/Messages/Profil — c'est le seul compromis
-          // possible pour un partage 2/3, mais chaque groupe reste
-          // lui-même régulier, et FittedBox continue de garantir qu'aucun
-          // libellé n'est jamais tronqué, quelle que soit sa largeur).
           child: Row(
             children: [
-              Expanded(child: Row(children: [navButton(0), navButton(1)])),
-              const SizedBox(width: 64),
-              Expanded(child: Row(children: [navButton(2), navButton(3), navButton(4)])),
+              navButton(0),
+              navButton(1),
+              navButton(2),
+              navButton(3),
+              navButton(4),
             ],
           ),
         ),

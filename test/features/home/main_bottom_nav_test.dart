@@ -111,21 +111,9 @@ void main() {
     }
   });
 
-  group('régression : le FAB reste exactement centré (voir main_bottom_nav.dart)', () {
-    // Avec 2 boutons à gauche (Menu/Favoris) et 3 à droite (Réservations/
-    // Messages/Profil), un simple Expanded(flex:1) par bouton sur toute la
-    // Row plaçait l'encoche/le trou du FAB décalé vers la gauche du centre
-    // réel de l'écran, alors que FloatingActionButtonLocation.centerDocked
-    // place, lui, le FAB toujours au centre EXACT — d'où un chevauchement
-    // visuel avec "Réservations", confirmé sur téléphone. Ce test vérifie
-    // que le centre horizontal du FAB rendu coïncide bien avec le centre
-    // horizontal de l'écran, à chacune des largeurs auditées.
+  group('répartition égale des 5 onglets de la barre de navigation', () {
     for (final width in [320.0, 360.0, 375.0, 390.0, 412.0]) {
-      testWidgets('FAB centré à ${width.toInt()}px de large', (tester) async {
-        // Le FAB "Publier" n'apparaît que pour un agent/bailleur connecté
-        // (voir MainBottomNav.canPublish) — c'est justement la seule
-        // population concernée par ce bug (un client n'a jamais de FAB, donc
-        // rien à recentrer pour lui).
+      testWidgets('les 5 onglets ont une largeur identique à ${width.toInt()}px', (tester) async {
         await _pumpAt(
           tester,
           Size(width, 800),
@@ -134,14 +122,22 @@ void main() {
           ],
         );
 
-        final fabRect = tester.getRect(find.byType(FloatingActionButton));
-        final fabCenterX = fabRect.center.dx;
+        final expectedWidth = width / 5;
+        for (final label in ['Menu', 'Favoris', 'Réservations', 'Messages', 'Profil']) {
+          final buttonFinder = find.ancestor(
+            of: find.text(label),
+            matching: find.byType(InkWell),
+          );
+          final rect = tester.getRect(buttonFinder.first);
+          expect(
+            rect.width,
+            closeTo(expectedWidth, 1.0),
+            reason: 'l\'onglet "$label" doit occuper exactement 1/5 de la barre',
+          );
+        }
 
-        expect(
-          fabCenterX,
-          closeTo(width / 2, 1.0),
-          reason: 'le FAB doit rester centré à 1px près du centre réel de l\'écran',
-        );
+        // Vérifie la présence du FAB de publication pour agent/bailleur
+        expect(find.byType(FloatingActionButton), findsOneWidget);
       });
     }
   });

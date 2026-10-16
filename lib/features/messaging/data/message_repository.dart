@@ -27,6 +27,9 @@ abstract class MessageRepository {
   /// appeler à l'ouverture de l'écran de conversation, jamais recalculé
   /// côté Flutter (unread_count reste calculé par Django).
   Future<void> markConversationRead(String conversationId);
+
+  /// Supprime une conversation côté serveur et tous ses messages associés.
+  Future<void> deleteConversation(String conversationId);
 }
 
 class MockMessageRepository implements MessageRepository {
@@ -119,5 +122,10 @@ class MockMessageRepository implements MessageRepository {
         messages[i] = Message.fromJson({...messages[i].toJson(), 'is_read': true});
       }
     }
+  }
+
+  @override
+  Future<void> deleteConversation(String conversationId) async {
+    _messages.remove(conversationId);
   }
 }

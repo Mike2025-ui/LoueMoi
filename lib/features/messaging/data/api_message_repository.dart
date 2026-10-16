@@ -89,4 +89,9 @@ class ApiMessageRepository implements MessageRepository {
       ApiEndpoints.conversationMarkRead(conversationId),
     );
   }
+
+  @override
+  Future<void> deleteConversation(String conversationId) async {
+    await _apiClient.delete<void>('${ApiEndpoints.conversations}$conversationId/');
+  }
 }

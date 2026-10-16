@@ -27,6 +27,11 @@ class PublishFormState {
     this.longitude,
     this.existingImages = const [],
     this.newImages = const [],
+    this.coverImageFile,
+    this.chambreImages = const [],
+    this.salonImages = const [],
+    this.cuisineImages = const [],
+    this.salleDeBainImages = const [],
     this.existingVideoUrl,
     this.newVideo,
   });
@@ -69,30 +74,39 @@ class PublishFormState {
 
   bool get hasLocation => latitude != null && longitude != null;
 
-  /// Édition uniquement : URLs déjà hébergées côté serveur. L'agent peut en
-  /// retirer (bouton supprimer) ; jamais réordonnées par glisser-déposer
-  /// dans cette phase — la première de la liste sert de photo principale.
+  /// Photo de couverture principale (obligatoire)
+  final XFile? coverImageFile;
+
+  /// Photos de chambre(s) (obligatoire, au moins une)
+  final List<XFile> chambreImages;
+
+  /// Photos salon et terrasse (facultative)
+  final List<XFile> salonImages;
+
+  /// Photos cuisine (facultative)
+  final List<XFile> cuisineImages;
+
+  /// Photos salle(s) de bain (facultative)
+  final List<XFile> salleDeBainImages;
+
+  /// Édition uniquement : URLs déjà hébergées côté serveur.
   final List<String> existingImages;
 
-  /// Nouvelles photos sélectionnées localement (image_picker), à uploader
-  /// au moment de la publication/modification.
+  /// Nouvelles photos sélectionnées localement, à uploader au moment de la publication.
   final List<XFile> newImages;
 
-  /// Édition uniquement : URL déjà hébergée côté serveur — la suppression
-  /// (bouton "Supprimer") appelle immédiatement PropertyRepository.deleteVideo,
-  /// exactement comme pour une photo existante. Jamais renvoyée à
-  /// l'existingImages/newImages ci-dessus : vidéo et photos restent deux
-  /// éléments distincts du formulaire.
   final String? existingVideoUrl;
-
-  /// Nouvelle vidéo sélectionnée localement, à uploader au moment de la
-  /// publication/modification — déjà validée côté client (format/taille/
-  /// durée) avant d'arriver ici (voir _VideoPickerSection).
   final XFile? newVideo;
 
-  bool get hasAtLeastOnePhoto => existingImages.isNotEmpty || newImages.isNotEmpty;
+  bool get hasCoverPhoto => coverImageFile != null || existingImages.isNotEmpty;
+  bool get hasChambrePhoto =>
+      chambreImages.isNotEmpty ||
+      existingImages.isNotEmpty ||
+      propertyType == PropertyType.terrain;
+  bool get hasAtLeastOnePhoto => hasCoverPhoto && hasChambrePhoto;
 
-  bool get hasVideo => newVideo != null || (existingVideoUrl?.isNotEmpty ?? false);
+  bool get hasVideo =>
+      newVideo != null || (existingVideoUrl?.isNotEmpty ?? false);
 
   PublishFormState copyWith({
     TransactionType? transactionType,
@@ -117,11 +131,38 @@ class PublishFormState {
     double? longitude,
     List<String>? existingImages,
     List<XFile>? newImages,
+    XFile? coverImageFile,
+    bool clearCoverImage = false,
+    List<XFile>? chambreImages,
+    List<XFile>? salonImages,
+    List<XFile>? cuisineImages,
+    List<XFile>? salleDeBainImages,
     String? existingVideoUrl,
     bool clearExistingVideoUrl = false,
     XFile? newVideo,
     bool clearNewVideo = false,
   }) {
+    final nextCover = clearCoverImage
+        ? null
+        : (coverImageFile ?? this.coverImageFile);
+    final nextChambres = chambreImages ?? this.chambreImages;
+    final nextSalon = salonImages ?? this.salonImages;
+    final nextCuisine = cuisineImages ?? this.cuisineImages;
+    final nextSalleDeBain = salleDeBainImages ?? this.salleDeBainImages;
+
+    // Si newImages n'est pas fourni directement, on le synchronise automatiquement
+    // avec les photos catégorisées dans l'ordre strict demandé :
+    // 1. Couverture, 2. Chambres, 3. Salon/Terrasse, 4. Cuisine, 5. Salles de bain
+    final computedImages =
+        newImages ??
+        [
+          if (nextCover != null) nextCover,
+          ...nextChambres,
+          ...nextSalon,
+          ...nextCuisine,
+          ...nextSalleDeBain,
+        ];
+
     return PublishFormState(
       transactionType: transactionType ?? this.transactionType,
       propertyType: propertyType ?? this.propertyType,
@@ -144,9 +185,15 @@ class PublishFormState {
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       existingImages: existingImages ?? this.existingImages,
-      newImages: newImages ?? this.newImages,
-      existingVideoUrl:
-          clearExistingVideoUrl ? null : (existingVideoUrl ?? this.existingVideoUrl),
+      newImages: computedImages,
+      coverImageFile: nextCover,
+      chambreImages: nextChambres,
+      salonImages: nextSalon,
+      cuisineImages: nextCuisine,
+      salleDeBainImages: nextSalleDeBain,
+      existingVideoUrl: clearExistingVideoUrl
+          ? null
+          : (existingVideoUrl ?? this.existingVideoUrl),
       newVideo: clearNewVideo ? null : (newVideo ?? this.newVideo),
     );
   }
@@ -179,8 +226,9 @@ class PublishFormState {
     );
   }
 
-  static String _fmt(double value) =>
-      value == value.roundToDouble() ? value.toInt().toString() : value.toString();
+  static String _fmt(double value) => value == value.roundToDouble()
+      ? value.toInt().toString()
+      : value.toString();
 }
 
 /// Options de caractéristiques proposées, selon le type de bien (section 10
@@ -197,11 +245,23 @@ List<String> characteristicsOptionsFor(PropertyType type) {
         'Climatisation',
         'Eau',
         'Électricité',
+        'Placard',
+        'Plafonné',
+        'Carrelé',
       ];
     case PropertyType.terrain:
       return const ['Document disponible', 'Lotissement', 'Viabilisé'];
     case PropertyType.magasin:
-      return const ['Parking', 'Climatisation', 'Eau', 'Électricité', 'Sanitaires'];
+      return const [
+        'Parking',
+        'Climatisation',
+        'Eau',
+        'Électricité',
+        'Sanitaires',
+        'Placard',
+        'Plafonné',
+        'Carrelé',
+      ];
   }
 }
 
@@ -219,4 +279,6 @@ List<String> characteristicsOptionsFor(PropertyType type) {
 /// (réinitialisé explicitement à CHAQUE ouverture, aussi bien en création
 /// qu'en édition) : autoDispose n'apportait donc aucun bénéfice réel ici,
 /// seulement ce risque de perte de données.
-final publishFormProvider = StateProvider<PublishFormState>((ref) => const PublishFormState());
+final publishFormProvider = StateProvider<PublishFormState>(
+  (ref) => const PublishFormState(),
+);
