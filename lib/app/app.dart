@@ -10,6 +10,7 @@ import '../core/services/notification_router.dart';
 import '../core/theme/app_theme.dart';
 import '../features/auth/models/user.dart';
 import '../features/auth/providers/auth_providers.dart';
+import '../features/messaging/providers/message_providers.dart';
 import '../features/notifications/providers/device_token_providers.dart';
 import '../features/notifications/providers/notification_providers.dart';
 import '../features/properties/providers/property_providers.dart';
@@ -56,6 +57,7 @@ class _LoueMoiAppState extends ConsumerState<LoueMoiApp> with WidgetsBindingObse
     if (state == AppLifecycleState.resumed && !Env.useMockData) {
       ref.invalidate(notificationsProvider);
       ref.invalidate(unreadNotificationsCountProvider);
+      ref.invalidate(conversationsProvider);
     }
   }
 
@@ -78,6 +80,16 @@ class _LoueMoiAppState extends ConsumerState<LoueMoiApp> with WidgetsBindingObse
   }
 
   void _handleForegroundMessage(RemoteMessage message) {
+    final type = message.data['type']?.toString() ?? '';
+    final isMessage = type == 'new_message' || message.data.containsKey('conversation_id');
+
+    if (isMessage) {
+      // Les messages de chat ne doivent pas notifier dans la cloche ni afficher
+      // de snackbar de notification générale — ils vivent exclusivement dans l'onglet Messages.
+      ref.invalidate(conversationsProvider);
+      return;
+    }
+
     ref.invalidate(notificationsProvider);
     ref.invalidate(unreadNotificationsCountProvider);
 

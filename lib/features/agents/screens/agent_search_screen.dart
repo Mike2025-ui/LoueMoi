@@ -71,6 +71,11 @@ class AgentSearchScreen extends ConsumerWidget {
                       decoration: const InputDecoration(
                         hintText: 'Nom, agence...',
                         border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                        contentPadding: EdgeInsets.zero,
                         isDense: true,
                       ),
                     ),

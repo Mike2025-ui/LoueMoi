@@ -31,9 +31,7 @@ abstract class PropertyRepository {
   /// Suppression définitive — réservée au propriétaire côté Django.
   Future<void> deleteProperty(String id);
 
-  /// Upload d'une photo (multipart). [isCover] ne fait que suggérer la
-  /// photo de couverture ; Django tranche.
-  Future<Property> uploadImage(String propertyId, XFile file, {bool isCover = false});
+  Future<Property> uploadImage(String propertyId, XFile file, {bool isCover = false, String? category});
 
   /// Retire une photo déjà hébergée (par URL).
   Future<Property> deleteImage(String propertyId, String url);
@@ -56,9 +54,9 @@ abstract class PropertyRepository {
   /// propriétés pour calculer les distances dans Flutter. En mode mock,
   /// même contrat mais calcul en Dart pur (core/utils/geo.dart).
   Future<List<Property>> getNearbyProperties({
-    required double latitude,
-    required double longitude,
-    required double radiusKm,
+    double? latitude,
+    double? longitude,
+    double? radiusKm,
   });
 
   /// Définit/modifie uniquement la position d'une annonce — réservé au
@@ -206,14 +204,17 @@ class MockPropertyRepository implements PropertyRepository {
   }
 
   @override
-  Future<Property> uploadImage(String propertyId, XFile file, {bool isCover = false}) async {
+  Future<Property> uploadImage(String propertyId, XFile file, {bool isCover = false, String? category}) async {
     await Future.delayed(const Duration(milliseconds: 300));
     final index = _indexOrThrow(propertyId);
     final current = _properties[index];
-    final images = [...current.images, file.path];
+    final storedPath = category != null && !file.path.contains('cat_')
+        ? 'cat_${category}_${file.path}'
+        : file.path;
+    final images = [...current.images, storedPath];
     final updated = current.copyWith(
       images: images,
-      coverImage: isCover || current.coverImage.isEmpty ? file.path : current.coverImage,
+      coverImage: isCover || current.coverImage.isEmpty ? storedPath : current.coverImage,
     );
     _properties[index] = updated;
     return updated;
@@ -273,22 +274,25 @@ class MockPropertyRepository implements PropertyRepository {
 
   @override
   Future<List<Property>> getNearbyProperties({
-    required double latitude,
-    required double longitude,
-    required double radiusKm,
+    double? latitude,
+    double? longitude,
+    double? radiusKm,
   }) async {
     await Future.delayed(const Duration(milliseconds: 300));
-    final withDistance = _properties
-        .where((p) => p.latitude != null && p.longitude != null)
-        .map(
-          (p) => p.copyWith(
-            distanceKm: haversineKm(latitude, longitude, p.latitude!, p.longitude!),
-          ),
-        )
-        .where((p) => p.distanceKm! <= radiusKm)
-        .toList()
-      ..sort((a, b) => a.distanceKm!.compareTo(b.distanceKm!));
-    return withDistance;
+    final withCoords = _properties.where((p) => p.latitude != null && p.longitude != null);
+    if (latitude != null && longitude != null) {
+      final withDistance = withCoords.map(
+        (p) => p.copyWith(
+          distanceKm: haversineKm(latitude, longitude, p.latitude!, p.longitude!),
+        ),
+      );
+      final filtered = (radiusKm != null && radiusKm > 0)
+          ? withDistance.where((p) => p.distanceKm! <= radiusKm).toList()
+          : withDistance.toList();
+      filtered.sort((a, b) => a.distanceKm!.compareTo(b.distanceKm!));
+      return filtered;
+    }
+    return withCoords.toList();
   }
 
   @override

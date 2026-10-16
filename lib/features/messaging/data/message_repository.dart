@@ -59,14 +59,16 @@ class MockMessageRepository implements MessageRepository {
   @override
   Future<List<Conversation>> fetchConversations() async {
     await Future.delayed(const Duration(milliseconds: 300));
-    return [
-      Conversation(
-        id: 'conv-1',
+    return _messages.entries.map((entry) {
+      final messages = entry.value;
+      final unread = messages.where((m) => !m.isRead && m.receiverId == 'user-1').length;
+      return Conversation(
+        id: entry.key,
         participantName: 'Mme Kouakou',
-        lastMessage: _messages['conv-1']?.last,
-        unreadCount: 0,
-      ),
-    ];
+        lastMessage: messages.isNotEmpty ? messages.last : null,
+        unreadCount: unread,
+      );
+    }).toList();
   }
 
   @override

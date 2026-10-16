@@ -272,12 +272,13 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
       // Ne renvoie que les photos pas encore envoyées avec succès — évite
       // un doublon si un clic précédent avait déjà réussi une partie de
       // l'envoi avant d'échouer sur une autre photo.
-      final pendingImages = form.newImages.skip(_uploadedImageCount);
-      for (final file in pendingImages) {
+      final pendingImages = form.categorizedImages.skip(_uploadedImageCount);
+      for (final item in pendingImages) {
         saved = await repository.uploadImage(
           saved.id,
-          file,
-          isCover: saved.images.isEmpty,
+          item.file,
+          isCover: item.isCover || saved.images.isEmpty,
+          category: item.category,
         );
         _uploadedImageCount++;
         _createdProperty = saved;
@@ -289,6 +290,7 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
         _createdProperty = saved;
       }
 
+      ref.invalidate(propertiesControllerProvider);
       ref.invalidate(propertiesListProvider);
       ref.invalidate(myPropertiesProvider);
       if (_isEditing) ref.invalidate(propertyByIdProvider(widget.editPropertyId!));

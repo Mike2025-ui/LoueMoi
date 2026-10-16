@@ -81,6 +81,11 @@ class BailleurSearchScreen extends ConsumerWidget {
                       decoration: const InputDecoration(
                         hintText: 'Nom, prénom...',
                         border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                        contentPadding: EdgeInsets.zero,
                         isDense: true,
                       ),
                     ),

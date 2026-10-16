@@ -10,22 +10,28 @@ from .serializers import DeviceTokenSerializer, NotificationSerializer
 class NotificationListView(generics.ListAPIView):
     """GET /api/notifications/ — uniquement les notifications de
     l'utilisateur connecté, jamais celles d'un autre (client, bailleur ou
-    agent confondus)."""
+    agent confondus). Exclut les messages de chat (qui vivent exclusivement dans l'onglet Messages)."""
 
     serializer_class = NotificationSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Notification.objects.filter(recipient=self.request.user)
+        return Notification.objects.filter(recipient=self.request.user).exclude(
+            type=Notification.TYPE_NEW_MESSAGE
+        )
 
 
 class UnreadCountView(APIView):
-    """GET /api/notifications/unread-count/ — pour le badge."""
+    """GET /api/notifications/unread-count/ — pour le badge de la cloche."""
 
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        count = Notification.objects.filter(recipient=request.user, is_read=False).count()
+        count = (
+            Notification.objects.filter(recipient=request.user, is_read=False)
+            .exclude(type=Notification.TYPE_NEW_MESSAGE)
+            .count()
+        )
         return Response({"unread_count": count})
 
 
@@ -47,7 +53,9 @@ class MarkAllNotificationsAsReadView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        Notification.objects.filter(recipient=request.user, is_read=False).update(is_read=True)
+        Notification.objects.filter(recipient=request.user, is_read=False).exclude(
+            type=Notification.TYPE_NEW_MESSAGE
+        ).update(is_read=True)
         return Response({"detail": "Toutes les notifications ont été marquées comme lues."})
 
 

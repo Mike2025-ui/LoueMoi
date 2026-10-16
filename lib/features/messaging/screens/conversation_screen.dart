@@ -285,15 +285,13 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                             controller: _controller,
                             enabled: !_isRecording,
                             decoration: const InputDecoration(
-                              // "Votre message..." se tronquait en "Votr..."
-                              // sur téléphone réel : avec 3 boutons média +
-                              // le bouton d'envoi, il ne restait plus assez
-                              // de largeur pour ce texte, ce qui donnait
-                              // l'impression visuelle d'une seconde barre de
-                              // recherche. Un intitulé plus court tient dans
-                              // l'espace réellement disponible à 320px.
                               hintText: 'Message...',
                               border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              errorBorder: InputBorder.none,
+                              disabledBorder: InputBorder.none,
+                              contentPadding: EdgeInsets.zero,
                               isDense: true,
                             ),
                             textInputAction: TextInputAction.send,

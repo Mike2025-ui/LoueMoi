@@ -127,10 +127,19 @@ class ApiPropertyRepository implements PropertyRepository {
   }
 
   @override
-  Future<Property> uploadImage(String propertyId, XFile file, {bool isCover = false}) async {
+  Future<Property> uploadImage(
+    String propertyId,
+    XFile file, {
+    bool isCover = false,
+    String? category,
+  }) async {
+    final filename = category != null && !file.name.startsWith('cat_')
+        ? 'cat_${category}_${file.name}'
+        : file.name;
     final formData = FormData.fromMap({
       'is_cover': isCover,
-      'image': await MultipartFile.fromFile(file.path, filename: file.name),
+      if (category != null) 'category': category,
+      'image': await MultipartFile.fromFile(file.path, filename: filename),
     });
     final response = await _apiClient.post<Map<String, dynamic>>(
       ApiEndpoints.propertyUploadImage(propertyId),
@@ -190,18 +199,24 @@ class ApiPropertyRepository implements PropertyRepository {
 
   @override
   Future<List<Property>> getNearbyProperties({
-    required double latitude,
-    required double longitude,
-    required double radiusKm,
+    double? latitude,
+    double? longitude,
+    double? radiusKm,
   }) async {
+    final query = <String, dynamic>{
+      'page_size': 500,
+    };
+    if (latitude != null) query['latitude'] = latitude;
+    if (longitude != null) query['longitude'] = longitude;
+    if (radiusKm != null && radiusKm > 0) {
+      query['radius'] = radiusKm;
+    } else {
+      query['radius'] = 0;
+    }
+
     final response = await _apiClient.get<Map<String, dynamic>>(
       ApiEndpoints.propertiesNearby,
-      query: {
-        'latitude': latitude,
-        'longitude': longitude,
-        'radius': radiusKm,
-        'page_size': 100,
-      },
+      query: query,
     );
     return _parsePage(response.data!).results;
   }

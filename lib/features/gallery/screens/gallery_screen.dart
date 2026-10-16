@@ -14,18 +14,84 @@ class GallerySection {
   final List<String> images;
 }
 
-/// Construit des sections de galerie à partir des photos disponibles pour
-/// reproduire la structure Couverture / Chambre / Salon & Terrasse.
+/// Construit des sections de galerie réelles par catégorie
+/// (Couverture, Chambre, Salon & Terrasse, Cuisine, Salle(s) de bain)
+/// sans JAMAIS dupliquer de photo entre les sections.
 List<GallerySection> buildGallerySections(List<String> images) {
-  List<String> pick(int start, int count) {
-    return List.generate(count, (i) => images[(start + i) % images.length]);
+  if (images.isEmpty) return const [];
+
+  final couverture = <String>[];
+  final chambres = <String>[];
+  final salon = <String>[];
+  final cuisine = <String>[];
+  final salleDeBain = <String>[];
+  final autres = <String>[];
+
+  // Détecter si les images possèdent des marqueurs de catégorie
+  bool hasCategoryTags = false;
+  for (final img in images) {
+    final lower = img.toLowerCase();
+    if (lower.contains('cat_couverture') ||
+        lower.contains('cat_chambre') ||
+        lower.contains('cat_salon') ||
+        lower.contains('cat_cuisine') ||
+        lower.contains('cat_salledebain') ||
+        lower.contains('couverture_') ||
+        lower.contains('chambre_') ||
+        lower.contains('salon_') ||
+        lower.contains('cuisine_') ||
+        lower.contains('salledebain_')) {
+      hasCategoryTags = true;
+      break;
+    }
   }
 
-  return [
-    GallerySection(title: 'Couverture', images: pick(0, 3)),
-    GallerySection(title: 'Chambre', images: pick(3, 3)),
-    GallerySection(title: 'Salon & Terrasse', images: pick(1, 3)),
-  ];
+  if (hasCategoryTags) {
+    for (final img in images) {
+      final lower = img.toLowerCase();
+      if (lower.contains('couverture')) {
+        couverture.add(img);
+      } else if (lower.contains('chambre')) {
+        chambres.add(img);
+      } else if (lower.contains('salon')) {
+        salon.add(img);
+      } else if (lower.contains('cuisine')) {
+        cuisine.add(img);
+      } else if (lower.contains('salledebain') || lower.contains('salle_de_bain') || lower.contains('bain')) {
+        salleDeBain.add(img);
+      } else {
+        autres.add(img);
+      }
+    }
+  } else {
+    // Annonces existantes créées sans tag : 1re photo en couverture, reste en chambre(s)
+    couverture.add(images.first);
+    if (images.length > 1) {
+      chambres.addAll(images.skip(1));
+    }
+  }
+
+  final sections = <GallerySection>[];
+  if (couverture.isNotEmpty) {
+    sections.add(GallerySection(title: 'Couverture', images: couverture));
+  }
+  if (chambres.isNotEmpty) {
+    sections.add(GallerySection(title: 'Chambre(s)', images: chambres));
+  }
+  if (salon.isNotEmpty) {
+    sections.add(GallerySection(title: 'Salon & Terrasse', images: salon));
+  }
+  if (cuisine.isNotEmpty) {
+    sections.add(GallerySection(title: 'Cuisine', images: cuisine));
+  }
+  if (salleDeBain.isNotEmpty) {
+    sections.add(GallerySection(title: 'Salle(s) de bain', images: salleDeBain));
+  }
+  if (autres.isNotEmpty) {
+    sections.add(GallerySection(title: 'Autres photos', images: autres));
+  }
+
+  return sections;
 }
 
 class GalleryScreen extends ConsumerWidget {
@@ -44,6 +110,12 @@ class GalleryScreen extends ConsumerWidget {
         data: (property) {
           final sections = buildGallerySections(property.images);
           final flatImages = sections.expand((s) => s.images).toList();
+
+          if (sections.isEmpty) {
+            return const Center(
+              child: Text('Aucune photo disponible pour cette annonce.', style: AppTextStyles.caption),
+            );
+          }
 
           return ListView(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),

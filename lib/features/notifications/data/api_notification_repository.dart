@@ -20,6 +20,7 @@ class ApiNotificationRepository implements NotificationRepository {
     final results = response.data!['results'] as List;
     return results
         .map((json) => AppNotification.fromJson(json as Map<String, dynamic>))
+        .where((n) => n.rawType != 'new_message' && n.type != NotificationType.message)
         .toList();
   }
 

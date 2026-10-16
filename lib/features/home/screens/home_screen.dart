@@ -169,6 +169,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               decoration: const InputDecoration(
                                 hintText: 'Recherche...',
                                 border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                errorBorder: InputBorder.none,
+                                disabledBorder: InputBorder.none,
+                                contentPadding: EdgeInsets.zero,
                                 isDense: true,
                               ),
                             ),
@@ -210,53 +215,72 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             const SizedBox(height: AppSpacing.md),
             Expanded(
-              child: propertiesAsync.when(
-                data: (properties) {
-                  if (properties.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        'Aucune propriété trouvée',
-                        style: AppTextStyles.caption,
-                      ),
-                    );
-                  }
-                  return GridView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.screenPadding,
-                      0,
-                      AppSpacing.screenPadding,
-                      100,
-                    ),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: AppSpacing.md,
-                      mainAxisSpacing: AppSpacing.lg,
-                      childAspectRatio: 0.68,
-                    ),
-                    itemCount: properties.length,
-                    itemBuilder: (context, index) {
-                      final property = properties[index];
-                      return PropertyCard(
-                        property: property,
-                        onTap: () =>
-                            context.push(AppRoutes.propertyDetailPath(property.id)),
-                        onFavoriteTap: () async {
-                          try {
-                            await toggleFavorite(ref, property.id);
-                          } catch (e) {
-                            if (context.mounted) showErrorSnackbar(context, e);
-                          }
-                        },
-                      );
-                    },
-                  );
+              child: RefreshIndicator(
+                color: AppColors.primary,
+                onRefresh: () async {
+                  await ref.read(propertiesControllerProvider.notifier).refresh();
                 },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => const Center(
-                  child: Text(
-                    'Impossible de charger les annonces.',
-                    style: AppTextStyles.caption,
+                child: propertiesAsync.when(
+                  data: (properties) {
+                    if (properties.isEmpty) {
+                      return ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: const [
+                          SizedBox(height: 120),
+                          Center(
+                            child: Text(
+                              'Aucune propriété trouvée',
+                              style: AppTextStyles.caption,
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+                    return GridView.builder(
+                      controller: _scrollController,
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.screenPadding,
+                        0,
+                        AppSpacing.screenPadding,
+                        100,
+                      ),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: AppSpacing.md,
+                        mainAxisSpacing: AppSpacing.lg,
+                        childAspectRatio: 0.68,
+                      ),
+                      itemCount: properties.length,
+                      itemBuilder: (context, index) {
+                        final property = properties[index];
+                        return PropertyCard(
+                          property: property,
+                          onTap: () =>
+                              context.push(AppRoutes.propertyDetailPath(property.id)),
+                          onFavoriteTap: () async {
+                            try {
+                              await toggleFavorite(ref, property.id);
+                            } catch (e) {
+                              if (context.mounted) showErrorSnackbar(context, e);
+                            }
+                          },
+                        );
+                      },
+                    );
+                  },
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (e, _) => ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: const [
+                      SizedBox(height: 120),
+                      Center(
+                        child: Text(
+                          'Impossible de charger les annonces. Glissez vers le bas pour actualiser.',
+                          style: AppTextStyles.caption,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

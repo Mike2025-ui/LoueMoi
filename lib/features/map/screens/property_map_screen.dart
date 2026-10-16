@@ -15,7 +15,7 @@ import '../../properties/providers/property_providers.dart';
 import '../../properties/widgets/property_card.dart';
 import '../providers/map_providers.dart';
 
-const List<double> _radiusOptionsKm = [1, 5, 10, 20];
+const List<double> _radiusOptionsKm = [0, 5, 10, 20];
 
 /// Carte immobilière plein écran (section 15 du cahier des charges) —
 /// annonces publiques avec position, recherche à proximité par rayon.
@@ -175,7 +175,7 @@ class _RadiusSelector extends StatelessWidget {
         children: [
           for (final radiusKm in _radiusOptionsKm)
             _RadiusChip(
-              label: '${radiusKm.toInt()} km',
+              label: radiusKm == 0 ? 'Toutes' : '${radiusKm.toInt()} km',
               isSelected: selected == radiusKm,
               onTap: () => onChanged(radiusKm),
             ),

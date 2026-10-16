@@ -165,4 +165,26 @@ void main() {
 
     expect(property.isFavorite, isTrue);
   });
+
+  test('getNearbyProperties passes page_size 500 and optional coordinates', () async {
+    when(() => apiClient.get<Map<String, dynamic>>(any(), query: any(named: 'query')))
+        .thenAnswer((_) async => _fakeResponse({
+              'count': 1,
+              'next': null,
+              'previous': null,
+              'results': [_propertyJson(id: 10)],
+            }));
+
+    final list = await repository.getNearbyProperties(latitude: 5.3, longitude: -4.0, radiusKm: 0);
+
+    expect(list.length, 1);
+    final captured = verify(
+      () => apiClient.get<Map<String, dynamic>>(any(), query: captureAny(named: 'query')),
+    ).captured.single as Map<String, dynamic>;
+
+    expect(captured['page_size'], 500);
+    expect(captured['latitude'], 5.3);
+    expect(captured['longitude'], -4.0);
+    expect(captured['radius'], 0);
+  });
 }

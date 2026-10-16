@@ -26,7 +26,7 @@ void main() {
     });
   }
 
-  for (final type in ['property_occupied', 'property_available']) {
+  for (final type in ['property_occupied', 'property_available', 'new_favorite']) {
     test('$type navigue vers le détail de la propriété', () {
       expect(
         router.resolvePath(type, {'property_id': '7'}),

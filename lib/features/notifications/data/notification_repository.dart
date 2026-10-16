@@ -15,11 +15,11 @@ class MockNotificationRepository implements NotificationRepository {
   final List<AppNotification> _notifications = [
     AppNotification(
       id: 'n1',
-      title: 'Nouveau message',
-      message: 'Mme Kouakou vous a envoyé un message à propos de votre demande.',
-      type: NotificationType.message,
-      rawType: 'new_message',
-      data: const {'conversation_id': 'conv-1'},
+      title: 'Nouvelle demande de réservation',
+      message: 'Mme Kouakou a envoyé une demande de réservation.',
+      type: NotificationType.reservation,
+      rawType: 'new_reservation',
+      data: const {'reservation_id': '1', 'property_id': '1'},
       createdAt: DateTime.now().subtract(const Duration(minutes: 12)),
     ),
     AppNotification(
@@ -55,13 +55,17 @@ class MockNotificationRepository implements NotificationRepository {
   @override
   Future<List<AppNotification>> fetchNotifications() async {
     await Future.delayed(const Duration(milliseconds: 250));
-    return List.unmodifiable(_notifications);
+    return List.unmodifiable(
+      _notifications.where((n) => n.rawType != 'new_message' && n.type != NotificationType.message).toList(),
+    );
   }
 
   @override
   Future<int> fetchUnreadCount() async {
     await Future.delayed(const Duration(milliseconds: 100));
-    return _notifications.where((n) => !n.isRead).length;
+    return _notifications
+        .where((n) => !n.isRead && n.rawType != 'new_message' && n.type != NotificationType.message)
+        .length;
   }
 
   @override

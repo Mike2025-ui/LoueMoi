@@ -146,6 +146,21 @@ class PropertyViewSet(viewsets.ModelViewSet):
         favorite, created = Favorite.objects.get_or_create(user=request.user, property=property_obj)
         if not created:
             favorite.delete()
+        else:
+            # Notifier uniquement le propriétaire (agent/bailleur) de l'annonce, et rien d'autre
+            if request.user != property_obj.agent:
+                from notifications.models import Notification
+                from notifications.services import NotificationService
+
+                user_display = request.user.get_full_name() or request.user.phone or "Un utilisateur"
+                NotificationService.notify(
+                    recipient=property_obj.agent,
+                    title="Nouveau favori",
+                    body=f"{user_display} a ajouté votre annonce \"{property_obj.title}\" à ses favoris.",
+                    notif_type=getattr(Notification, "TYPE_NEW_FAVORITE", "new_favorite"),
+                    data={"property_id": str(property_obj.pk)},
+                    property_obj=property_obj,
+                )
         property_obj.favorites_count = property_obj.favorited_by.count()
         property_obj.save(update_fields=["favorites_count"])
         serializer = self.get_serializer(property_obj)
@@ -231,8 +246,12 @@ class PropertyViewSet(viewsets.ModelViewSet):
                     {"image": ["Aucun fichier reçu."]}, status=status.HTTP_400_BAD_REQUEST
                 )
             is_cover = str(request.data.get("is_cover", "")).lower() in ("1", "true", "yes")
+            category = str(request.data.get("category", "")).strip().lower()
+            file_name = image_file.name
+            if category and not file_name.startswith("cat_"):
+                file_name = f"cat_{category}_{file_name}"
             saved_path = default_storage.save(
-                f"properties/{property_obj.pk}/{image_file.name}", image_file
+                f"properties/{property_obj.pk}/{file_name}", image_file
             )
             url = request.build_absolute_uri(default_storage.url(saved_path))
 
@@ -314,42 +333,39 @@ class PropertyNearbyView(generics.ListAPIView):
     permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
-        latitude = self._parse_coordinate("latitude", -90, 90)
-        longitude = self._parse_coordinate("longitude", -180, 180)
-        radius_km = self._parse_radius()
+        lat_raw = self.request.query_params.get("latitude")
+        lng_raw = self.request.query_params.get("longitude")
+        radius_raw = self.request.query_params.get("radius")
 
-        return (
+        qs = (
             Property.objects.filter(latitude__isnull=False, longitude__isnull=False)
             .exclude(status="disabled")
             .select_related("agent", "agent__agent_profile")
-            .annotate(distance_km=_haversine_distance_km(latitude, longitude))
-            .filter(distance_km__lte=radius_km)
-            .order_by("distance_km")
         )
 
-    def _parse_coordinate(self, name, min_value, max_value):
-        raw = self.request.query_params.get(name)
-        if raw is None or raw == "":
-            raise ValidationError({name: ["Ce paramètre est obligatoire."]})
-        try:
-            value = float(raw)
-        except (TypeError, ValueError) as exc:
-            raise ValidationError({name: ["Doit être un nombre."]}) from exc
-        if not (min_value <= value <= max_value):
-            raise ValidationError(
-                {name: [f"Doit être compris entre {min_value} et {max_value}."]}
-            )
-        return value
+        # Exclure les annonces expirées
+        not_expired = Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now())
+        qs = qs.filter(not_expired)
 
-    def _parse_radius(self):
-        raw = self.request.query_params.get("radius", "5")
-        try:
-            value = float(raw)
-        except (TypeError, ValueError) as exc:
-            raise ValidationError({"radius": ["Doit être un nombre."]}) from exc
-        if not (0 < value <= 100):
-            raise ValidationError({"radius": ["Doit être compris entre 0 et 100 km."]})
-        return value
+        if lat_raw and lng_raw:
+            try:
+                lat = float(lat_raw)
+                lng = float(lng_raw)
+                qs = qs.annotate(distance_km=_haversine_distance_km(lat, lng))
+
+                if radius_raw and radius_raw not in ("0", "all", "toutes", ""):
+                    try:
+                        radius_km = float(radius_raw)
+                        if radius_km > 0:
+                            qs = qs.filter(distance_km__lte=radius_km)
+                    except (TypeError, ValueError):
+                        pass
+
+                return qs.order_by("distance_km")
+            except (TypeError, ValueError):
+                pass
+
+        return qs.order_by("-created_at")
 
     def get_serializer_context(self):
         context = super().get_serializer_context()

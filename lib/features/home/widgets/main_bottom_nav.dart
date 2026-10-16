@@ -37,7 +37,10 @@ class MainBottomNav extends ConsumerWidget {
     _NavItem(asset: AppAssets.navProfil, label: 'Profil'),
   ];
 
-  void _onTap(int branchIndex) {
+  void _onTap(WidgetRef ref, int branchIndex) {
+    if (branchIndex == 3) {
+      ref.invalidate(conversationsProvider);
+    }
     navigationShell.goBranch(
       branchIndex,
       initialLocation: branchIndex == navigationShell.currentIndex,
@@ -61,7 +64,7 @@ class MainBottomNav extends ConsumerWidget {
           item: item,
           isActive: branchIndex == currentBranch,
           badgeCount: badgeCount,
-          onTap: () => _onTap(branchIndex),
+          onTap: () => _onTap(ref, branchIndex),
         ),
       );
     }
@@ -78,7 +81,7 @@ class MainBottomNav extends ConsumerWidget {
               child: const Icon(Icons.add, color: AppColors.white, size: 28),
             )
           : null,
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       bottomNavigationBar: BottomAppBar(
         color: AppColors.white,
         elevation: 0,
@@ -144,21 +147,24 @@ class _NavButton extends StatelessWidget {
                 if (badgeCount > 0)
                   Positioned(
                     top: -2,
-                    right: -4,
+                    right: -6,
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                      constraints: const BoxConstraints(minWidth: 14),
-                      decoration: const BoxDecoration(
+                      constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                      decoration: BoxDecoration(
                         color: AppColors.danger,
-                        shape: BoxShape.circle,
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Text(
-                        badgeCount > 9 ? '9+' : '$badgeCount',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 9,
-                          color: AppColors.white,
-                          fontWeight: FontWeight.w700,
+                      child: Center(
+                        child: Text(
+                          badgeCount > 99 ? '99+' : '$badgeCount',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 9,
+                            color: AppColors.white,
+                            fontWeight: FontWeight.w700,
+                            height: 1.1,
+                          ),
                         ),
                       ),
                     ),

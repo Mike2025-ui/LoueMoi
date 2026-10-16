@@ -3,8 +3,8 @@ import 'package:latlong2/latlong.dart';
 import '../../properties/models/property.dart';
 import '../../properties/providers/property_providers.dart';
 
-/// Rayon de recherche sélectionné sur PropertyMapScreen (km).
-final mapRadiusKmProvider = StateProvider.autoDispose<double>((ref) => 5);
+/// Rayon de recherche sélectionné sur PropertyMapScreen (km). 0 = Toutes les annonces.
+final mapRadiusKmProvider = StateProvider.autoDispose<double>((ref) => 0);
 
 /// Centre de la recherche à proximité — position GPS de l'utilisateur si
 /// disponible, sinon un centre par défaut (voir PropertyMapScreen). Null
@@ -12,16 +12,16 @@ final mapRadiusKmProvider = StateProvider.autoDispose<double>((ref) => 5);
 final mapCenterProvider = StateProvider.autoDispose<LatLng?>((ref) => null);
 
 /// GET /api/properties/nearby/ (ou équivalent Haversine en mock) — recalculé
-/// à chaque changement de centre ou de rayon, jamais en filtrant
-/// fetchProperties() côté Flutter.
-final nearbyPropertiesProvider = FutureProvider.autoDispose<List<Property>>((ref) async {
+/// à chaque changement de centre ou de rayon.
+final nearbyPropertiesProvider = FutureProvider.autoDispose<List<Property>>((
+  ref,
+) async {
   final center = ref.watch(mapCenterProvider);
-  if (center == null) return const [];
   final radiusKm = ref.watch(mapRadiusKmProvider);
   final repository = ref.watch(propertyRepositoryProvider);
   return repository.getNearbyProperties(
-    latitude: center.latitude,
-    longitude: center.longitude,
+    latitude: center?.latitude,
+    longitude: center?.longitude,
     radiusKm: radiusKm,
   );
 });

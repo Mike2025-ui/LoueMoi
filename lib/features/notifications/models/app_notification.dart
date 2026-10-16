@@ -21,7 +21,7 @@ NotificationType _categoryFor(String rawType) => switch (rawType) {
       'reservation_cancelled' ||
       'new_reservation' =>
         NotificationType.reservation,
-      'property_available' => NotificationType.favorite,
+      'property_available' || 'new_favorite' => NotificationType.favorite,
       _ => NotificationType.system,
     };
 

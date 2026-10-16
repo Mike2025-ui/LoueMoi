@@ -70,4 +70,38 @@ void main() {
 
     expect(find.text('Les mots de passe ne correspondent pas'), findsOneWidget);
   });
+
+  testWidgets('shows admin activation notice and WhatsApp button only for Bailleur and Agent',
+      (tester) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(home: RegisterScreen()),
+      ),
+    );
+    await tester.pump();
+
+    // Au départ (Client par défaut) : aucun bandeau ni bouton WhatsApp
+    expect(find.text('Activation requise par l’administration'), findsNothing);
+    expect(find.text('Nous contacter sur WhatsApp'), findsNothing);
+
+    // Sélection Bailleur : le bandeau et le bouton apparaissent
+    await tester.tap(find.text('Bailleur'));
+    await tester.pump();
+    expect(find.text('Activation requise par l’administration'), findsOneWidget);
+    expect(find.text('Nous contacter sur WhatsApp'), findsOneWidget);
+    expect(find.textContaining('les comptes Bailleur font l’objet d’une vérification'), findsOneWidget);
+
+    // Sélection Agent : le bandeau s'adapte
+    await tester.tap(find.text('Agent'));
+    await tester.pump();
+    expect(find.text('Activation requise par l’administration'), findsOneWidget);
+    expect(find.text('Nous contacter sur WhatsApp'), findsOneWidget);
+    expect(find.textContaining('les comptes Agent immobilier font l’objet d’une vérification'), findsOneWidget);
+
+    // Retour sur Client : le bandeau disparaît
+    await tester.tap(find.text('Client'));
+    await tester.pump();
+    expect(find.text('Activation requise par l’administration'), findsNothing);
+    expect(find.text('Nous contacter sur WhatsApp'), findsNothing);
+  });
 }

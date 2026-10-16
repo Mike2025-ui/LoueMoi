@@ -25,6 +25,7 @@ class NotificationRouter {
 
       case 'property_occupied':
       case 'property_available':
+      case 'new_favorite':
         final propertyId = data['property_id']?.toString();
         return propertyId == null ? null : AppRoutes.propertyDetailPath(propertyId);
 

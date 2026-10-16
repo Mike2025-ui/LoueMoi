@@ -20,6 +20,7 @@ class Notification(models.Model):
     TYPE_PROPERTY_AVAILABLE = "property_available"
     TYPE_NEW_RESERVATION = "new_reservation"
     TYPE_PROPERTY_OCCUPIED = "property_occupied"
+    TYPE_NEW_FAVORITE = "new_favorite"
     TYPE_CHOICES = [
         (TYPE_RESERVATION_CREATED, "Réservation envoyée"),
         (TYPE_RESERVATION_CONFIRMED, "Réservation confirmée"),
@@ -29,6 +30,7 @@ class Notification(models.Model):
         (TYPE_PROPERTY_AVAILABLE, "Bien disponible"),
         (TYPE_NEW_RESERVATION, "Nouvelle réservation"),
         (TYPE_PROPERTY_OCCUPIED, "Bien occupé"),
+        (TYPE_NEW_FAVORITE, "Nouveau favori"),
     ]
 
     recipient = models.ForeignKey(
