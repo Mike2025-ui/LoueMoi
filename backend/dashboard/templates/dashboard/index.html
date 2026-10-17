@@ -1,12 +1,12 @@
 {% extends "dashboard/base.html" %}
-{% block title %}Vue d'ensemble{% endblock %}
+{% block title %}Vue d'ensemble · LoueMoi Admin{% endblock %}
 {% block page_title %}Vue d'ensemble{% endblock %}
 {% block content %}
 
 {% if stats.pending_activations > 0 %}
 <div class="alert-banner danger">
   <div class="alert-content">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
     <span><strong>{{ stats.pending_activations }} compte(s) en attente d'activation :</strong> Des bailleurs ou agents attendent la validation de leur compte pour accéder à l'application.</span>
   </div>
   <a href="{% url 'dashboard:pending_activations' %}" class="alert-action">Examiner les demandes &rarr;</a>
@@ -14,38 +14,40 @@
 {% endif %}
 
 <div class="stat-section-title">
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+  <span class="section-icon grad-blue">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+  </span>
   <span>Utilisateurs & Profils</span>
 </div>
 
 <div class="stat-grid">
   <div class="stat-card">
-    <div class="stat-icon" style="background: #EEF2FF; color: #4F46E5;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    <div class="stat-icon grad-indigo">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
     </div>
     <div class="stat-label">Total Utilisateurs</div>
     <div class="stat-value">{{ stats.users_total }}</div>
   </div>
 
   <div class="stat-card">
-    <div class="stat-icon" style="background: #F0FDF4; color: #16A34A;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    <div class="stat-icon grad-emerald">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
     </div>
     <div class="stat-label">Clients</div>
     <div class="stat-value">{{ stats.clients }}</div>
   </div>
 
   <div class="stat-card">
-    <div class="stat-icon" style="background: #FFFBEB; color: #D97706;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <div class="stat-icon grad-amber">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
     </div>
     <div class="stat-label">Bailleurs</div>
     <div class="stat-value">{{ stats.bailleurs }}</div>
   </div>
 
   <div class="stat-card">
-    <div class="stat-icon" style="background: #FAF5FF; color: #9333EA;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+    <div class="stat-icon grad-purple">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
     </div>
     <div class="stat-label">Agents Immobiliers</div>
     <div class="stat-value">{{ stats.agents }}</div>
@@ -53,8 +55,8 @@
 
   <a href="{% url 'dashboard:pending_activations' %}" style="text-decoration: none;">
     <div class="stat-card {% if stats.pending_activations > 0 %}alert-card{% endif %}">
-      <div class="stat-icon" style="background: {% if stats.pending_activations > 0 %}#FEF2F2{% else %}#F1F5F9{% endif %}; color: {% if stats.pending_activations > 0 %}#DC2626{% else %}#64748B{% endif %};">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>
+      <div class="stat-icon grad-rose">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>
       </div>
       <div class="stat-label">Comptes à Activer</div>
       <div class="stat-value">{{ stats.pending_activations }}</div>
@@ -63,30 +65,32 @@
 </div>
 
 <div class="stat-section-title">
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/></svg>
+  <span class="section-icon grad-sky">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/></svg>
+  </span>
   <span>Parc Immobilier</span>
 </div>
 
 <div class="stat-grid">
   <div class="stat-card">
-    <div class="stat-icon" style="background: #EEF2FF; color: #4F46E5;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><line x1="9" x2="15" y1="6" y2="6"/><line x1="9" x2="15" y1="10" y2="10"/><line x1="9" x2="15" y1="14" y2="14"/></svg>
+    <div class="stat-icon grad-sky">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><line x1="9" x2="15" y1="6" y2="6"/><line x1="9" x2="15" y1="10" y2="10"/><line x1="9" x2="15" y1="14" y2="14"/></svg>
     </div>
     <div class="stat-label">Total Propriétés</div>
     <div class="stat-value">{{ stats.properties_total }}</div>
   </div>
 
   <div class="stat-card">
-    <div class="stat-icon" style="background: #ECFDF5; color: #059669;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+    <div class="stat-icon grad-emerald">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
     </div>
     <div class="stat-label">Disponibles</div>
     <div class="stat-value">{{ stats.properties_disponible }}</div>
   </div>
 
   <div class="stat-card">
-    <div class="stat-icon" style="background: #F1F5F9; color: #475569;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    <div class="stat-icon grad-slate">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
     </div>
     <div class="stat-label">Occupées / Louées</div>
     <div class="stat-value">{{ stats.properties_occupee }}</div>
@@ -94,38 +98,40 @@
 </div>
 
 <div class="stat-section-title">
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+  <span class="section-icon grad-orange">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+  </span>
   <span>Réservations & Échanges</span>
 </div>
 
 <div class="stat-grid">
   <div class="stat-card">
-    <div class="stat-icon" style="background: #EFF6FF; color: #2563EB;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+    <div class="stat-icon grad-orange">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
     </div>
     <div class="stat-label">Réservations Totales</div>
     <div class="stat-value">{{ stats.reservations_total }}</div>
   </div>
 
   <div class="stat-card">
-    <div class="stat-icon" style="background: #FFFBEB; color: #D97706;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    <div class="stat-icon grad-amber">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
     </div>
     <div class="stat-label">Résa. En Cours</div>
     <div class="stat-value">{{ stats.reservations_en_cours }}</div>
   </div>
 
   <div class="stat-card">
-    <div class="stat-icon" style="background: #F5F3FF; color: #7C3AED;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    <div class="stat-icon grad-pink">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     </div>
     <div class="stat-label">Conversations</div>
     <div class="stat-value">{{ stats.conversations_total }}</div>
   </div>
 
   <div class="stat-card">
-    <div class="stat-icon" style="background: #FEF3C7; color: #B45309;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    <div class="stat-icon grad-gold">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
     </div>
     <div class="stat-label">Avis Déposés</div>
     <div class="stat-value">{{ stats.reviews_total }}</div>
@@ -135,7 +141,9 @@
 <div class="card">
   <div class="card-header">
     <h2 class="card-title">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span class="section-icon grad-indigo" style="width:22px;height:22px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </span>
       <span>Activité récente sur la plateforme</span>
     </h2>
   </div>
@@ -144,8 +152,8 @@
     <div class="activity-list">
       {% for e in events %}
       <div class="activity-item">
-        <div class="activity-icon-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        <div class="activity-icon-wrap grad-indigo" style="width:32px;height:32px;border-radius:8px">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
         <div class="activity-body">
           <div class="activity-type">{{ e.type }} &mdash; {{ e.label }}</div>
@@ -159,7 +167,7 @@
     </div>
     {% else %}
     <div class="empty-state">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-subtle)" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
       <div class="empty-state-text">Aucune activité enregistrée pour le moment.</div>
     </div>
     {% endif %}
