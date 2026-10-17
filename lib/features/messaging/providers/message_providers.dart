@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/env.dart';
 import '../../../core/network/network_providers.dart';
+import '../../auth/providers/auth_providers.dart';
 import '../data/api_message_repository.dart';
 import '../data/message_repository.dart';
 import '../models/message.dart';
@@ -11,6 +12,8 @@ final messageRepositoryProvider = Provider<MessageRepository>((ref) {
 });
 
 final conversationsProvider = FutureProvider<List<Conversation>>((ref) async {
+  final user = ref.watch(authControllerProvider).valueOrNull;
+  if (user == null && !Env.useMockData) return const [];
   final repository = ref.watch(messageRepositoryProvider);
   return repository.fetchConversations();
 });

@@ -158,11 +158,50 @@ class ReservationCard extends ConsumerWidget {
           ),
         );
       },
-      loading: () => const SizedBox(
+      loading: () => Container(
         height: 96,
-        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        margin: const EdgeInsets.only(bottom: AppSpacing.md),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
       ),
-      error: (e, _) => const SizedBox.shrink(),
+      error: (e, _) => Container(
+        margin: const EdgeInsets.only(bottom: AppSpacing.md),
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Annonce indisponible', style: AppTextStyles.bodyMedium),
+                Text(
+                  '${Formatters.priceWithoutSuffix(reservation.rent)}fcfa',
+                  style: AppTextStyles.link,
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Icon(Icons.calendar_today, size: 12, color: AppColors.textSecondary),
+                const SizedBox(width: 4),
+                Text(Formatters.shortDate(reservation.createdAt), style: AppTextStyles.small),
+              ],
+            ),
+            const Divider(height: AppSpacing.md),
+            _ActionRow(reservation: reservation, property: null),
+          ],
+        ),
+      ),
     );
   }
 }

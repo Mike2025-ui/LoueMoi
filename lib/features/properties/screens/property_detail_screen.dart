@@ -105,9 +105,29 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
             isAvailable: !property.isUnavailable,
             unavailableLabel: property.isVendue ? 'Propriété vendue' : 'Propriété occupée',
             onReserve: () {
+              final currentUser = ref.read(authControllerProvider).valueOrNull;
+              if (currentUser == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text(
+                      'Veuillez vous connecter pour effectuer une réservation.',
+                    ),
+                    backgroundColor: AppColors.primary,
+                    action: SnackBarAction(
+                      label: 'Se connecter',
+                      textColor: AppColors.white,
+                      onPressed: () => context.push(AppRoutes.login),
+                    ),
+                  ),
+                );
+                return;
+              }
               final reservations = ref.read(reservationsListProvider).valueOrNull ?? [];
               final alreadyReserved = reservations.any(
-                (r) => r.propertyId == property.id && r.status != ReservationStatus.annulee,
+                (r) =>
+                    r.propertyId == property.id &&
+                    r.userId == currentUser.id &&
+                    r.status != ReservationStatus.annulee,
               );
               if (alreadyReserved) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -325,6 +345,21 @@ class _AProposTab extends ConsumerWidget {
   final Property property;
 
   Future<void> _contactAgent(BuildContext context, WidgetRef ref) async {
+    final currentUser = ref.read(authControllerProvider).valueOrNull;
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Veuillez vous connecter pour contacter le propriétaire.'),
+          backgroundColor: AppColors.primary,
+          action: SnackBarAction(
+            label: 'Se connecter',
+            textColor: AppColors.white,
+            onPressed: () => context.push(AppRoutes.login),
+          ),
+        ),
+      );
+      return;
+    }
     try {
       final repository = ref.read(messageRepositoryProvider);
       final conversationId = await repository.getOrCreateConversationId(
@@ -389,6 +424,22 @@ class _AProposTab extends ConsumerWidget {
   }
 
   void _showVisitRequestSheet(BuildContext context, WidgetRef ref) {
+    final currentUser = ref.read(authControllerProvider).valueOrNull;
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Veuillez vous connecter pour demander une visite.'),
+          backgroundColor: AppColors.primary,
+          action: SnackBarAction(
+            label: 'Se connecter',
+            textColor: AppColors.white,
+            onPressed: () => context.push(AppRoutes.login),
+          ),
+        ),
+      );
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -412,7 +463,8 @@ class _AProposTab extends ConsumerWidget {
                 '🗓 Date souhaitée : $dateStr\n'
                 '⏰ Créneau : $slot'
                 '${note.isNotEmpty ? '\n💬 Note : $note' : ''}';
-            await repository.sendMessage(
+            await sendMessage(
+              ref,
               conversationId: conversationId,
               content: visitMessage,
             );

@@ -27,15 +27,15 @@ class ReservationViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.is_staff:
-            return Reservation.objects.all()
-        if user.role in (user.ROLE_AGENT, user.ROLE_BAILLEUR):
-            # Un agent ou un bailleur voit ses propres réservations (en tant
-            # que client) + celles faites sur ses biens (jamais celles des
-            # biens d'un autre agent/bailleur — property__agent=user est
-            # strictement scopé au propriétaire réel de chaque bien).
-            return Reservation.objects.filter(Q(user=user) | Q(property__agent=user)).distinct()
-        return Reservation.objects.filter(user=user)
+        if not user.is_authenticated:
+            return Reservation.objects.none()
+        # Règle de confidentialité stricte :
+        # Chaque utilisateur ne voit que les réservations qui le concernent directement :
+        # - En tant que client ayant effectué la réservation (user=user)
+        # - En tant que propriétaire/agent du bien réservé (property__agent=user)
+        # Aucune fuite de données vers des tiers ou d'autres bailleurs/agents.
+        # (La vue globale de toutes les réservations appartient exclusivement au Dashboard Django /dashboard/reservations/).
+        return Reservation.objects.filter(Q(user=user) | Q(property__agent=user)).distinct()
 
     @transaction.atomic
     def perform_create(self, serializer):
@@ -210,10 +210,20 @@ class ReservationViewSet(viewsets.ModelViewSet):
         if property_obj.agent_id != request.user.id:
             raise PermissionDenied("Seul le propriétaire du bien peut contacter ce client.")
 
-        conversation, _created = Conversation.objects.get_or_create(
-            client=reservation.user,
-            agent=property_obj.agent,
-            property=property_obj,
-        )
+        conversation = Conversation.objects.filter(
+            Q(client=reservation.user, agent=property_obj.agent) |
+            Q(client=property_obj.agent, agent=reservation.user)
+        ).first()
+
+        if not conversation:
+            conversation = Conversation.objects.create(
+                client=reservation.user,
+                agent=property_obj.agent,
+                property=property_obj,
+            )
+        elif property_obj and conversation.property_id != property_obj.id:
+            conversation.property = property_obj
+            conversation.save(update_fields=["property"])
+
         serializer = ConversationSerializer(conversation, context={"request": request})
         return Response(serializer.data)

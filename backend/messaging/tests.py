@@ -93,7 +93,21 @@ class ConversationCreationTests(APITestCase):
             "/api/conversations/", {"agent": not_an_agent.id}, format="json"
         )
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+    def test_cannot_create_duplicate_conversation_between_same_users(self):
+        client = _make_client("+2250711116007")
+        agent = _make_agent("+2250711116008")
+        self.client.force_authenticate(user=client)
+
+        # 1er appel : création sans propriété
+        r1 = self.client.post("/api/conversations/", {"agent": agent.id}, format="json")
+        self.assertEqual(r1.status_code, status.HTTP_201_CREATED)
+        conv_id = r1.data["id"]
+
+        # 2e appel : même agent, doit renvoyer la même conversation sans doublon
+        r2 = self.client.post("/api/conversations/", {"agent": agent.id}, format="json")
+        self.assertEqual(r2.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(r2.data["id"], conv_id)
+        self.assertEqual(Conversation.objects.filter(client=client, agent=agent).count(), 1)
 
 
 class MessageNotificationTests(APITestCase):

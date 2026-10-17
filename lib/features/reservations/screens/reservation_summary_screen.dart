@@ -10,6 +10,7 @@ import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/property_image.dart';
 import '../../../core/widgets/status_badge.dart';
+import '../../auth/providers/auth_providers.dart';
 import '../../properties/models/property.dart';
 import '../../properties/models/property_enums.dart';
 import '../../properties/providers/property_providers.dart';
@@ -54,9 +55,30 @@ class _SummaryState extends ConsumerState<_Summary> {
   bool _isSubmitting = false;
 
   Future<void> _reserve() async {
+    final currentUser = ref.read(authControllerProvider).valueOrNull;
+    if (currentUser == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Veuillez vous connecter pour effectuer une réservation.',
+          ),
+          backgroundColor: AppColors.primary,
+          action: SnackBarAction(
+            label: 'Se connecter',
+            textColor: AppColors.white,
+            onPressed: () => context.push(AppRoutes.login),
+          ),
+        ),
+      );
+      return;
+    }
     final existingReservations = ref.read(reservationsListProvider).valueOrNull ?? [];
     final alreadyReserved = existingReservations.any(
-      (r) => r.propertyId == widget.property.id && r.status != ReservationStatus.annulee,
+      (r) =>
+          r.propertyId == widget.property.id &&
+          r.userId == currentUser.id &&
+          r.status != ReservationStatus.annulee,
     );
     if (alreadyReserved) {
       if (!mounted) return;

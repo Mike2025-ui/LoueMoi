@@ -39,15 +39,35 @@ class ConversationViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         agent = serializer.validated_data["agent"]
-        if self.request.user == agent:
+        user = self.request.user
+        if user == agent:
             raise serializers.ValidationError("Vous ne pouvez pas démarrer une conversation avec vous-même.")
-        # get_or_create plutôt que save() : "Contacter l'agent" doit pouvoir
-        # être appelé plusieurs fois (sessions différentes, etc.) et retomber
-        # sur la même conversation au lieu d'échouer ou d'en créer une copie.
-        conversation, _created = Conversation.objects.get_or_create(
-            client=self.request.user,
+
+        property_obj = serializer.validated_data.get("property")
+
+        # Règle stricte anti-doublon : recherche toute conversation existante
+        # entre ces deux utilisateurs (dans un sens ou dans l'autre).
+        # Un utilisateur et un agent n'ont JAMAIS plusieurs fils séparés :
+        # l'envoi d'une demande de visite ou d'un message réutilise toujours
+        # la conversation existante.
+        conversation = Conversation.objects.filter(
+            Q(client=user, agent=agent) | Q(client=agent, agent=user)
+        ).first()
+
+        if conversation:
+            # Réutilise le fil existant. Si l'utilisateur contacte à propos
+            # d'une propriété spécifique, on actualise la référence de propriété
+            # pour que le contexte de discussion soit à jour.
+            if property_obj and conversation.property_id != property_obj.id:
+                conversation.property = property_obj
+                conversation.save(update_fields=["property"])
+            serializer.instance = conversation
+            return
+
+        conversation = Conversation.objects.create(
+            client=user,
             agent=agent,
-            property=serializer.validated_data.get("property"),
+            property=property_obj,
         )
         serializer.instance = conversation
 

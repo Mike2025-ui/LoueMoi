@@ -125,6 +125,8 @@ final propertyByIdProvider =
 });
 
 final favoritesListProvider = FutureProvider<List<Property>>((ref) async {
+  final user = ref.watch(authControllerProvider).valueOrNull;
+  if (user == null && !Env.useMockData) return const [];
   final repository = ref.watch(propertyRepositoryProvider);
   final list = await repository.fetchFavorites();
   return list.where((p) => p.status != PropertyStatus.accomplie).toList();

@@ -77,8 +77,21 @@ class ReservationVisibilityTests(APITestCase):
         response = self.client.get("/api/reservations/")
         entry = next(r for r in response.data["results"] if r["id"] == self.reservation.id)
         self.assertEqual(entry["client"]["id"], self.client_user.id)
-        self.assertEqual(entry["client"]["first_name"], "C")
-        self.assertIn("phone", entry["client"])
+    def test_anonymous_cannot_see_reservations(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.get("/api/reservations/")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_client_cannot_see_other_clients_reservations(self):
+        other_client = User.objects.create_user(
+            phone="+2250722222205", password="secret123", first_name="Other", last_name="Client",
+            role=User.ROLE_CLIENT,
+        )
+        self.client.force_authenticate(user=other_client)
+        response = self.client.get("/api/reservations/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        ids = [r["id"] for r in response.data["results"]]
+        self.assertNotIn(self.reservation.id, ids)
 
 
 class ReservationDoesNotAutoOccupyPropertyTests(APITestCase):

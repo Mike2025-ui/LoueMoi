@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/env.dart';
 import '../../../core/network/network_providers.dart';
+import '../../auth/providers/auth_providers.dart';
 import '../data/api_reservation_repository.dart';
 import '../data/reservation_repository.dart';
 import '../models/reservation.dart';
@@ -11,6 +12,8 @@ final reservationRepositoryProvider = Provider<ReservationRepository>((ref) {
 });
 
 final reservationsListProvider = FutureProvider<List<Reservation>>((ref) async {
+  final user = ref.watch(authControllerProvider).valueOrNull;
+  if (user == null && !Env.useMockData) return const [];
   final repository = ref.watch(reservationRepositoryProvider);
   return repository.fetchReservations();
 });
