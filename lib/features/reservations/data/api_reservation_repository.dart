@@ -67,4 +67,9 @@ class ApiReservationRepository implements ReservationRepository {
     );
     return response.data!['id'].toString();
   }
+
+  @override
+  Future<void> deleteReservation(String id) async {
+    await _apiClient.delete<dynamic>(ApiEndpoints.reservationDetail(id));
+  }
 }

@@ -7,6 +7,7 @@ class AppRoutes {
   static const String onboarding = '/onboarding';
   static const String login = '/login';
   static const String register = '/register';
+  static const String pendingActivation = '/pending-activation';
   static const String forgotPassword = '/forgot-password';
   static const String resetPassword = '/reset-password/:phone';
   static String resetPasswordPath(String phone) =>

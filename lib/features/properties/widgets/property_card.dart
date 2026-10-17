@@ -63,6 +63,12 @@ class PropertyCard extends StatelessWidget {
                     left: AppSpacing.sm,
                     child: StatusBadge.vendue(),
                   ),
+                if (property.isAnnulee)
+                  Positioned(
+                    bottom: AppSpacing.sm,
+                    left: AppSpacing.sm,
+                    child: StatusBadge.annulee(),
+                  ),
               ],
             ),
           ),

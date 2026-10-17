@@ -105,8 +105,14 @@ class _LoueMoiAppState extends ConsumerState<LoueMoiApp> with WidgetsBindingObse
 
   void _handleNotificationTap(RemoteMessage message) {
     final type = message.data['type']?.toString() ?? '';
+    final isMessage = type == 'new_message' || message.data.containsKey('conversation_id');
     final path = const NotificationRouter().resolvePath(type, message.data);
     if (path != null) ref.read(routerProvider).push(path);
+
+    if (isMessage) {
+      ref.invalidate(conversationsProvider);
+      return;
+    }
 
     // Marquage-lu jamais bloquant pour la navigation (même principe que
     // l'écran Notifications in-app) : best-effort, en arrière-plan, une

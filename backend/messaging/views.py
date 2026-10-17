@@ -69,6 +69,11 @@ class ConversationViewSet(viewsets.ModelViewSet):
         conversation.messages.filter(is_read=False).exclude(sender=request.user).update(
             is_read=True
         )
+        Notification.objects.filter(
+            conversation=conversation,
+            recipient=request.user,
+            type=Notification.TYPE_NEW_MESSAGE,
+        ).update(is_read=True)
         return Response(self.get_serializer(conversation).data)
 
 

@@ -162,4 +162,42 @@ void main() {
       );
     }
   });
+
+  testWidgets('le bouton plus pour la publication apparait uniquement dans Menu', (tester) async {
+    await _pumpAt(
+      tester,
+      const Size(375, 800),
+      extraOverrides: [
+        authControllerProvider.overrideWith((ref) => AuthController(_FakeAgentAuthRepository())),
+      ],
+    );
+
+    // Dans l'onglet Menu (index 0) : le FAB est visible
+    expect(find.byType(FloatingActionButton), findsOneWidget);
+
+    // On navigue vers Favoris (index 1) : le FAB disparaît
+    await tester.tap(find.text('Favoris'));
+    await tester.pumpAndSettle();
+    expect(find.byType(FloatingActionButton), findsNothing);
+
+    // On navigue vers Réservations (index 2) : pas de FAB
+    await tester.tap(find.text('Réservations'));
+    await tester.pumpAndSettle();
+    expect(find.byType(FloatingActionButton), findsNothing);
+
+    // On navigue vers Messages (index 3) : pas de FAB
+    await tester.tap(find.text('Messages'));
+    await tester.pumpAndSettle();
+    expect(find.byType(FloatingActionButton), findsNothing);
+
+    // On navigue vers Profil (index 4) : pas de FAB
+    await tester.tap(find.text('Profil'));
+    await tester.pumpAndSettle();
+    expect(find.byType(FloatingActionButton), findsNothing);
+
+    // Retour sur Menu (index 0) : le FAB réapparaît
+    await tester.tap(find.text('Menu'));
+    await tester.pumpAndSettle();
+    expect(find.byType(FloatingActionButton), findsOneWidget);
+  });
 }

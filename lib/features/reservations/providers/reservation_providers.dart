@@ -54,3 +54,9 @@ Future<void> completeReservation(WidgetRef ref, String id) async {
   await repository.completeReservation(id);
   ref.invalidate(reservationsListProvider);
 }
+
+Future<void> deleteReservation(WidgetRef ref, String id) async {
+  final repository = ref.read(reservationRepositoryProvider);
+  await repository.deleteReservation(id);
+  ref.invalidate(reservationsListProvider);
+}

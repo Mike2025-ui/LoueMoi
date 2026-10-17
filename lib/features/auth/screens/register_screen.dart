@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../app/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -24,6 +23,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _nomController = TextEditingController();
   final _prenomsController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _whatsappController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
@@ -35,42 +35,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     _nomController.dispose();
     _prenomsController.dispose();
     _phoneController.dispose();
+    _whatsappController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
-  }
-
-  Future<void> _openWhatsApp() async {
-    final roleName = _selectedRole == UserRole.bailleur ? 'Bailleur' : 'Agent immobilier';
-    final message = 'Bonjour LoueMoi, je souhaite faire activer mon compte $roleName.';
-    final whatsappUrl = Uri.parse(
-      'whatsapp://send?phone=+2250702065206&text=${Uri.encodeComponent(message)}',
-    );
-    final webUrl = Uri.parse(
-      'https://wa.me/2250702065206?text=${Uri.encodeComponent(message)}',
-    );
-
-    try {
-      if (await canLaunchUrl(whatsappUrl)) {
-        await launchUrl(whatsappUrl, mode: LaunchMode.externalApplication);
-        return;
-      }
-    } catch (_) {}
-
-    try {
-      final launched = await launchUrl(webUrl, mode: LaunchMode.externalApplication);
-      if (!launched && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Impossible d'ouvrir WhatsApp.")),
-        );
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Impossible d'ouvrir WhatsApp.")),
-        );
-      }
-    }
   }
 
   Future<void> _submit() async {
@@ -79,6 +47,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           firstName: _prenomsController.text.trim(),
           lastName: _nomController.text.trim(),
           phone: _phoneController.text.trim(),
+          whatsapp: _whatsappController.text.trim(),
           password: _passwordController.text,
           role: _selectedRole,
         );
@@ -86,7 +55,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     if (!mounted) return;
     state.when(
       data: (user) {
-        if (user != null) context.go(AppRoutes.home);
+        if (user != null) {
+          if (user.needsActivation) {
+            context.go(AppRoutes.pendingActivation);
+          } else {
+            context.go(AppRoutes.home);
+          }
+        }
       },
       loading: () {},
       error: (e, _) {
@@ -144,69 +119,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ),
                   ],
                 ),
-                if (_selectedRole == UserRole.bailleur || _selectedRole == UserRole.agent) ...[
-                  const SizedBox(height: AppSpacing.md),
-                  Container(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF0FDF4),
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                      border: Border.all(color: const Color(0xFF86EFAC)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.verified_user_outlined, color: Color(0xFF15803D), size: 20),
-                            const SizedBox(width: AppSpacing.xs),
-                            Expanded(
-                              child: Text(
-                                'Activation requise par l’administration',
-                                style: AppTextStyles.bodyMedium.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF15803D),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: AppSpacing.xs),
-                        Text(
-                          'Afin de garantir la sécurité, la fiabilité et l’authenticité des annonces sur LoueMoi, les comptes ${_selectedRole == UserRole.bailleur ? "Bailleur" : "Agent immobilier"} font l’objet d’une vérification et d’une validation par notre équipe avant toute publication.\n\nVous pouvez créer votre compte ci-dessous, puis nous contacter directement sur WhatsApp pour finaliser son activation.',
-                          style: AppTextStyles.caption.copyWith(
-                            color: const Color(0xFF166534),
-                            height: 1.4,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: _openWhatsApp,
-                            icon: const Icon(Icons.chat_bubble_outline, size: 18, color: Colors.white),
-                            label: const Text(
-                              'Nous contacter sur WhatsApp',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF25D366),
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(AppRadius.sm),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
                 const SizedBox(height: AppSpacing.lg),
                 AppTextField(
                   label: 'Nom',
@@ -221,8 +133,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ),
                 const SizedBox(height: AppSpacing.md),
                 AppTextField(
-                  label: 'Numéro tel & whatsapp',
+                  label: 'Numéro de téléphone',
+                  hint: '+225 01 02 03 04 05',
                   controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  validator: Validators.phone,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                AppTextField(
+                  label: 'Numéro WhatsApp',
+                  hint: '+225 07 08 09 10 11',
+                  controller: _whatsappController,
                   keyboardType: TextInputType.phone,
                   validator: Validators.phone,
                 ),

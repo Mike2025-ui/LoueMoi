@@ -10,9 +10,12 @@ abstract class AuthRepository {
     required String firstName,
     required String lastName,
     required String phone,
+    String? whatsapp,
     required String password,
     required UserRole role,
   });
+  Future<User> requestActivation();
+  Future<User> refreshProfile();
   Future<void> logout();
 
   /// Désactivation du compte (jamais une suppression physique — décision
@@ -73,18 +76,23 @@ class MockAuthRepository implements AuthRepository {
     required String firstName,
     required String lastName,
     required String phone,
+    String? whatsapp,
     required String password,
     required UserRole role,
   }) async {
     await Future.delayed(const Duration(milliseconds: 600));
+    final effectiveWhatsapp = (whatsapp != null && whatsapp.isNotEmpty) ? whatsapp : phone;
+    final isApproved = role == UserRole.client;
     return User(
       id: 'user-1',
       firstName: firstName,
       lastName: lastName,
       phone: phone,
-      whatsapp: phone,
+      whatsapp: effectiveWhatsapp,
       token: 'mock-token-123',
       role: role,
+      isApproved: isApproved,
+      activationRequested: false,
       agentProfile: role == UserRole.agent
           ? const AgentProfile(
               agencyName: '',
@@ -94,6 +102,38 @@ class MockAuthRepository implements AuthRepository {
               rating: 0,
             )
           : null,
+    );
+  }
+
+  @override
+  Future<User> requestActivation() async {
+    await Future.delayed(const Duration(milliseconds: 400));
+    return const User(
+      id: 'user-1',
+      firstName: 'Jean',
+      lastName: 'Kouassi',
+      phone: '+2250102030405',
+      whatsapp: '+2250102030405',
+      token: 'mock-token-123',
+      role: UserRole.agent,
+      isApproved: false,
+      activationRequested: true,
+    );
+  }
+
+  @override
+  Future<User> refreshProfile() async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    return const User(
+      id: 'user-1',
+      firstName: 'Jean',
+      lastName: 'Kouassi',
+      phone: '+2250102030405',
+      whatsapp: '+2250102030405',
+      token: 'mock-token-123',
+      role: UserRole.agent,
+      isApproved: true,
+      activationRequested: true,
     );
   }
 

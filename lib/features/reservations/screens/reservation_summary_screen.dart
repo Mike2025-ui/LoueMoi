@@ -14,6 +14,7 @@ import '../../properties/models/property.dart';
 import '../../properties/models/property_enums.dart';
 import '../../properties/providers/property_providers.dart';
 import '../../properties/widgets/property_details_table.dart';
+import '../models/reservation.dart';
 import '../providers/reservation_providers.dart';
 
 class ReservationSummaryScreen extends ConsumerWidget {
@@ -53,6 +54,23 @@ class _SummaryState extends ConsumerState<_Summary> {
   bool _isSubmitting = false;
 
   Future<void> _reserve() async {
+    final existingReservations = ref.read(reservationsListProvider).valueOrNull ?? [];
+    final alreadyReserved = existingReservations.any(
+      (r) => r.propertyId == widget.property.id && r.status != ReservationStatus.annulee,
+    );
+    if (alreadyReserved) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Vous avez déjà effectué une réservation pour cette annonce.',
+          ),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isSubmitting = true);
     final property = widget.property;
     try {

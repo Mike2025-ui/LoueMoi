@@ -37,12 +37,16 @@ enum TransactionType {
 enum PropertyStatus {
   disponible,
   occupee,
-  vendue;
+  vendue,
+  accomplie,
+  annulee;
 
   String get label => switch (this) {
         PropertyStatus.disponible => 'Disponible',
         PropertyStatus.occupee => 'Occupée',
         PropertyStatus.vendue => 'Vendue',
+        PropertyStatus.accomplie => 'Accomplie',
+        PropertyStatus.annulee => 'Annulée',
       };
 
   static PropertyStatus fromString(String value) => PropertyStatus.values

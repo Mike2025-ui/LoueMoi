@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/routes.dart';
@@ -7,8 +8,11 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/feedback.dart';
 import '../../../core/widgets/app_logo.dart';
+import '../../filters/models/filter_params.dart';
+import '../../filters/providers/filter_providers.dart';
 import '../../filters/screens/filters_sheet.dart';
 import '../../notifications/providers/notification_providers.dart';
+import '../../properties/models/property.dart';
 import '../../properties/models/property_enums.dart';
 import '../../properties/providers/property_providers.dart';
 import '../../properties/widgets/property_card.dart';
@@ -49,6 +53,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AsyncValue<List<Property>>>(propertiesListProvider, (_, next) {
+      next.whenData((list) {
+        ref.read(homePropertiesCacheProvider.notifier).state = list;
+      });
+    });
+
     final transactionType = ref.watch(homeTransactionTypeProvider);
     final propertiesAsync = ref.watch(propertiesListProvider);
     final unreadCount = ref.watch(unreadNotificationsCountProvider).valueOrNull ?? 0;
@@ -213,7 +223,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: AppSpacing.sm),
+            const _BudgetQuickChips(),
+            const SizedBox(height: AppSpacing.xs),
             Expanded(
               child: RefreshIndicator(
                 color: AppColors.primary,
@@ -328,3 +340,111 @@ class _TransactionToggleButton extends StatelessWidget {
     );
   }
 }
+
+class _BudgetQuickChips extends ConsumerWidget {
+  const _BudgetQuickChips();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final transactionType = ref.watch(homeTransactionTypeProvider);
+    final appliedFilters = ref.watch(appliedFilterParamsProvider);
+    final isLocation = transactionType == TransactionType.location;
+
+    final List<(String, double?, double?)> options = isLocation
+        ? [
+            ('Tous', null, null),
+            ('< 100k', null, 100000),
+            ('100k - 250k', 100000, 250000),
+            ('250k - 500k', 250000, 500000),
+            ('> 500k', 500000, null),
+          ]
+        : [
+            ('Tous', null, null),
+            ('< 20M', null, 20000000),
+            ('20M - 50M', 20000000, 50000000),
+            ('50M - 100M', 50000000, 100000000),
+            ('> 100M', 100000000, null),
+          ];
+
+    final currentMin = appliedFilters?.budgetMin;
+    final currentMax = appliedFilters?.budgetMax;
+
+    return SizedBox(
+      height: 38,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+        itemCount: options.length,
+        separatorBuilder: (context, index) => const SizedBox(width: AppSpacing.xs),
+        itemBuilder: (context, index) {
+          final (label, min, max) = options[index];
+          final isSelected = (min == null && max == null)
+              ? (currentMin == null && currentMax == null)
+              : (currentMin == min && currentMax == max);
+
+          return FilterChip(
+            label: Text(label),
+            labelStyle: TextStyle(
+              fontSize: 12,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              color: isSelected ? AppColors.white : AppColors.textPrimary,
+            ),
+            selected: isSelected,
+            showCheckmark: false,
+            selectedColor: AppColors.primary,
+            backgroundColor: AppColors.surfaceMuted,
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.pill),
+              side: BorderSide(
+                color: isSelected ? AppColors.primary : AppColors.border,
+              ),
+            ),
+            onSelected: (_) {
+              HapticFeedback.lightImpact();
+              if (min == null && max == null) {
+                // "Tous"
+                if (appliedFilters != null) {
+                  ref.read(appliedFilterParamsProvider.notifier).state = FilterParams(
+                    transactionType: appliedFilters.transactionType,
+                    commune: appliedFilters.commune,
+                    district: appliedFilters.district,
+                    isFuture: appliedFilters.isFuture,
+                    propertyType: appliedFilters.propertyType,
+                    category: appliedFilters.category,
+                    budgetMin: null,
+                    budgetMax: null,
+                  );
+                }
+              } else if (isSelected) {
+                // Deselect
+                ref.read(appliedFilterParamsProvider.notifier).state = FilterParams(
+                  transactionType: appliedFilters?.transactionType ?? transactionType,
+                  commune: appliedFilters?.commune ?? '',
+                  district: appliedFilters?.district ?? '',
+                  isFuture: appliedFilters?.isFuture ?? false,
+                  propertyType: appliedFilters?.propertyType ?? PropertyType.logement,
+                  category: appliedFilters?.category,
+                  budgetMin: null,
+                  budgetMax: null,
+                );
+              } else {
+                ref.read(appliedFilterParamsProvider.notifier).state = FilterParams(
+                  transactionType: appliedFilters?.transactionType ?? transactionType,
+                  commune: appliedFilters?.commune ?? '',
+                  district: appliedFilters?.district ?? '',
+                  isFuture: appliedFilters?.isFuture ?? false,
+                  propertyType: appliedFilters?.propertyType ?? PropertyType.logement,
+                  category: appliedFilters?.category,
+                  budgetMin: min,
+                  budgetMax: max,
+                );
+              }
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+

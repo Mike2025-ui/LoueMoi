@@ -218,3 +218,24 @@ class PasswordResetConfirmView(APIView):
         user.set_password(new_password)
         user.save(update_fields=["password"])
         return Response({"detail": "Mot de passe réinitialisé avec succès."})
+
+
+class RequestActivationView(APIView):
+    """POST /api/auth/request-activation/
+    Permet à un bailleur ou un agent de soumettre une demande d'activation
+    à l'administrateur depuis l'application mobile.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        if user.role not in (User.ROLE_AGENT, User.ROLE_BAILLEUR):
+            return Response(
+                {"detail": "Seuls les agents et bailleurs nécessitent une activation."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        user.activation_requested = True
+        user.activation_requested_at = timezone.now()
+        user.save(update_fields=["activation_requested", "activation_requested_at"])
+        return Response(_auth_payload(user))

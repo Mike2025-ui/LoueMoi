@@ -25,14 +25,17 @@ class AgentSpaceScreen extends ConsumerWidget {
     final user = ref.watch(authControllerProvider).valueOrNull;
     final profile = user?.agentProfile;
     final isVerified = profile?.isVerified ?? false;
-    final certificationStatus = profile?.certificationStatus ?? CertificationStatus.nonDemandee;
+    final certificationStatus =
+        profile?.certificationStatus ?? CertificationStatus.nonDemandee;
 
     final agent = Agent(
       id: user?.id ?? '',
       firstName: user?.firstName ?? 'Agent',
       lastName: user?.lastName ?? '',
       phone: user?.phone ?? '',
-      whatsapp: profile?.whatsapp.isNotEmpty == true ? profile!.whatsapp : (user?.whatsapp ?? ''),
+      whatsapp: profile?.whatsapp.isNotEmpty == true
+          ? profile!.whatsapp
+          : (user?.whatsapp ?? ''),
       photo: user?.photo,
       isVerified: isVerified,
       rating: profile?.rating ?? 0,
@@ -65,7 +68,11 @@ class AgentSpaceScreen extends ConsumerWidget {
                           ? NetworkImage(buildMediaUrl(user!.photo!))
                           : null,
                       child: user?.photo == null
-                          ? const Icon(Icons.person, size: 36, color: AppColors.primary)
+                          ? const Icon(
+                              Icons.person,
+                              size: 36,
+                              color: AppColors.primary,
+                            )
                           : null,
                     ),
                     // Badge "vérifié" uniquement si agent_profile.is_verified
@@ -77,7 +84,11 @@ class AgentSpaceScreen extends ConsumerWidget {
                         child: CircleAvatar(
                           radius: 10,
                           backgroundColor: AppColors.primary,
-                          child: Icon(Icons.check, size: 12, color: AppColors.white),
+                          child: Icon(
+                            Icons.check,
+                            size: 12,
+                            color: AppColors.white,
+                          ),
                         ),
                       ),
                   ],
@@ -89,13 +100,20 @@ class AgentSpaceScreen extends ConsumerWidget {
                     children: [
                       Text(agent.shortName, style: AppTextStyles.bodyMedium),
                       Text(agent.fullName, style: AppTextStyles.caption),
-                      const Text('Agent immobilier', style: AppTextStyles.small),
+                      const Text(
+                        'Agent immobilier',
+                        style: AppTextStyles.small,
+                      ),
                     ],
                   ),
                 ),
                 TextButton.icon(
                   onPressed: () => context.push(AppRoutes.editProfile),
-                  icon: const Icon(Icons.edit_outlined, size: 16, color: AppColors.primary),
+                  icon: const Icon(
+                    Icons.edit_outlined,
+                    size: 16,
+                    color: AppColors.primary,
+                  ),
                   label: const Text('Modifier', style: AppTextStyles.link),
                 ),
               ],
@@ -120,14 +138,6 @@ class AgentSpaceScreen extends ConsumerWidget {
               onTap: () => context.push(AppRoutes.soldProperties),
             ),
             ProfileMenuTile(
-              icon: Icons.find_in_page_outlined,
-              label: 'Reconduire un bien',
-              // La reconduction est une action par annonce (voir le bouton
-              // "Reconduire" sur chaque carte de Mes annonces) — ce raccourci
-              // amène directement à la liste où la choisir.
-              onTap: () => context.push(AppRoutes.myProperties),
-            ),
-            ProfileMenuTile(
               icon: Icons.dashboard_outlined,
               label: 'Dashboard',
               onTap: () => context.push(AppRoutes.agentDashboard),
@@ -142,7 +152,8 @@ class AgentSpaceScreen extends ConsumerWidget {
               label: certificationStatus == CertificationStatus.nonDemandee
                   ? 'Certification'
                   : 'Certification (${certificationStatus.label})',
-              onTap: () => _requestCertification(context, ref, certificationStatus),
+              onTap: () =>
+                  _requestCertification(context, ref, certificationStatus),
             ),
             const SizedBox(height: AppSpacing.xl),
             Center(
@@ -173,20 +184,25 @@ class AgentSpaceScreen extends ConsumerWidget {
     CertificationStatus current,
   ) async {
     if (current == CertificationStatus.approuvee) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Votre compte est déjà certifié.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Votre compte est déjà certifié.')),
+      );
       return;
     }
     if (current == CertificationStatus.enAttente) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Votre demande de certification est déjà en attente.')),
+        const SnackBar(
+          content: Text('Votre demande de certification est déjà en attente.'),
+        ),
       );
       return;
     }
     try {
       final repository = ref.read(agentProfileRepositoryProvider);
       final updatedProfile = await repository.requestCertification();
-      ref.read(authControllerProvider.notifier).applyUpdatedAgentProfile(updatedProfile);
+      ref
+          .read(authControllerProvider.notifier)
+          .applyUpdatedAgentProfile(updatedProfile);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Demande de certification envoyée.')),
@@ -201,7 +217,9 @@ class AgentSpaceScreen extends ConsumerWidget {
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
         title: const Text('Supprimer la page ?'),
         content: const Text(
           'Cette action est irréversible. Votre espace agent et vos annonces seront supprimés.',
@@ -216,7 +234,10 @@ class AgentSpaceScreen extends ConsumerWidget {
               Navigator.of(dialogContext).pop();
               showComingSoonSnackbar(context, 'Suppression de la page');
             },
-            child: const Text('Supprimer', style: TextStyle(color: AppColors.danger)),
+            child: const Text(
+              'Supprimer',
+              style: TextStyle(color: AppColors.danger),
+            ),
           ),
         ],
       ),

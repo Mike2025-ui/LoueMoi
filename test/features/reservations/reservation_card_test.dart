@@ -34,10 +34,17 @@ class _FixedSessionAuthRepository implements AuthRepository {
     required String firstName,
     required String lastName,
     required String phone,
+    String? whatsapp,
     required String password,
     required UserRole role,
   }) =>
       throw UnimplementedError();
+
+  @override
+  Future<User> requestActivation() => throw UnimplementedError();
+
+  @override
+  Future<User> refreshProfile() => throw UnimplementedError();
 
   @override
   Future<void> logout() => throw UnimplementedError();
@@ -195,12 +202,13 @@ void main() {
     expect(find.text('Accomplies'), findsOneWidget);
   });
 
-  testWidgets('réservation annulée : aucun bouton Annuler affiché', (tester) async {
+  testWidgets('réservation annulée : aucun bouton Annuler affiché mais bouton Supprimer présent', (tester) async {
     await pumpCard(tester, reservationWith(ReservationStatus.annulee));
     await tester.pumpAndSettle();
 
     expect(find.text('Annuler'), findsNothing);
     expect(find.text('Annulée'), findsOneWidget);
+    expect(find.text('Supprimer'), findsOneWidget);
   });
 
   group('actions propriétaire (réservation en cours, vue du propriétaire)', () {

@@ -67,6 +67,15 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
+    is_approved = models.BooleanField(
+        default=True,
+        help_text="Les comptes bailleur et agent doivent être activés par l'administrateur.",
+    )
+    activation_requested = models.BooleanField(
+        default=False,
+        help_text="Indique si l'utilisateur a soumis une demande d'activation.",
+    )
+    activation_requested_at = models.DateTimeField(null=True, blank=True)
     date_joined = models.DateTimeField(auto_now_add=True)
 
     objects = UserManager()

@@ -35,4 +35,15 @@ void main() {
     expect(find.text('Demande de certification envoyée.'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('l\'espace "Reconduire un bien" n\'existe plus dans AgentSpaceScreen', (tester) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(home: AgentSpaceScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Reconduire un bien'), findsNothing);
+  });
 }

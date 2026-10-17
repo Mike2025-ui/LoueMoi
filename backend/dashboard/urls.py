@@ -18,6 +18,8 @@ urlpatterns = [
     path("notifications/", views.notifications_list, name="notifications_list"),
     path("reviews/", views.reviews_list, name="reviews_list"),
     path("agents/", views.agents_list, name="agents_list"),
+    path("activations/", views.pending_activations, name="pending_activations"),
+    path("activations/<int:pk>/activate/", views.activate_user, name="activate_user"),
     path("fcm/", views.fcm_list, name="fcm_list"),
     path("statistics/", views.statistics, name="statistics"),
 ]

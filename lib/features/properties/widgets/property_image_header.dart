@@ -72,6 +72,7 @@ class _PropertyImageHeaderState extends State<PropertyImageHeader> {
                   child: Row(
                     children: [
                       ShareButton(
+                        propertyId: widget.property.id,
                         title: widget.property.title,
                         price: widget.property.price,
                         location: widget.property.locationLabel,

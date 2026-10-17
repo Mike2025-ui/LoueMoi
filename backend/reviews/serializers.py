@@ -12,6 +12,9 @@ class ReviewSerializer(serializers.ModelSerializer):
     user_name = serializers.SerializerMethodField()
     user_photo = serializers.SerializerMethodField()
 
+    rating = serializers.FloatField(required=False, default=5.0, min_value=1.0, max_value=5.0)
+    comment = serializers.CharField(required=False, allow_blank=True, default="")
+
     class Meta:
         model = Review
         fields = [

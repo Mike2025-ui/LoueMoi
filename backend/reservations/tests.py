@@ -389,13 +389,14 @@ class ReservationCompleteTests(APITestCase):
         self.reservation.refresh_from_db()
         self.assertEqual(self.reservation.status, "accomplie")
 
-    def test_completing_never_touches_property_status(self):
-        """Le coeur de la Partie 4 de la mission : Reservation.status et
-        Property.status restent deux états totalement indépendants."""
+    def test_completing_updates_property_status_to_accomplie(self):
+        """Une fois la réservation validée/accomplie par le propriétaire, le
+        bien passe automatiquement en statut 'accomplie' pour être masqué du menu,
+        des annonces et des favoris."""
         self.client.force_authenticate(user=self.bailleur)
         self.client.post(f"/api/reservations/{self.reservation.id}/complete/")
         self.property_obj.refresh_from_db()
-        self.assertEqual(self.property_obj.status, "disponible")
+        self.assertEqual(self.property_obj.status, "accomplie")
 
     def test_owner_receives_no_notification_but_client_does(self):
         from notifications.models import Notification
@@ -547,3 +548,72 @@ class ReservationCancelTests(APITestCase):
             ).count(),
             1,
         )
+
+
+class SingleReservationRuleTests(APITestCase):
+    """Règle métier : l'utilisateur peut faire plusieurs réservations,
+    mais une seule réservation sur une même publication (annonce)."""
+
+    def setUp(self):
+        self.agent = User.objects.create_user(
+            phone="+2250788888801", password="secret123", first_name="A", last_name="A",
+            role=User.ROLE_AGENT,
+        )
+        self.client_user = User.objects.create_user(
+            phone="+2250788888802", password="secret123", first_name="C", last_name="L",
+            role=User.ROLE_CLIENT,
+        )
+        self.prop1 = Property.objects.create(
+            title="Bien 1", category="Studio", type="logement", transaction_type="location",
+            price=100000, commune="X", district="Y", agent=self.agent,
+        )
+        self.prop2 = Property.objects.create(
+            title="Bien 2", category="Studio", type="logement", transaction_type="location",
+            price=150000, commune="X", district="Y", agent=self.agent,
+        )
+
+    def test_user_can_reserve_multiple_different_properties(self):
+        self.client.force_authenticate(user=self.client_user)
+        # Réservation sur le Bien 1 : réussit
+        r1 = self.client.post("/api/reservations/", {
+            "property_id": self.prop1.id, "rent": 100000, "deposit": 0, "advance": 0,
+        }, format="json")
+        self.assertEqual(r1.status_code, status.HTTP_201_CREATED)
+
+        # Réservation sur le Bien 2 : réussit également (plusieurs réservations permises)
+        r2 = self.client.post("/api/reservations/", {
+            "property_id": self.prop2.id, "rent": 150000, "deposit": 0, "advance": 0,
+        }, format="json")
+        self.assertEqual(r2.status_code, status.HTTP_201_CREATED)
+
+    def test_user_cannot_reserve_same_property_twice(self):
+        self.client.force_authenticate(user=self.client_user)
+        # Première réservation sur le Bien 1 : réussit
+        r1 = self.client.post("/api/reservations/", {
+            "property_id": self.prop1.id, "rent": 100000, "deposit": 0, "advance": 0,
+        }, format="json")
+        self.assertEqual(r1.status_code, status.HTTP_201_CREATED)
+
+        # Deuxième réservation sur le même Bien 1 : rejetée
+        r2 = self.client.post("/api/reservations/", {
+            "property_id": self.prop1.id, "rent": 100000, "deposit": 0, "advance": 0,
+        }, format="json")
+        self.assertEqual(r2.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Vous avez déjà effectué une réservation pour cette annonce", str(r2.data))
+
+    def test_user_can_reserve_same_property_after_cancellation(self):
+        self.client.force_authenticate(user=self.client_user)
+        r1 = self.client.post("/api/reservations/", {
+            "property_id": self.prop1.id, "rent": 100000, "deposit": 0, "advance": 0,
+        }, format="json")
+        res_id = r1.data["id"]
+
+        # Annuler la réservation
+        cancel_resp = self.client.post(f"/api/reservations/{res_id}/cancel/")
+        self.assertEqual(cancel_resp.status_code, status.HTTP_200_OK)
+
+        # Maintenant l'utilisateur peut à nouveau réserver ce même bien
+        r2 = self.client.post("/api/reservations/", {
+            "property_id": self.prop1.id, "rent": 100000, "deposit": 0, "advance": 0,
+        }, format="json")
+        self.assertEqual(r2.status_code, status.HTTP_201_CREATED)

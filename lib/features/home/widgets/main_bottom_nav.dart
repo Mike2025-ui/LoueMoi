@@ -52,6 +52,7 @@ class MainBottomNav extends ConsumerWidget {
     final currentBranch = navigationShell.currentIndex;
     final canPublish = ref.watch(authControllerProvider).valueOrNull?.canOwnProperties ?? false;
     final unreadMessages = ref.watch(totalUnreadConversationsCountProvider);
+    final showPublishFab = canPublish && currentBranch == 0;
 
     Widget navButton(int branchIndex) {
       final item = _items[branchIndex];
@@ -71,7 +72,7 @@ class MainBottomNav extends ConsumerWidget {
 
     return Scaffold(
       body: navigationShell,
-      floatingActionButton: canPublish
+      floatingActionButton: showPublishFab
           ? FloatingActionButton(
               heroTag: 'publish_property_fab',
               onPressed: () => context.push(AppRoutes.publish),

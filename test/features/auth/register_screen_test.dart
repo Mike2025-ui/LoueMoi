@@ -59,8 +59,9 @@ void main() {
     await tester.enterText(find.byType(TextFormField).at(0), 'Kouassi');
     await tester.enterText(find.byType(TextFormField).at(1), 'Jean');
     await tester.enterText(find.byType(TextFormField).at(2), '0700000000');
-    await tester.enterText(find.byType(TextFormField).at(3), 'secret1');
-    await tester.enterText(find.byType(TextFormField).at(4), 'different');
+    await tester.enterText(find.byType(TextFormField).at(3), '0700000000');
+    await tester.enterText(find.byType(TextFormField).at(4), 'secret1');
+    await tester.enterText(find.byType(TextFormField).at(5), 'different');
 
     // Le sélecteur de type de compte allonge le formulaire : le bouton peut
     // être hors du viewport de test tant qu'on ne l'a pas fait défiler.
@@ -71,7 +72,7 @@ void main() {
     expect(find.text('Les mots de passe ne correspondent pas'), findsOneWidget);
   });
 
-  testWidgets('shows admin activation notice and WhatsApp button only for Bailleur and Agent',
+  testWidgets('has no inline activation notice or WhatsApp button in registration form',
       (tester) async {
     await tester.pumpWidget(
       const ProviderScope(
@@ -83,23 +84,16 @@ void main() {
     // Au départ (Client par défaut) : aucun bandeau ni bouton WhatsApp
     expect(find.text('Activation requise par l’administration'), findsNothing);
     expect(find.text('Nous contacter sur WhatsApp'), findsNothing);
+    expect(find.text('Numéro WhatsApp'), findsOneWidget);
 
-    // Sélection Bailleur : le bandeau et le bouton apparaissent
+    // Sélection Bailleur : aucun bandeau inline (redirigé vers la page d'activation post-inscription)
     await tester.tap(find.text('Bailleur'));
     await tester.pump();
-    expect(find.text('Activation requise par l’administration'), findsOneWidget);
-    expect(find.text('Nous contacter sur WhatsApp'), findsOneWidget);
-    expect(find.textContaining('les comptes Bailleur font l’objet d’une vérification'), findsOneWidget);
+    expect(find.text('Activation requise par l’administration'), findsNothing);
+    expect(find.text('Nous contacter sur WhatsApp'), findsNothing);
 
-    // Sélection Agent : le bandeau s'adapte
+    // Sélection Agent : idem
     await tester.tap(find.text('Agent'));
-    await tester.pump();
-    expect(find.text('Activation requise par l’administration'), findsOneWidget);
-    expect(find.text('Nous contacter sur WhatsApp'), findsOneWidget);
-    expect(find.textContaining('les comptes Agent immobilier font l’objet d’une vérification'), findsOneWidget);
-
-    // Retour sur Client : le bandeau disparaît
-    await tester.tap(find.text('Client'));
     await tester.pump();
     expect(find.text('Activation requise par l’administration'), findsNothing);
     expect(find.text('Nous contacter sur WhatsApp'), findsNothing);

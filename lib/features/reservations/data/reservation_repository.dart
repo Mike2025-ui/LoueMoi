@@ -23,6 +23,7 @@ abstract class ReservationRepository {
   /// destinataire agent), cette méthode fonctionne aussi quand le client
   /// n'a pas le rôle agent.
   Future<String> getOrCreateConversationId(String reservationId);
+  Future<void> deleteReservation(String id);
 }
 
 class MockReservationRepository implements ReservationRepository {
@@ -44,12 +45,12 @@ class MockReservationRepository implements ReservationRepository {
       rent: 43000000,
       deposit: 0,
       advance: 0,
-      status: ReservationStatus.enCours,
+      status: ReservationStatus.annulee,
       createdAt: DateTime(2026, 9, 12),
     ),
     Reservation(
       id: 'res-3',
-      propertyId: '5',
+      propertyId: '8',
       userId: 'user-1',
       rent: 65000,
       deposit: 0,
@@ -83,6 +84,14 @@ class MockReservationRepository implements ReservationRepository {
     required double advance,
   }) async {
     await Future.delayed(const Duration(milliseconds: 500));
+    final alreadyReserved = _reservations.any(
+      (r) => r.propertyId == propertyId && r.status != ReservationStatus.annulee,
+    );
+    if (alreadyReserved) {
+      throw StateError(
+        'Vous avez déjà effectué une réservation pour cette annonce.',
+      );
+    }
     final reservation = Reservation(
       id: 'res-${DateTime.now().millisecondsSinceEpoch}',
       propertyId: propertyId,
@@ -139,5 +148,11 @@ class MockReservationRepository implements ReservationRepository {
     // conversation.
     final reservation = _reservations.firstWhere((r) => r.id == reservationId);
     return reservation.userId;
+  }
+
+  @override
+  Future<void> deleteReservation(String id) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    _reservations.removeWhere((r) => r.id == id);
   }
 }

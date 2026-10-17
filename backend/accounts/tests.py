@@ -40,6 +40,7 @@ class RoleRegistrationTests(APITestCase):
                 "first_name": "Kofi",
                 "last_name": "Assamoi",
                 "phone": "+2250700000011",
+                "whatsapp": "+2250700000011",
                 "password": "secret123",
                 "password_confirm": "secret123",
                 "role": "agent",
@@ -52,6 +53,8 @@ class RoleRegistrationTests(APITestCase):
         self.assertTrue(hasattr(user, "agent_profile"))
         # Un agent ne peut jamais s'auto-vérifier à l'inscription.
         self.assertFalse(user.agent_profile.is_verified)
+        # Compte en attente d'activation administrateur
+        self.assertFalse(user.is_approved)
 
     def test_bailleur_registration(self):
         response = self.client.post(
@@ -60,6 +63,7 @@ class RoleRegistrationTests(APITestCase):
                 "first_name": "Adjoua",
                 "last_name": "N'Guessan",
                 "phone": "+2250700000016",
+                "whatsapp": "+2250700000016",
                 "password": "secret123",
                 "password_confirm": "secret123",
                 "role": "bailleur",
@@ -73,6 +77,23 @@ class RoleRegistrationTests(APITestCase):
         # Un bailleur n'a pas de profil professionnel structuré (pas
         # d'AgentProfile) — rôle strictement indépendant de l'agent.
         self.assertFalse(hasattr(user, "agent_profile"))
+        self.assertFalse(user.is_approved)
+
+    def test_agent_or_bailleur_registration_requires_whatsapp(self):
+        response = self.client.post(
+            "/api/auth/register/",
+            {
+                "first_name": "No",
+                "last_name": "WhatsApp",
+                "phone": "+2250700000095",
+                "password": "secret123",
+                "password_confirm": "secret123",
+                "role": "agent",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("whatsapp", response.data)
 
     def test_public_registration_cannot_create_admin(self):
         response = self.client.post(
@@ -137,6 +158,7 @@ class LoginAndMeRoleTests(APITestCase):
                 "first_name": "Test",
                 "last_name": role,
                 "phone": phone,
+                "whatsapp": phone,
                 "password": "secret123",
                 "password_confirm": "secret123",
                 "role": role,
@@ -423,3 +445,37 @@ class DeactivateAccountTests(APITestCase):
         self.assertTrue(Property.objects.filter(pk=property_obj.pk).exists())
         self.assertTrue(Reservation.objects.filter(pk=reservation.pk).exists())
         self.assertTrue(User.objects.filter(pk=self.user.pk).exists())
+
+
+class ActivationRequestTests(APITestCase):
+    def setUp(self):
+        self.agent = User.objects.create_user(
+            phone="+2250700000050",
+            password="secret123",
+            first_name="Agent",
+            last_name="Test",
+            role=User.ROLE_AGENT,
+            whatsapp="+2250700000050",
+            is_approved=False,
+        )
+
+    def test_agent_can_request_activation(self):
+        self.client.force_authenticate(user=self.agent)
+        response = self.client.post("/api/auth/request-activation/", format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.agent.refresh_from_db()
+        self.assertTrue(self.agent.activation_requested)
+        self.assertIsNotNone(self.agent.activation_requested_at)
+        self.assertFalse(self.agent.is_approved)
+
+    def test_client_cannot_request_activation(self):
+        client = User.objects.create_user(
+            phone="+2250700000051",
+            password="secret123",
+            first_name="Client",
+            last_name="Test",
+            role=User.ROLE_CLIENT,
+        )
+        self.client.force_authenticate(user=client)
+        response = self.client.post("/api/auth/request-activation/", format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

@@ -30,6 +30,7 @@ PROTECTED_URL_NAMES = [
     "dashboard:notifications_list",
     "dashboard:reviews_list",
     "dashboard:agents_list",
+    "dashboard:pending_activations",
     "dashboard:fcm_list",
     "dashboard:statistics",
 ]
@@ -271,3 +272,16 @@ class DashboardDataAccuracyTests(TestCase):
         self.assertEqual(response.status_code, 200)
         role_totals = {row["role"]: row["total"] for row in response.context["users_by_role"]["rows"]}
         self.assertEqual(role_totals.get(User.ROLE_AGENT), User.objects.filter(role=User.ROLE_AGENT).count())
+
+    def test_pending_activations_page_lists_unapproved_users(self):
+        unapproved = _make_user("0700000088", User.ROLE_BAILLEUR, is_approved=False, activation_requested=True, whatsapp="0700000088")
+        response = self.client.get(reverse("dashboard:pending_activations"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, unapproved.phone)
+
+    def test_activate_user_view_activates_account(self):
+        unapproved = _make_user("0700000089", User.ROLE_BAILLEUR, is_approved=False, whatsapp="0700000089")
+        response = self.client.post(reverse("dashboard:activate_user", args=[unapproved.pk]))
+        self.assertEqual(response.status_code, 302)
+        unapproved.refresh_from_db()
+        self.assertTrue(unapproved.is_approved)

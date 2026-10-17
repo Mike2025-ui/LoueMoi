@@ -75,10 +75,7 @@ class ApiMessageRepository implements MessageRepository {
   }) async {
     final response = await _apiClient.post<Map<String, dynamic>>(
       ApiEndpoints.conversations,
-      data: {
-        'agent': agentId,
-        if (propertyId != null) 'property': propertyId,
-      },
+      data: {'agent': agentId, 'property': ?propertyId},
     );
     return response.data!['id'].toString();
   }
@@ -92,6 +89,8 @@ class ApiMessageRepository implements MessageRepository {
 
   @override
   Future<void> deleteConversation(String conversationId) async {
-    await _apiClient.delete<void>('${ApiEndpoints.conversations}$conversationId/');
+    await _apiClient.delete<void>(
+      '${ApiEndpoints.conversations}$conversationId/',
+    );
   }
 }

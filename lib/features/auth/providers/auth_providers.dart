@@ -54,6 +54,7 @@ class AuthController extends StateNotifier<AsyncValue<User?>> {
     required String firstName,
     required String lastName,
     required String phone,
+    String? whatsapp,
     required String password,
     required UserRole role,
   }) async {
@@ -63,6 +64,7 @@ class AuthController extends StateNotifier<AsyncValue<User?>> {
         firstName: firstName,
         lastName: lastName,
         phone: phone,
+        whatsapp: whatsapp,
         password: password,
         role: role,
       );
@@ -70,6 +72,28 @@ class AuthController extends StateNotifier<AsyncValue<User?>> {
     } on ApiException catch (e, st) {
       state = AsyncValue.error(e, st);
     }
+  }
+
+  Future<void> requestActivation() async {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    state = const AsyncValue.loading();
+    try {
+      final updated = await _repository.requestActivation();
+      state = AsyncValue.data(updated);
+    } on ApiException catch (e, st) {
+      state = AsyncValue.data(current);
+      state = AsyncValue.error(e, st);
+    }
+  }
+
+  Future<void> refreshProfile() async {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    try {
+      final updated = await _repository.refreshProfile();
+      state = AsyncValue.data(updated);
+    } catch (_) {}
   }
 
   Future<void> logout() async {

@@ -94,6 +94,7 @@ def index(request):
         "clients": User.objects.filter(role=User.ROLE_CLIENT).count(),
         "bailleurs": User.objects.filter(role=User.ROLE_BAILLEUR).count(),
         "agents": User.objects.filter(role=User.ROLE_AGENT).count(),
+        "pending_activations": User.objects.filter(role__in=[User.ROLE_BAILLEUR, User.ROLE_AGENT], is_approved=False).count(),
         "properties_total": Property.objects.count(),
         "properties_disponible": Property.objects.filter(status="disponible").count(),
         "properties_occupee": Property.objects.filter(status="occupee").count(),
@@ -110,6 +111,9 @@ def index(request):
     # (created_at existe sur chacun de ces modèles), triés ensemble. Aucun
     # événement fabriqué — uniquement ce que created_at atteste vraiment.
     events = []
+    for u in User.objects.filter(role__in=[User.ROLE_BAILLEUR, User.ROLE_AGENT], activation_requested=True, is_approved=False).order_by("-activation_requested_at")[:5]:
+        if u.activation_requested_at:
+            events.append({"type": "Demande d'activation", "label": f"{u.first_name} {u.last_name} ({u.get_role_display()}) — WhatsApp: {u.whatsapp or u.phone}", "when": u.activation_requested_at, "role": u.role})
     for u in User.objects.order_by("-date_joined")[:5]:
         events.append({"type": "Nouvel utilisateur", "label": str(u), "when": u.date_joined, "role": u.role})
     for p in Property.objects.select_related("agent").order_by("-created_at")[:5]:
@@ -419,3 +423,59 @@ def statistics(request):
             "top_agents": top_agents,
         },
     )
+
+
+@staff_required
+def pending_activations(request):
+    """Rubrique 'Comptes à activer' pour les agents et bailleurs en attente d'activation."""
+    qs = User.objects.filter(
+        role__in=[User.ROLE_BAILLEUR, User.ROLE_AGENT],
+        is_approved=False,
+    ).order_by("-activation_requested", "-date_joined")
+    role = request.GET.get("role", "")
+    q = request.GET.get("q", "")
+    if role:
+        qs = qs.filter(role=role)
+    if q:
+        qs = qs.filter(
+            Q(phone__icontains=q) | Q(first_name__icontains=q)
+            | Q(last_name__icontains=q) | Q(whatsapp__icontains=q)
+        )
+    page = _paginate(request, qs)
+    return render(
+        request,
+        "dashboard/pending_activations.html",
+        {
+            "page_obj": page,
+            "active": "pending_activations",
+            "role": role,
+            "q": q,
+            "role_choices": [
+                (User.ROLE_BAILLEUR, "Bailleur"),
+                (User.ROLE_AGENT, "Agent immobilier"),
+            ],
+            "querystring": _querystring(request),
+        },
+    )
+
+
+@staff_required
+def activate_user(request, pk):
+    """Active le compte d'un agent ou bailleur depuis le dashboard."""
+    user = get_object_or_404(User, pk=pk)
+    if request.method == "POST":
+        user.is_approved = True
+        user.is_active = True
+        user.save(update_fields=["is_approved", "is_active"])
+        if user.role == User.ROLE_AGENT:
+            profile = AgentProfile.objects.filter(user=user).first()
+            if profile:
+                profile.is_verified = True
+                profile.save(update_fields=["is_verified"])
+        from django.contrib import messages
+        messages.success(
+            request,
+            f"Le compte de {user.first_name} {user.last_name} ({user.get_role_display()}) a été activé avec succès !",
+        )
+    return redirect("dashboard:pending_activations")
+

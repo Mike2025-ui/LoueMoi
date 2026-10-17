@@ -111,10 +111,10 @@ class NotificationApiTests(APITestCase):
         self.user_a = _make_client("+2250711117010")
         self.user_b = _make_client("+2250711117011")
         self.notification_a = Notification.objects.create(
-            recipient=self.user_a, type=Notification.TYPE_NEW_MESSAGE, title="Pour A", body=""
+            recipient=self.user_a, type=Notification.TYPE_NEW_RESERVATION, title="Pour A", body=""
         )
         Notification.objects.create(
-            recipient=self.user_b, type=Notification.TYPE_NEW_MESSAGE, title="Pour B", body=""
+            recipient=self.user_b, type=Notification.TYPE_NEW_RESERVATION, title="Pour B", body=""
         )
 
     def test_user_only_sees_their_own_notifications(self):
@@ -123,6 +123,15 @@ class NotificationApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         titles = [n["title"] for n in response.data["results"]]
         self.assertEqual(titles, ["Pour A"])
+
+    def test_message_notifications_are_excluded_from_bell(self):
+        Notification.objects.create(
+            recipient=self.user_a, type=Notification.TYPE_NEW_MESSAGE, title="Message direct", body=""
+        )
+        self.client.force_authenticate(user=self.user_a)
+        response = self.client.get("/api/notifications/")
+        titles = [n["title"] for n in response.data["results"]]
+        self.assertNotIn("Message direct", titles)
 
     def test_unread_count(self):
         self.client.force_authenticate(user=self.user_a)

@@ -77,11 +77,11 @@ class Property extends Equatable {
 
   bool get isOccupee => status == PropertyStatus.occupee;
   bool get isVendue => status == PropertyStatus.vendue;
+  bool get isAccomplie => status == PropertyStatus.accomplie;
+  bool get isAnnulee => status == PropertyStatus.annulee;
 
-  /// Bien non réservable, quelle qu'en soit la raison (loué ou vendu) —
-  /// jamais les deux à la fois : "occupee" n'existe que pour une location,
-  /// "vendue" que pour une vente (voir PropertyStatus).
-  bool get isUnavailable => isOccupee || isVendue;
+  /// Bien non réservable, quelle qu'en soit la raison (loué, vendu, accompli ou annulé).
+  bool get isUnavailable => isOccupee || isVendue || isAccomplie || isAnnulee;
 
   /// Total réservation = loyer + caution + avance (calcul dynamique).
   double get reservationTotal => price + (deposit ?? 0) + (advance ?? 0);

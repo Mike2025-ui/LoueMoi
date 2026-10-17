@@ -29,8 +29,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     await Future.wait([minSplashDelay, authReady]);
     if (!mounted) return;
 
-    final isAuthenticated = ref.read(authControllerProvider).valueOrNull != null;
-    context.go(isAuthenticated ? AppRoutes.home : AppRoutes.onboarding);
+    final user = ref.read(authControllerProvider).valueOrNull;
+    if (user != null) {
+      if (user.needsActivation) {
+        context.go(AppRoutes.pendingActivation);
+      } else {
+        context.go(AppRoutes.home);
+      }
+    } else {
+      context.go(AppRoutes.onboarding);
+    }
   }
 
   @override

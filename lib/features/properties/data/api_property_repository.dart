@@ -38,6 +38,7 @@ class ApiPropertyRepository implements PropertyRepository {
   PropertyPage _parsePage(Map<String, dynamic> data) {
     final results = (data['results'] as List)
         .map((json) => Property.fromJson(json as Map<String, dynamic>))
+        .where((p) => p.status != PropertyStatus.accomplie)
         .toList();
     return PropertyPage(
       results: results,
@@ -47,7 +48,10 @@ class ApiPropertyRepository implements PropertyRepository {
   }
 
   @override
-  Future<PropertyPage> fetchProperties({FilterParams? filters, int page = 1}) async {
+  Future<PropertyPage> fetchProperties({
+    FilterParams? filters,
+    int page = 1,
+  }) async {
     final response = await _apiClient.get<Map<String, dynamic>>(
       ApiEndpoints.properties,
       query: _filtersToQuery(filters, page),
@@ -89,7 +93,9 @@ class ApiPropertyRepository implements PropertyRepository {
       data: property.toJson(),
     );
     if (response.data == null) {
-      throw const UnknownApiException('La propriété a été créée mais la réponse est vide.');
+      throw const UnknownApiException(
+        'La propriété a été créée mais la réponse est vide.',
+      );
     }
     return Property.fromJson(response.data!);
   }
@@ -113,7 +119,10 @@ class ApiPropertyRepository implements PropertyRepository {
   }
 
   @override
-  Future<Property> updateProperty(String id, Map<String, dynamic> changes) async {
+  Future<Property> updateProperty(
+    String id,
+    Map<String, dynamic> changes,
+  ) async {
     final response = await _apiClient.patch<Map<String, dynamic>>(
       ApiEndpoints.propertyDetail(id),
       data: changes,
@@ -138,7 +147,7 @@ class ApiPropertyRepository implements PropertyRepository {
         : file.name;
     final formData = FormData.fromMap({
       'is_cover': isCover,
-      if (category != null) 'category': category,
+      'category': ?category,
       'image': await MultipartFile.fromFile(file.path, filename: filename),
     });
     final response = await _apiClient.post<Map<String, dynamic>>(
@@ -146,7 +155,9 @@ class ApiPropertyRepository implements PropertyRepository {
       data: formData,
     );
     if (response.data == null) {
-      throw const UnknownApiException('La photo a été envoyée mais la réponse est vide.');
+      throw const UnknownApiException(
+        'La photo a été envoyée mais la réponse est vide.',
+      );
     }
     return Property.fromJson(response.data!);
   }
@@ -158,7 +169,9 @@ class ApiPropertyRepository implements PropertyRepository {
       data: {'url': url},
     );
     if (response.data == null) {
-      throw const UnknownApiException('La photo a été supprimée mais la réponse est vide.');
+      throw const UnknownApiException(
+        'La photo a été supprimée mais la réponse est vide.',
+      );
     }
     return Property.fromJson(response.data!);
   }
@@ -173,7 +186,9 @@ class ApiPropertyRepository implements PropertyRepository {
       data: formData,
     );
     if (response.data == null) {
-      throw const UnknownApiException('La vidéo a été envoyée mais la réponse est vide.');
+      throw const UnknownApiException(
+        'La vidéo a été envoyée mais la réponse est vide.',
+      );
     }
     return Property.fromJson(response.data!);
   }
@@ -184,7 +199,9 @@ class ApiPropertyRepository implements PropertyRepository {
       ApiEndpoints.propertyUploadVideo(propertyId),
     );
     if (response.data == null) {
-      throw const UnknownApiException('La vidéo a été supprimée mais la réponse est vide.');
+      throw const UnknownApiException(
+        'La vidéo a été supprimée mais la réponse est vide.',
+      );
     }
     return Property.fromJson(response.data!);
   }
@@ -203,9 +220,7 @@ class ApiPropertyRepository implements PropertyRepository {
     double? longitude,
     double? radiusKm,
   }) async {
-    final query = <String, dynamic>{
-      'page_size': 500,
-    };
+    final query = <String, dynamic>{'page_size': 500};
     if (latitude != null) query['latitude'] = latitude;
     if (longitude != null) query['longitude'] = longitude;
     if (radiusKm != null && radiusKm > 0) {
@@ -222,7 +237,11 @@ class ApiPropertyRepository implements PropertyRepository {
   }
 
   @override
-  Future<Property> updatePropertyLocation(String id, double latitude, double longitude) {
+  Future<Property> updatePropertyLocation(
+    String id,
+    double latitude,
+    double longitude,
+  ) {
     return updateProperty(id, {
       'latitude': normalizeCoordinate(latitude),
       'longitude': normalizeCoordinate(longitude),
@@ -231,7 +250,9 @@ class ApiPropertyRepository implements PropertyRepository {
 
   @override
   Future<Property> renewProperty(String id) async {
-    final response = await _apiClient.post<Map<String, dynamic>>(ApiEndpoints.propertyRenew(id));
+    final response = await _apiClient.post<Map<String, dynamic>>(
+      ApiEndpoints.propertyRenew(id),
+    );
     return Property.fromJson(response.data!);
   }
 
@@ -242,11 +263,16 @@ class ApiPropertyRepository implements PropertyRepository {
       query: {'agent': ownerId, 'page_size': 100},
     );
     final results = response.data!['results'] as List;
-    return results.map((json) => Property.fromJson(json as Map<String, dynamic>)).toList();
+    return results
+        .map((json) => Property.fromJson(json as Map<String, dynamic>))
+        .toList();
   }
 
   @override
-  Future<Property> updatePropertyStatus(String id, PropertyStatus status) async {
+  Future<Property> updatePropertyStatus(
+    String id,
+    PropertyStatus status,
+  ) async {
     final response = await _apiClient.post<Map<String, dynamic>>(
       ApiEndpoints.propertyMarkStatus(id),
       data: {'status': status.name},

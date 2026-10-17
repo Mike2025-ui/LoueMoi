@@ -41,11 +41,8 @@ class Property(models.Model):
         # voir le commentaire de mark_status.
         ("occupee", "Occupée"),
         ("vendue", "Vendue"),
-        # Statut admin-only : jamais choisi par l'agent, jamais retourné par
-        # /api/properties/ ni /api/agent/properties/ (annonce masquée après
-        # intervention de la modération, cf. PropertyViewSet.get_queryset).
-        # Aucune étape d'approbation avant publication : une annonce créée
-        # par un agent est "disponible" (donc publique) immédiatement.
+        ("accomplie", "Accomplie"),
+        ("annulee", "Annulée"),
         ("disabled", "Désactivée (admin)"),
     ]
 

@@ -81,8 +81,10 @@ class PropertyViewSet(viewsets.ModelViewSet):
     filterset_class = PropertyFilter
 
     def get_queryset(self):
-        base = Property.objects.select_related("agent", "agent__agent_profile").exclude(
-            status="disabled"
+        base = (
+            Property.objects.select_related("agent", "agent__agent_profile")
+            .exclude(status="disabled")
+            .exclude(status="accomplie")
         )
         not_expired = Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now())
         user = self.request.user
@@ -202,9 +204,9 @@ class PropertyViewSet(viewsets.ModelViewSet):
         new_status = request.data.get("status")
 
         if property_obj.transaction_type == "vente":
-            allowed = ("disponible", "vendue")
+            allowed = ("disponible", "vendue", "accomplie", "annulee")
         else:
-            allowed = ("disponible", "occupee")
+            allowed = ("disponible", "occupee", "accomplie", "annulee")
 
         if new_status not in allowed:
             return Response(
@@ -218,17 +220,22 @@ class PropertyViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def renew(self, request, pk=None):
         """POST /api/properties/{id}/renew/ — "Reconduire un bien".
-
-        Décision métier retenue : une annonce reste valide
-        PROPERTY_VALIDITY_DAYS (30) jours après publication, au-delà elle
-        disparaît des résultats publics (voir get_queryset). Reconduire fixe
-        une nouvelle période de 30 jours à partir de maintenant
-        (publish_for_new_period, la même méthode qu'à la création) — même
-        annonce, même id, mêmes photos/réservations/propriétaire, jamais un
-        doublon. Réservé au propriétaire réel du bien."""
+        Seules les annonces annulées peuvent être reconduites.
+        Une annonce accomplie ne peut plus jamais être reconduite."""
         property_obj = self.get_object()
+        if property_obj.status == "accomplie":
+            return Response(
+                {"detail": "Une annonce accomplie ne peut pas être reconduite."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if property_obj.status != "annulee":
+            return Response(
+                {"detail": "Seules les annonces annulées peuvent être reconduites."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        property_obj.status = "disponible"
         property_obj.publish_for_new_period()
-        property_obj.save(update_fields=["published_at", "expires_at", "updated_at"])
+        property_obj.save(update_fields=["status", "published_at", "expires_at", "updated_at"])
         return Response(self.get_serializer(property_obj).data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=["post", "delete"], url_path="upload-image")
@@ -340,32 +347,46 @@ class PropertyNearbyView(generics.ListAPIView):
         qs = (
             Property.objects.filter(latitude__isnull=False, longitude__isnull=False)
             .exclude(status="disabled")
+            .exclude(status="accomplie")
             .select_related("agent", "agent__agent_profile")
         )
 
-        # Exclure les annonces expirées
         not_expired = Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now())
         qs = qs.filter(not_expired)
 
-        if lat_raw and lng_raw:
-            try:
-                lat = float(lat_raw)
-                lng = float(lng_raw)
-                qs = qs.annotate(distance_km=_haversine_distance_km(lat, lng))
+        # Si ni latitude ni longitude ne sont passées : afficher toutes les annonces géolocalisées
+        if lat_raw is None and lng_raw is None:
+            return qs.order_by("-created_at")
 
-                if radius_raw and radius_raw not in ("0", "all", "toutes", ""):
-                    try:
-                        radius_km = float(radius_raw)
-                        if radius_km > 0:
-                            qs = qs.filter(distance_km__lte=radius_km)
-                    except (TypeError, ValueError):
-                        pass
+        if lat_raw is None or lng_raw is None:
+            raise ValidationError({"detail": "latitude et longitude doivent être fournis ensemble."})
 
-                return qs.order_by("distance_km")
-            except (TypeError, ValueError):
+        try:
+            lat = float(lat_raw)
+            lng = float(lng_raw)
+        except (TypeError, ValueError):
+            raise ValidationError({"detail": "latitude et longitude doivent être des nombres décimaux."})
+
+        if not (-90.0 <= lat <= 90.0):
+            raise ValidationError({"latitude": ["Latitude hors intervalle [-90, 90]."]})
+        if not (-180.0 <= lng <= 180.0):
+            raise ValidationError({"longitude": ["Longitude hors intervalle [-180, 180]."]})
+
+        qs = qs.annotate(distance_km=_haversine_distance_km(lat, lng))
+
+        if radius_raw is not None and radius_raw != "":
+            if radius_raw in ("0", "all", "toutes"):
                 pass
+            else:
+                try:
+                    radius_km = float(radius_raw)
+                except (TypeError, ValueError):
+                    raise ValidationError({"radius": ["Rayon invalide."]})
+                if radius_km <= 0:
+                    raise ValidationError({"radius": ["Le rayon doit être strictement positif."]})
+                qs = qs.filter(distance_km__lte=radius_km)
 
-        return qs.order_by("-created_at")
+        return qs.order_by("distance_km")
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -385,6 +406,7 @@ class MyPropertiesView(generics.ListAPIView):
         return (
             Property.objects.filter(agent=self.request.user)
             .exclude(status="disabled")
+            .exclude(status="accomplie")
             .select_related("agent", "agent__agent_profile")
         )
 

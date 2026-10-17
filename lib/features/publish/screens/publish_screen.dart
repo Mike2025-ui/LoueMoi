@@ -1187,7 +1187,7 @@ class _PhotoCategorySection extends StatelessWidget {
                     border: Border.all(
                       color: isRequired && images.isEmpty ? AppColors.primary : AppColors.border,
                     ),
-                    color: isRequired && images.isEmpty ? AppColors.primaryLight.withOpacity(0.15) : AppColors.surfaceMuted,
+                    color: isRequired && images.isEmpty ? AppColors.primaryLight.withValues(alpha: 0.15) : AppColors.surfaceMuted,
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,

@@ -20,6 +20,10 @@ final homeTransactionTypeProvider =
 
 final searchQueryProvider = StateProvider<String>((ref) => '');
 
+/// Cache des propriétés chargées sur l'écran d'accueil, réutilisé par le détail
+/// pour suggérer des biens similaires sans déclencher d'appel réseau redondant.
+final homePropertiesCacheProvider = StateProvider<List<Property>>((ref) => const []);
+
 FilterParams _effectiveFilters(Ref ref) {
   final transactionType = ref.watch(homeTransactionTypeProvider);
   final appliedFilters = ref.watch(appliedFilterParamsProvider);
@@ -101,11 +105,12 @@ final propertiesControllerProvider = StateNotifierProvider.autoDispose<Propertie
 final propertiesListProvider = Provider.autoDispose<AsyncValue<List<Property>>>((ref) {
   final controllerState = ref.watch(propertiesControllerProvider);
   final query = ref.watch(searchQueryProvider).trim().toLowerCase();
-  if (query.isEmpty) return controllerState;
 
   return controllerState.whenData(
     (list) => list
+        .where((p) => p.status != PropertyStatus.accomplie)
         .where((p) =>
+            query.isEmpty ||
             p.title.toLowerCase().contains(query) ||
             p.commune.toLowerCase().contains(query) ||
             p.district.toLowerCase().contains(query))
@@ -121,7 +126,8 @@ final propertyByIdProvider =
 
 final favoritesListProvider = FutureProvider<List<Property>>((ref) async {
   final repository = ref.watch(propertyRepositoryProvider);
-  return repository.fetchFavorites();
+  final list = await repository.fetchFavorites();
+  return list.where((p) => p.status != PropertyStatus.accomplie).toList();
 });
 
 /// Annonces publiques d'un propriétaire donné — "Rechercher un
@@ -140,10 +146,13 @@ final propertiesByOwnerProvider =
 final myPropertiesProvider = FutureProvider.autoDispose<List<Property>>((ref) async {
   final repository = ref.watch(propertyRepositoryProvider);
   final user = ref.watch(authControllerProvider).valueOrNull;
+  final List<Property> list;
   if (user?.isBailleur ?? false) {
-    return repository.fetchMyPropertiesAsBailleur();
+    list = await repository.fetchMyPropertiesAsBailleur();
+  } else {
+    list = await repository.fetchMyProperties();
   }
-  return repository.fetchMyProperties();
+  return list.where((p) => p.status != PropertyStatus.accomplie).toList();
 });
 
 /// Bascule l'état favori en optimiste sur la liste Menu (l'UI change

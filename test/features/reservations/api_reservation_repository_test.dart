@@ -79,4 +79,13 @@ void main() {
     verify(() => apiClient.post<Map<String, dynamic>>('/api/reservations/10/cancel/'))
         .called(1);
   });
+
+  test('deleteReservation sends DELETE request to /api/reservations/10/', () async {
+    when(() => apiClient.delete<dynamic>(any()))
+        .thenAnswer((_) async => Response(data: null, requestOptions: RequestOptions(path: '/')));
+
+    await repository.deleteReservation('10');
+
+    verify(() => apiClient.delete<dynamic>('/api/reservations/10/')).called(1);
+  });
 }

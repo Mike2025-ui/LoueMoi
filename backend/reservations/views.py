@@ -42,6 +42,16 @@ class ReservationViewSet(viewsets.ModelViewSet):
         property_obj = serializer.validated_data["property"]
         if self.request.user == property_obj.agent:
             raise ValidationError("Vous ne pouvez pas réserver votre propre annonce.")
+
+        # Règle métier : l'utilisateur peut faire plusieurs réservations,
+        # mais une seule réservation sur une même publication (annonce).
+        has_property_reservation = Reservation.objects.filter(
+            user=self.request.user,
+            property=property_obj,
+        ).exclude(status="annulee").exists()
+        if has_property_reservation:
+            raise ValidationError("Vous avez déjà effectué une réservation pour cette annonce.")
+
         reservation = serializer.save(user=self.request.user, status="enCours")
 
 
@@ -69,6 +79,16 @@ class ReservationViewSet(viewsets.ModelViewSet):
             data={"reservation_id": str(reservation.id), "property_id": str(property_obj.id)},
             actor=self.request.user,
         )
+
+    def perform_destroy(self, instance):
+        """DELETE /api/reservations/{id}/ — autorisée uniquement pour une
+        réservation annulée."""
+        if instance.status != "annulee":
+            raise ValidationError("Seules les réservations annulées peuvent être supprimées.")
+        user = self.request.user
+        if instance.user != user and instance.property.agent != user and not user.is_staff:
+            raise PermissionDenied("Vous n'êtes pas autorisé à supprimer cette réservation.")
+        instance.delete()
 
     @action(detail=True, methods=["post"])
     @transaction.atomic
@@ -162,6 +182,8 @@ class ReservationViewSet(viewsets.ModelViewSet):
         if reservation.status != "accomplie":
             reservation.status = "accomplie"
             reservation.save(update_fields=["status"])
+            property_obj.status = "accomplie"
+            property_obj.save(update_fields=["status"])
             # La notification "réservation confirmée" part automatiquement
             # via le signal post_save existant (reservations/signals.py),
             # qui ne se déclenche que sur une vraie transition vers

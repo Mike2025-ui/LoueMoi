@@ -721,29 +721,50 @@ class PropertyRenewTests(APITestCase):
         )
 
     def test_owner_can_renew_own_property(self):
+        self.property_obj.status = "annulee"
+        self.property_obj.save(update_fields=["status"])
         original_updated_at = self.property_obj.updated_at
         self.client.force_authenticate(user=self.agent)
         response = self.client.post(f"/api/properties/{self.property_obj.id}/renew/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.property_obj.refresh_from_db()
+        self.assertEqual(self.property_obj.status, "disponible")
         self.assertGreater(self.property_obj.updated_at, original_updated_at)
         # Aucun doublon : toujours la même annonce, mêmes données.
         self.assertEqual(Property.objects.filter(title="Bien à reconduire").count(), 1)
         self.assertEqual(response.data["title"], "Bien à reconduire")
 
     def test_renew_gives_a_fresh_30_day_period(self):
+        self.property_obj.status = "annulee"
         self.property_obj.expires_at = timezone.now() - timedelta(days=1)  # déjà expirée
-        self.property_obj.save(update_fields=["expires_at"])
+        self.property_obj.save(update_fields=["status", "expires_at"])
 
         self.client.force_authenticate(user=self.agent)
         response = self.client.post(f"/api/properties/{self.property_obj.id}/renew/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         self.property_obj.refresh_from_db()
+        self.assertEqual(self.property_obj.status, "disponible")
         self.assertGreater(self.property_obj.expires_at, timezone.now())
         expected = self.property_obj.published_at + timedelta(days=30)
         self.assertAlmostEqual(
             self.property_obj.expires_at, expected, delta=timedelta(seconds=5)
+        )
+
+    def test_renew_rejected_if_not_annulee(self):
+        self.property_obj.status = "disponible"
+        self.property_obj.save(update_fields=["status"])
+        self.client.force_authenticate(user=self.agent)
+        response = self.client.post(f"/api/properties/{self.property_obj.id}/renew/")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_renew_rejected_if_accomplie(self):
+        self.property_obj.status = "accomplie"
+        self.property_obj.save(update_fields=["status"])
+        self.client.force_authenticate(user=self.agent)
+        response = self.client.post(f"/api/properties/{self.property_obj.id}/renew/")
+        self.assertIn(
+            response.status_code, [status.HTTP_400_BAD_REQUEST, status.HTTP_404_NOT_FOUND]
         )
 
     def test_another_agent_cannot_renew(self):

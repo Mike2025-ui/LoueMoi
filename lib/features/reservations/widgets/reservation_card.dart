@@ -17,21 +17,28 @@ import '../models/reservation.dart';
 import '../providers/reservation_providers.dart';
 
 class ReservationCard extends ConsumerWidget {
-  const ReservationCard({super.key, required this.reservation, required this.onTap});
+  const ReservationCard({
+    super.key,
+    required this.reservation,
+    required this.onTap,
+  });
 
   final Reservation reservation;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final propertyAsync = ref.watch(propertyByIdProvider(reservation.propertyId));
+    final propertyAsync = ref.watch(
+      propertyByIdProvider(reservation.propertyId),
+    );
     final currentUserId = ref.watch(authControllerProvider).valueOrNull?.id;
     // "Voir qui a réservé" : uniquement pertinent pour le propriétaire du
     // bien qui consulte une réservation faite par quelqu'un d'autre — un
     // client qui voit sa propre réservation n'a pas besoin de revoir ses
     // propres coordonnées.
     final client = reservation.client;
-    final showClientInfo = client != null && currentUserId != null && currentUserId != client.id;
+    final showClientInfo =
+        client != null && currentUserId != null && currentUserId != client.id;
 
     return propertyAsync.when(
       data: (property) {
@@ -69,25 +76,38 @@ class ReservationCard extends ConsumerWidget {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 StatusBadge.category(property.category),
-                                property.transactionType == TransactionType.location
+                                property.transactionType ==
+                                        TransactionType.location
                                     ? StatusBadge.location()
                                     : StatusBadge.vente(),
                               ],
                             ),
                             const SizedBox(height: 4),
-                            Text(property.title, style: AppTextStyles.bodyMedium),
+                            Text(
+                              property.title,
+                              style: AppTextStyles.bodyMedium,
+                            ),
                             Row(
                               children: [
-                                const Icon(Icons.location_on,
-                                    size: 12, color: AppColors.textSecondary),
+                                const Icon(
+                                  Icons.location_on,
+                                  size: 12,
+                                  color: AppColors.textSecondary,
+                                ),
                                 const SizedBox(width: 2),
-                                Text(property.locationLabel, style: AppTextStyles.small),
+                                Text(
+                                  property.locationLabel,
+                                  style: AppTextStyles.small,
+                                ),
                               ],
                             ),
                             Row(
                               children: [
-                                const Icon(Icons.calendar_today,
-                                    size: 12, color: AppColors.textSecondary),
+                                const Icon(
+                                  Icons.calendar_today,
+                                  size: 12,
+                                  color: AppColors.textSecondary,
+                                ),
                                 const SizedBox(width: 4),
                                 Text(
                                   Formatters.shortDate(reservation.createdAt),
@@ -104,8 +124,11 @@ class ReservationCard extends ConsumerWidget {
                               const SizedBox(height: 4),
                               Row(
                                 children: [
-                                  const Icon(Icons.person_outline,
-                                      size: 12, color: AppColors.textSecondary),
+                                  const Icon(
+                                    Icons.person_outline,
+                                    size: 12,
+                                    color: AppColors.textSecondary,
+                                  ),
                                   const SizedBox(width: 2),
                                   Expanded(
                                     child: Text(
@@ -127,7 +150,10 @@ class ReservationCard extends ConsumerWidget {
                 ),
               ),
               const Divider(height: 1),
-              _ActionRow(reservation: reservation, property: showClientInfo ? property : null),
+              _ActionRow(
+                reservation: reservation,
+                property: showClientInfo ? property : null,
+              ),
             ],
           ),
         );
@@ -166,7 +192,10 @@ class _ActionRow extends ConsumerWidget {
         // rangées à la fois pour le propriétaire, ce qui lui offrait un
         // bouton "Annuler" qu'il n'aurait jamais dû voir.
         if (property != null) {
-          return _OwnerActionsRow(reservation: reservation, property: property!);
+          return _OwnerActionsRow(
+            reservation: reservation,
+            property: property!,
+          );
         }
         return _CancelButton(reservationId: reservation.id);
       case ReservationStatus.accomplie:
@@ -176,30 +205,144 @@ class _ActionRow extends ConsumerWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.check_circle_outline, color: AppColors.success, size: 18),
+                Icon(
+                  Icons.check_circle_outline,
+                  color: AppColors.success,
+                  size: 18,
+                ),
                 SizedBox(width: 6),
-                Text('Accomplies',
-                    style: TextStyle(color: AppColors.success, fontWeight: FontWeight.w600)),
+                Text(
+                  'Accomplies',
+                  style: TextStyle(
+                    color: AppColors.success,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
           ),
         );
       case ReservationStatus.annulee:
-        return const Padding(
-          padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
-          child: Center(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.cancel_outlined, color: AppColors.danger, size: 18),
-                SizedBox(width: 6),
-                Text('Annulée',
-                    style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.w600)),
-              ],
-            ),
+        return Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(
+                    Icons.cancel_outlined,
+                    color: AppColors.danger,
+                    size: 18,
+                  ),
+                  SizedBox(width: 6),
+                  Text(
+                    'Annulée',
+                    style: TextStyle(
+                      color: AppColors.danger,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              _DeleteReservationButton(reservationId: reservation.id),
+            ],
           ),
         );
     }
+  }
+}
+
+class _DeleteReservationButton extends ConsumerStatefulWidget {
+  const _DeleteReservationButton({required this.reservationId});
+
+  final String reservationId;
+
+  @override
+  ConsumerState<_DeleteReservationButton> createState() =>
+      _DeleteReservationButtonState();
+}
+
+class _DeleteReservationButtonState
+    extends ConsumerState<_DeleteReservationButton> {
+  bool _isDeleting = false;
+
+  Future<void> _delete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+        title: const Text('Supprimer la réservation ?'),
+        content: const Text(
+          'Cette réservation annulée sera définitivement supprimée.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text(
+              'Supprimer',
+              style: TextStyle(color: AppColors.danger),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    if (_isDeleting) return;
+    setState(() => _isDeleting = true);
+    try {
+      await deleteReservation(ref, widget.reservationId);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Réservation supprimée.')));
+      }
+    } catch (e) {
+      if (mounted) showErrorSnackbar(context, e);
+    } finally {
+      if (mounted) setState(() => _isDeleting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isDeleting) {
+      return const SizedBox(
+        width: 20,
+        height: 20,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          color: AppColors.danger,
+        ),
+      );
+    }
+    return TextButton.icon(
+      onPressed: _delete,
+      icon: const Icon(Icons.delete_outline, size: 16, color: AppColors.danger),
+      label: const Text(
+        'Supprimer',
+        style: TextStyle(
+          color: AppColors.danger,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+    );
   }
 }
 
@@ -258,11 +401,17 @@ class _CancelButtonState extends ConsumerState<_CancelButton> {
                 ? const SizedBox(
                     width: 16,
                     height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.primary,
+                    ),
                   )
                 : const Text(
                     'Annuler',
-                    style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
           ),
         ),
@@ -294,7 +443,9 @@ class _OwnerActionsRowState extends ConsumerState<_OwnerActionsRow> {
     setState(() => _openingChat = true);
     try {
       final repository = ref.read(reservationRepositoryProvider);
-      final conversationId = await repository.getOrCreateConversationId(widget.reservation.id);
+      final conversationId = await repository.getOrCreateConversationId(
+        widget.reservation.id,
+      );
       if (!mounted) return;
       context.push(
         AppRoutes.conversationPath(conversationId),
@@ -308,13 +459,18 @@ class _OwnerActionsRowState extends ConsumerState<_OwnerActionsRow> {
   }
 
   Future<void> _toggleOccupied() async {
-    final isLocation = widget.property.transactionType == TransactionType.location;
+    final isLocation =
+        widget.property.transactionType == TransactionType.location;
     final nextStatus = widget.property.status == PropertyStatus.disponible
         ? (isLocation ? PropertyStatus.occupee : PropertyStatus.vendue)
         : PropertyStatus.disponible;
     setState(() => _togglingStatus = true);
     try {
-      await markPropertyStatus(ref, propertyId: widget.property.id, status: nextStatus);
+      await markPropertyStatus(
+        ref,
+        propertyId: widget.property.id,
+        status: nextStatus,
+      );
     } catch (e) {
       if (mounted) showErrorSnackbar(context, e);
     } finally {
@@ -354,11 +510,14 @@ class _OwnerActionsRowState extends ConsumerState<_OwnerActionsRow> {
           Expanded(
             child: _OwnerActionButton(
               label: switch (widget.property.status) {
-                PropertyStatus.disponible => widget.property.transactionType ==
-                        TransactionType.location
-                    ? 'Marquer occupé'
-                    : 'Marquer vendu',
-                PropertyStatus.occupee || PropertyStatus.vendue => 'Marquer disponible',
+                PropertyStatus.disponible =>
+                  widget.property.transactionType == TransactionType.location
+                      ? 'Marquer occupé'
+                      : 'Marquer vendu',
+                PropertyStatus.occupee ||
+                PropertyStatus.vendue ||
+                PropertyStatus.accomplie ||
+                PropertyStatus.annulee => 'Marquer disponible',
               },
               isLoading: _togglingStatus,
               onTap: _togglingStatus ? null : _toggleOccupied,
@@ -403,7 +562,10 @@ class _OwnerActionButton extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md, horizontal: AppSpacing.xs),
+        padding: const EdgeInsets.symmetric(
+          vertical: AppSpacing.md,
+          horizontal: AppSpacing.xs,
+        ),
         child: Center(
           child: isLoading
               ? const SizedBox(

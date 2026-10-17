@@ -27,16 +27,18 @@ class ApiAuthRepository implements AuthRepository {
     required String firstName,
     required String lastName,
     required String phone,
+    String? whatsapp,
     required String password,
     required UserRole role,
   }) async {
+    final effectiveWhatsapp = (whatsapp != null && whatsapp.isNotEmpty) ? whatsapp : phone;
     final response = await _apiClient.post<Map<String, dynamic>>(
       ApiEndpoints.register,
       data: {
         'first_name': firstName,
         'last_name': lastName,
         'phone': phone,
-        'whatsapp': phone,
+        'whatsapp': effectiveWhatsapp,
         'password': password,
         'password_confirm': password,
         'role': role.toJson(),
@@ -68,7 +70,7 @@ class ApiAuthRepository implements AuthRepository {
     // jamais avoir lieu si le serveur a refusé la demande.
     await _apiClient.post(
       ApiEndpoints.deactivateAccount,
-      data: {'password': password, if (refresh != null) 'refresh': refresh},
+      data: {'password': password, 'refresh': ?refresh},
     );
     await _authStorage.clearTokens();
   }
@@ -98,7 +100,9 @@ class ApiAuthRepository implements AuthRepository {
     final access = await _authStorage.getAccessToken();
     if (access == null) return null;
     try {
-      final response = await _apiClient.get<Map<String, dynamic>>(ApiEndpoints.profile);
+      final response = await _apiClient.get<Map<String, dynamic>>(
+        ApiEndpoints.profile,
+      );
       return User.fromJson(response.data!);
     } on ApiException {
       return null;
@@ -110,6 +114,22 @@ class ApiAuthRepository implements AuthRepository {
     final response = await _apiClient.patch<Map<String, dynamic>>(
       ApiEndpoints.profile,
       data: changes,
+    );
+    return User.fromJson(response.data!);
+  }
+
+  @override
+  Future<User> requestActivation() async {
+    final response = await _apiClient.post<Map<String, dynamic>>(
+      ApiEndpoints.requestActivation,
+    );
+    return _persistAndParse(response.data!);
+  }
+
+  @override
+  Future<User> refreshProfile() async {
+    final response = await _apiClient.get<Map<String, dynamic>>(
+      ApiEndpoints.profile,
     );
     return User.fromJson(response.data!);
   }

@@ -65,16 +65,15 @@ class MyPropertiesScreen extends ConsumerWidget {
   /// transaction_type — "occupee" n'a de sens qu'en location, "vendue"
   /// qu'en vente, jamais l'inverse.
   Future<void> _toggleStatus(BuildContext context, WidgetRef ref, Property property) async {
+    if (property.status == PropertyStatus.accomplie || property.status == PropertyStatus.annulee) {
+      return;
+    }
     final isLocation = property.transactionType == TransactionType.location;
     final newStatus = property.status == PropertyStatus.disponible
         ? (isLocation ? PropertyStatus.occupee : PropertyStatus.vendue)
         : PropertyStatus.disponible;
     try {
       await markPropertyStatus(ref, propertyId: property.id, status: newStatus);
-      // markPropertyStatus n'invalide que propertyByIdProvider (suffisant
-      // pour ReservationCard) — cet écran a besoin des deux autres pour que
-      // "Mes annonces" et la recherche publique reflètent le nouveau statut
-      // immédiatement.
       ref.invalidate(myPropertiesProvider);
       ref.invalidate(propertiesListProvider);
       if (context.mounted) {
@@ -87,19 +86,59 @@ class MyPropertiesScreen extends ConsumerWidget {
     }
   }
 
-  /// "Reconduire un bien" — voir PropertyRepository.renewProperty : aucune
-  /// notion d'expiration n'existe dans le modèle actuel, donc ceci se
-  /// contente de rafraîchir l'annonce (updated_at côté Django), sans créer
-  /// de doublon ni perdre de données/photos.
+  /// "Reconduire un bien" : réservé strictement aux annonces annulées.
   Future<void> _renew(BuildContext context, WidgetRef ref, Property property) async {
+    if (property.status != PropertyStatus.annulee) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Seules les annonces annulées peuvent être reconduites.')),
+      );
+      return;
+    }
     try {
       final repository = ref.read(propertyRepositoryProvider);
       await repository.renewProperty(property.id);
+      await markPropertyStatus(ref, propertyId: property.id, status: PropertyStatus.disponible);
       ref.invalidate(myPropertiesProvider);
       ref.invalidate(propertiesListProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(const SnackBar(content: Text('Annonce reconduite avec succès.')));
+      }
+    } catch (e) {
+      if (context.mounted) showErrorSnackbar(context, e);
+    }
+  }
+
+  /// Permet à l'agent ou au bailleur d'annuler une annonce pour pouvoir la reconduire ultérieurement.
+  Future<void> _cancelProperty(BuildContext context, WidgetRef ref, Property property) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
+        title: const Text('Annuler cette annonce ?'),
+        content: Text('« ${property.title} » sera marquée comme annulée. Vous pourrez la reconduire à tout moment.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Retour'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Annuler l\'annonce', style: TextStyle(color: AppColors.warning)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      await markPropertyStatus(ref, propertyId: property.id, status: PropertyStatus.annulee);
+      ref.invalidate(myPropertiesProvider);
+      ref.invalidate(propertiesListProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Annonce annulée. Vous pouvez la reconduire quand vous le souhaitez.')),
+        );
       }
     } catch (e) {
       if (context.mounted) showErrorSnackbar(context, e);
@@ -136,6 +175,7 @@ class MyPropertiesScreen extends ConsumerWidget {
                   onDelete: () => _confirmDelete(context, ref, property),
                   onToggleStatus: () => _toggleStatus(context, ref, property),
                   onRenew: () => _renew(context, ref, property),
+                  onCancel: () => _cancelProperty(context, ref, property),
                 );
               },
             ),
@@ -158,6 +198,7 @@ class _MyPropertyTile extends StatelessWidget {
     required this.onDelete,
     required this.onToggleStatus,
     required this.onRenew,
+    required this.onCancel,
   });
 
   final Property property;
@@ -166,6 +207,7 @@ class _MyPropertyTile extends StatelessWidget {
   final VoidCallback onDelete;
   final VoidCallback onToggleStatus;
   final VoidCallback onRenew;
+  final VoidCallback onCancel;
 
   @override
   Widget build(BuildContext context) {
@@ -231,6 +273,8 @@ class _MyPropertyTile extends StatelessWidget {
                             child: switch (property.status) {
                               PropertyStatus.occupee => StatusBadge.occupee(),
                               PropertyStatus.vendue => StatusBadge.vendue(),
+                              PropertyStatus.accomplie => StatusBadge.accomplie(),
+                              PropertyStatus.annulee => StatusBadge.annulee(),
                               PropertyStatus.disponible => const StatusBadge(
                                   label: 'Disponible',
                                   backgroundColor: AppColors.statusLocationBg,
@@ -280,26 +324,39 @@ class _MyPropertyTile extends StatelessWidget {
             Wrap(
               alignment: WrapAlignment.end,
               children: [
-                TextButton.icon(
-                  onPressed: onRenew,
-                  icon: const Icon(Icons.refresh, size: 16, color: AppColors.primary),
-                  label: const Text('Reconduire', style: AppTextStyles.link),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                if (property.status == PropertyStatus.annulee)
+                  TextButton.icon(
+                    onPressed: onRenew,
+                    icon: const Icon(Icons.refresh, size: 16, color: AppColors.primary),
+                    label: const Text('Reconduire', style: AppTextStyles.link),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  )
+                else if (property.status != PropertyStatus.accomplie)
+                  TextButton.icon(
+                    onPressed: onCancel,
+                    icon: const Icon(Icons.cancel_outlined, size: 16, color: AppColors.warning),
+                    label: const Text('Annuler', style: TextStyle(color: AppColors.warning, fontSize: 13)),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
                   ),
-                ),
-                TextButton.icon(
-                  onPressed: onEdit,
-                  icon: const Icon(Icons.edit_outlined, size: 16, color: AppColors.primary),
-                  label: const Text('Modifier', style: AppTextStyles.link),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                if (property.status != PropertyStatus.accomplie)
+                  TextButton.icon(
+                    onPressed: onEdit,
+                    icon: const Icon(Icons.edit_outlined, size: 16, color: AppColors.primary),
+                    label: const Text('Modifier', style: AppTextStyles.link),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
                   ),
-                ),
                 TextButton.icon(
                   onPressed: onDelete,
                   icon: const Icon(Icons.delete_outline, size: 16, color: AppColors.danger),

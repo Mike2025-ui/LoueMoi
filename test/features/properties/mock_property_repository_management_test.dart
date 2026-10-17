@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:louemoi/features/properties/data/property_repository.dart';
+import 'package:louemoi/features/properties/models/property_enums.dart';
 
 void main() {
   late MockPropertyRepository repository;
@@ -116,5 +117,18 @@ void main() {
 
     expect(updated.latitude, 5.4);
     expect(updated.longitude, -4.05);
+  });
+
+  test('properties with status accomplie are excluded from fetchProperties', () async {
+    await repository.updatePropertyStatus('1', PropertyStatus.accomplie);
+
+    final page = await repository.fetchProperties();
+    expect(page.results.any((p) => p.id == '1'), isFalse);
+  });
+
+  test('renewProperty throws StateError for accomplie property', () async {
+    await repository.updatePropertyStatus('1', PropertyStatus.accomplie);
+
+    expect(() => repository.renewProperty('1'), throwsA(isA<StateError>()));
   });
 }

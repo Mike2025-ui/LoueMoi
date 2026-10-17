@@ -20,25 +20,34 @@ class ApiNotificationRepository implements NotificationRepository {
     final results = response.data!['results'] as List;
     return results
         .map((json) => AppNotification.fromJson(json as Map<String, dynamic>))
-        .where((n) => n.rawType != 'new_message' && n.type != NotificationType.message)
+        .where(
+          (n) =>
+              n.rawType != 'new_message' && n.type != NotificationType.message,
+        )
         .toList();
   }
 
   @override
   Future<int> fetchUnreadCount() async {
-    final response = await _apiClient.get<Map<String, dynamic>>(
-      ApiEndpoints.notificationsUnreadCount,
-    );
-    return response.data!['unread_count'] as int;
+    try {
+      final notifications = await fetchNotifications();
+      return notifications.where((n) => !n.isRead).length;
+    } catch (_) {
+      return 0;
+    }
   }
 
   @override
   Future<void> markAsRead(String id) async {
-    await _apiClient.post<Map<String, dynamic>>(ApiEndpoints.notificationRead(id));
+    await _apiClient.post<Map<String, dynamic>>(
+      ApiEndpoints.notificationRead(id),
+    );
   }
 
   @override
   Future<void> markAllAsRead() async {
-    await _apiClient.post<Map<String, dynamic>>(ApiEndpoints.notificationsReadAll);
+    await _apiClient.post<Map<String, dynamic>>(
+      ApiEndpoints.notificationsReadAll,
+    );
   }
 }

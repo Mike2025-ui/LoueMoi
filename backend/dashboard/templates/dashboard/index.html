@@ -7,6 +7,12 @@
   <div class="stat-card"><div class="label">Clients</div><div class="value">{{ stats.clients }}</div></div>
   <div class="stat-card"><div class="label">Bailleurs</div><div class="value">{{ stats.bailleurs }}</div></div>
   <div class="stat-card"><div class="label">Agents</div><div class="value">{{ stats.agents }}</div></div>
+  <a href="{% url 'dashboard:pending_activations' %}" style="text-decoration: none; color: inherit;">
+    <div class="stat-card" style="{% if stats.pending_activations > 0 %}border: 1px solid #E0483E; background: #FFF5F5;{% endif %}">
+      <div class="label" style="{% if stats.pending_activations > 0 %}color: #E0483E; font-weight: 700;{% endif %}">📋 Comptes à activer</div>
+      <div class="value" style="{% if stats.pending_activations > 0 %}color: #E0483E;{% endif %}">{{ stats.pending_activations }}</div>
+    </div>
+  </a>
   <div class="stat-card"><div class="label">Propriétés</div><div class="value">{{ stats.properties_total }}</div></div>
   <div class="stat-card"><div class="label">Disponibles</div><div class="value">{{ stats.properties_disponible }}</div></div>
   <div class="stat-card"><div class="label">Occupées</div><div class="value">{{ stats.properties_occupee }}</div></div>

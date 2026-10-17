@@ -110,17 +110,16 @@ class PublishFormState {
 
   /// Liste ordonnée des nouvelles photos avec leur catégorie dédiée.
   List<({XFile file, String category, bool isCover})> get categorizedImages => [
-        if (coverImageFile != null)
-          (file: coverImageFile!, category: 'couverture', isCover: true),
-        for (final f in chambreImages)
-          (file: f, category: 'chambre', isCover: false),
-        for (final f in salonImages)
-          (file: f, category: 'salon', isCover: false),
-        for (final f in cuisineImages)
-          (file: f, category: 'cuisine', isCover: false),
-        for (final f in salleDeBainImages)
-          (file: f, category: 'salledebain', isCover: false),
-      ];
+    if (coverImageFile != null)
+      (file: coverImageFile!, category: 'couverture', isCover: true),
+    for (final f in chambreImages)
+      (file: f, category: 'chambre', isCover: false),
+    for (final f in salonImages) (file: f, category: 'salon', isCover: false),
+    for (final f in cuisineImages)
+      (file: f, category: 'cuisine', isCover: false),
+    for (final f in salleDeBainImages)
+      (file: f, category: 'salledebain', isCover: false),
+  ];
 
   PublishFormState copyWith({
     TransactionType? transactionType,
@@ -170,7 +169,7 @@ class PublishFormState {
     final computedImages =
         newImages ??
         [
-          if (nextCover != null) nextCover,
+          ?nextCover,
           ...nextChambres,
           ...nextSalon,
           ...nextCuisine,

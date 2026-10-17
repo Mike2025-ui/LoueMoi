@@ -43,8 +43,33 @@ class ReviewCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
-                Text(review.comment, style: AppTextStyles.body),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    ...List.generate(5, (index) {
+                      final starNum = index + 1;
+                      return Icon(
+                        starNum <= review.rating.round()
+                            ? Icons.star
+                            : Icons.star_border,
+                        size: 16,
+                        color: Colors.amber,
+                      );
+                    }),
+                    const SizedBox(width: AppSpacing.xs),
+                    Text(
+                      '${review.rating.toStringAsFixed(review.rating.truncateToDouble() == review.rating ? 0 : 1)}/5',
+                      style: AppTextStyles.caption.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+                if (review.comment.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(review.comment, style: AppTextStyles.body),
+                ],
               ],
             ),
           ),

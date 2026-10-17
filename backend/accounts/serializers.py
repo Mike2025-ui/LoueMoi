@@ -22,11 +22,19 @@ class UserSerializer(serializers.ModelSerializer):
             "whatsapp",
             "photo",
             "role",
+            "is_approved",
+            "activation_requested",
+            "activation_requested_at",
             "agent_profile",
         ]
-        # `role` n'est modifiable ni par le client ni par l'agent via PATCH
-        # /api/users/me/ — seule l'administration Django peut changer un rôle.
-        read_only_fields = ["id", "role"]
+        # `role`, `is_approved`, etc. ne sont pas modifiables par l'utilisateur via PATCH /api/users/me/
+        read_only_fields = [
+            "id",
+            "role",
+            "is_approved",
+            "activation_requested",
+            "activation_requested_at",
+        ]
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -61,13 +69,26 @@ class RegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {"password_confirm": "Les mots de passe ne correspondent pas."}
             )
+        role = attrs.get("role", User.ROLE_CLIENT)
+        whatsapp = (attrs.get("whatsapp") or "").strip()
+        if role in (User.ROLE_BAILLEUR, User.ROLE_AGENT) and not whatsapp:
+            raise serializers.ValidationError(
+                {"whatsapp": "Le numéro WhatsApp est requis pour l'activation du compte."}
+            )
         return attrs
 
     def create(self, validated_data):
         password = validated_data.pop("password")
-        validated_data.setdefault("whatsapp", validated_data.get("phone", ""))
+        if not validated_data.get("whatsapp"):
+            validated_data["whatsapp"] = validated_data.get("phone", "")
         user = User(**validated_data)
         user.set_password(password)
+        # Les comptes agent et bailleur doivent être activés par un administrateur
+        if user.role in (User.ROLE_AGENT, User.ROLE_BAILLEUR):
+            user.is_approved = False
+            user.activation_requested = False
+        else:
+            user.is_approved = True
         user.save()
         if user.role == User.ROLE_AGENT:
             # is_verified reste à False par défaut : seule l'administration

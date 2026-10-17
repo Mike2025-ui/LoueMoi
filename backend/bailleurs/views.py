@@ -59,6 +59,7 @@ class BailleurPropertiesView(generics.ListAPIView):
         return (
             Property.objects.filter(agent=self.request.user)
             .exclude(status="disabled")
+            .exclude(status="accomplie")
             .select_related("agent", "agent__agent_profile")
         )
 

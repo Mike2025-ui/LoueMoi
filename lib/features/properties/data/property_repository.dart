@@ -91,7 +91,7 @@ class MockPropertyRepository implements PropertyRepository {
   @override
   Future<PropertyPage> fetchProperties({FilterParams? filters, int page = 1}) async {
     await Future.delayed(const Duration(milliseconds: 400));
-    var results = List<Property>.from(_properties);
+    var results = _properties.where((p) => p.status != PropertyStatus.accomplie).toList();
 
     if (filters != null) {
       results = results
@@ -151,7 +151,7 @@ class MockPropertyRepository implements PropertyRepository {
   @override
   Future<List<Property>> fetchFavorites() async {
     await Future.delayed(const Duration(milliseconds: 200));
-    return _properties.where((p) => p.isFavorite).toList();
+    return _properties.where((p) => p.isFavorite && p.status != PropertyStatus.accomplie).toList();
   }
 
   @override
@@ -166,7 +166,9 @@ class MockPropertyRepository implements PropertyRepository {
     await Future.delayed(const Duration(milliseconds: 300));
     // Un seul agent existe dans l'univers de démo : toutes les propriétés
     // mock lui appartiennent déjà.
-    return _properties.where((p) => p.agent.id == MockProperties.agentKouakou.id).toList();
+    return _properties
+        .where((p) => p.agent.id == MockProperties.agentKouakou.id && p.status != PropertyStatus.accomplie)
+        .toList();
   }
 
   @override
@@ -308,8 +310,13 @@ class MockPropertyRepository implements PropertyRepository {
   Future<Property> renewProperty(String id) async {
     await Future.delayed(const Duration(milliseconds: 300));
     final index = _indexOrThrow(id);
+    final current = _properties[index];
+    if (current.status == PropertyStatus.accomplie) {
+      throw StateError('Une annonce accomplie ne peut pas être reconduite.');
+    }
     final updated = Property.fromJson({
-      ..._properties[index].toJson(),
+      ...current.toJson(),
+      'status': PropertyStatus.disponible.name,
       'updated_at': DateTime.now().toIso8601String(),
     });
     _properties[index] = updated;

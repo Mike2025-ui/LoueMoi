@@ -6,13 +6,20 @@ import '../../../core/utils/media_url.dart';
 import '../models/agent.dart';
 
 /// Carte agent immobilier (photo, nom, rôle, badge de vérification).
-/// Si [onMessageTap] est fourni, une icône de discussion permet de contacter
-/// l'agent directement (ouvre l'écran de conversation).
+/// Permet de contacter l'agent via message in-app, appel direct ou WhatsApp.
 class AgentCard extends StatelessWidget {
-  const AgentCard({super.key, required this.agent, this.onMessageTap});
+  const AgentCard({
+    super.key,
+    required this.agent,
+    this.onMessageTap,
+    this.onCallTap,
+    this.onWhatsAppTap,
+  });
 
   final Agent agent;
   final VoidCallback? onMessageTap;
+  final VoidCallback? onCallTap;
+  final VoidCallback? onWhatsAppTap;
 
   @override
   Widget build(BuildContext context) {
@@ -53,20 +60,75 @@ class AgentCard extends StatelessWidget {
             ],
           ),
         ),
-        if (onMessageTap != null)
-          Material(
-            color: AppColors.primaryLight,
-            shape: const CircleBorder(),
-            child: InkWell(
-              onTap: onMessageTap,
-              customBorder: const CircleBorder(),
-              child: const Padding(
-                padding: EdgeInsets.all(10),
-                child: Icon(Icons.chat_bubble_outline, size: 20, color: AppColors.primary),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (onCallTap != null) ...[
+              _ActionButton(
+                icon: Icons.phone_outlined,
+                color: AppColors.success,
+                backgroundColor: AppColors.successBg,
+                tooltip: 'Appeler',
+                onTap: onCallTap!,
               ),
-            ),
-          ),
+              const SizedBox(width: AppSpacing.xs),
+            ],
+            if (onWhatsAppTap != null) ...[
+              _ActionButton(
+                icon: Icons.chat,
+                color: const Color(0xFF25D366),
+                backgroundColor: const Color(0xFFE8F8EE),
+                tooltip: 'WhatsApp',
+                onTap: onWhatsAppTap!,
+              ),
+              const SizedBox(width: AppSpacing.xs),
+            ],
+            if (onMessageTap != null)
+              _ActionButton(
+                icon: Icons.chat_bubble_outline,
+                color: AppColors.primary,
+                backgroundColor: AppColors.primaryLight,
+                tooltip: 'Message LoueMoi',
+                onTap: onMessageTap!,
+              ),
+          ],
+        ),
       ],
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  const _ActionButton({
+    required this.icon,
+    required this.color,
+    required this.backgroundColor,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color color;
+  final Color backgroundColor;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: backgroundColor,
+        shape: const CircleBorder(),
+        child: InkWell(
+          onTap: onTap,
+          customBorder: const CircleBorder(),
+          child: Padding(
+            padding: const EdgeInsets.all(9),
+            child: Icon(icon, size: 19, color: color),
+          ),
+        ),
+      ),
     );
   }
 }

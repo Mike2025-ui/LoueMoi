@@ -41,7 +41,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!mounted) return;
     state.when(
       data: (user) {
-        if (user != null) context.go(AppRoutes.home);
+        if (user != null) {
+          if (user.needsActivation) {
+            context.go(AppRoutes.pendingActivation);
+          } else {
+            context.go(AppRoutes.home);
+          }
+        }
       },
       loading: () {},
       error: (e, _) {

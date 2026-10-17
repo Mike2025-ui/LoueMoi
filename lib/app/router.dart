@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../features/auth/providers/auth_providers.dart';
 import '../features/auth/screens/forgot_password_screen.dart';
 import '../features/auth/screens/login_screen.dart';
+import '../features/auth/screens/pending_activation_screen.dart';
 import '../features/auth/screens/register_screen.dart';
 import '../features/auth/screens/reset_password_screen.dart';
 import '../features/favorites/screens/favorites_screen.dart';
@@ -43,6 +45,18 @@ final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: AppRoutes.splash,
+    redirect: (context, state) {
+      final user = ref.read(authControllerProvider).valueOrNull;
+      final location = state.matchedLocation;
+      if (user != null && user.needsActivation) {
+        if (location != AppRoutes.pendingActivation) {
+          return AppRoutes.pendingActivation;
+        }
+      } else if (user != null && !user.needsActivation && location == AppRoutes.pendingActivation) {
+        return AppRoutes.home;
+      }
+      return null;
+    },
     routes: [
       GoRoute(path: AppRoutes.splash, builder: (context, state) => const SplashScreen()),
       GoRoute(
@@ -53,6 +67,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.register,
         builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.pendingActivation,
+        builder: (context, state) => const PendingActivationScreen(),
       ),
       GoRoute(
         path: AppRoutes.forgotPassword,
