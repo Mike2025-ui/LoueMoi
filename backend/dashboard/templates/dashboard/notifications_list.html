@@ -1,8 +1,8 @@
 {% extends "dashboard/base.html" %}
-{% block title %}Notifications{% endblock %}
-{% block page_title %}Notifications{% endblock %}
+{% block title %}Notifications · LoueMoi Admin{% endblock %}
+{% block page_title %}Notifications Push / In-App{% endblock %}
 {% block content %}
-<p style="color:var(--text-hint);font-size:12px">
+<p style="color:var(--text-muted);font-size:12px;margin-bottom:14px">
   Le modèle Notification ne stocke pas d'acteur de manière persistante (seul le destinataire est en base) — cette colonne n'existe donc pas ici.
 </p>
 <form class="filters" method="get">
@@ -14,25 +14,45 @@
     {% endfor %}
   </select>
   <select name="read">
-    <option value="">Lu/Non lu</option>
-    <option value="1" {% if read == "1" %}selected{% endif %}>Lu</option>
-    <option value="0" {% if read == "0" %}selected{% endif %}>Non lu</option>
+    <option value="">Tous les états de lecture</option>
+    <option value="1" {% if read == "1" %}selected{% endif %}>Lue</option>
+    <option value="0" {% if read == "0" %}selected{% endif %}>Non lue</option>
   </select>
-  <button type="submit">Filtrer</button>
+  <button type="submit">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    Filtrer
+  </button>
+  {% if q or notif_type or read %}
+    <a href="{% url 'dashboard:notifications_list' %}" class="btn-reset" style="padding:9px 14px;border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text-muted);font-size:13.5px;font-weight:500;text-decoration:none">Réinitialiser</a>
+  {% endif %}
 </form>
 
 <div class="card">
   <div class="table-wrap">
   <table>
-    <thead><tr><th>Destinataire</th><th>Type</th><th>Titre</th><th>Lue</th><th>Date</th></tr></thead>
+    <thead><tr>
+      <th>Destinataire</th>
+      <th>Type</th>
+      <th>Titre & Contenu</th>
+      <th>État</th>
+      <th>Date d'envoi</th>
+    </tr></thead>
     <tbody>
       {% for n in page_obj %}
       <tr>
-        <td><a href="{% url 'dashboard:user_detail' n.recipient.pk %}">{{ n.recipient }}</a></td>
+        <td class="cell-primary">
+          <a href="{% url 'dashboard:user_detail' n.recipient.pk %}">{{ n.recipient }}</a>
+        </td>
         <td><span class="badge badge-primary">{{ n.get_type_display }}</span></td>
-        <td>{{ n.title }}</td>
-        <td>{% if n.is_read %}<span class="badge badge-success">Lue</span>{% else %}<span class="badge badge-warning">Non lue</span>{% endif %}</td>
-        <td>{{ n.created_at|date:"d/m/Y H:i" }}</td>
+        <td style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ n.title }}</td>
+        <td>
+          {% if n.is_read %}
+            <span class="badge badge-success"><span class="badge-dot"></span>Lue</span>
+          {% else %}
+            <span class="badge badge-warning"><span class="badge-dot"></span>Non lue</span>
+          {% endif %}
+        </td>
+        <td class="cell-subtext">{{ n.created_at|date:"d/m/Y H:i" }}</td>
       </tr>
       {% empty %}
       <tr><td colspan="5" class="empty-state">Aucune notification trouvée.</td></tr>

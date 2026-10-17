@@ -1,80 +1,124 @@
 {% extends "dashboard/base.html" %}
-{% block title %}Statistiques{% endblock %}
-{% block page_title %}Statistiques{% endblock %}
+{% block title %}Statistiques · LoueMoi Admin{% endblock %}
+{% block page_title %}Statistiques de la Plateforme{% endblock %}
 {% block content %}
-<p style="color:var(--text-hint);font-size:12px">
-  Uniquement des agrégats calculés en direct sur la base — aucune statistique financière (aucun système de paiement n'existe dans le modèle actuel).
-</p>
 
-<div class="card">
-  <h2>Utilisateurs par rôle</h2>
-  {% for row in users_by_role.rows %}
-  <div class="bar-row">
-    <div class="bar-label">{{ row.role|default:"—" }}</div>
-    <div class="bar-track"><div class="bar-fill" style="width:{% widthratio row.total users_by_role.max 100 %}%"></div></div>
-    <div class="bar-value">{{ row.total }}</div>
+<div class="stat-grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+  <div class="card" style="margin-bottom:0">
+    <div class="card-header">
+      <div class="card-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Utilisateurs par rôle
+      </div>
+    </div>
+    <div class="card-body">
+      {% for row in users_by_role.rows %}
+      <div class="bar-row">
+        <div class="bar-label">{{ row.role|default:"—" }}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:{% widthratio row.total users_by_role.max 100 %}%"></div></div>
+        <div class="bar-value">{{ row.total }}</div>
+      </div>
+      {% empty %}<div class="empty-state">Aucune donnée.</div>{% endfor %}
+    </div>
   </div>
-  {% empty %}<div class="empty-state">Aucune donnée.</div>{% endfor %}
-</div>
 
-<div class="card">
-  <h2>Propriétés par statut</h2>
-  {% for row in properties_by_status.rows %}
-  <div class="bar-row">
-    <div class="bar-label">{{ row.status|default:"—" }}</div>
-    <div class="bar-track"><div class="bar-fill" style="width:{% widthratio row.total properties_by_status.max 100 %}%"></div></div>
-    <div class="bar-value">{{ row.total }}</div>
+  <div class="card" style="margin-bottom:0">
+    <div class="card-header">
+      <div class="card-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Propriétés par statut
+      </div>
+    </div>
+    <div class="card-body">
+      {% for row in properties_by_status.rows %}
+      <div class="bar-row">
+        <div class="bar-label">{{ row.status|default:"—" }}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:{% widthratio row.total properties_by_status.max 100 %}%"></div></div>
+        <div class="bar-value">{{ row.total }}</div>
+      </div>
+      {% empty %}<div class="empty-state">Aucune donnée.</div>{% endfor %}
+    </div>
   </div>
-  {% empty %}<div class="empty-state">Aucune donnée.</div>{% endfor %}
-</div>
 
-<div class="card">
-  <h2>Propriétés — location / vente</h2>
-  {% for row in properties_by_transaction.rows %}
-  <div class="bar-row">
-    <div class="bar-label">{{ row.transaction_type|default:"—" }}</div>
-    <div class="bar-track"><div class="bar-fill" style="width:{% widthratio row.total properties_by_transaction.max 100 %}%"></div></div>
-    <div class="bar-value">{{ row.total }}</div>
+  <div class="card" style="margin-bottom:0">
+    <div class="card-header">
+      <div class="card-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+        Propriétés (Location vs Vente)
+      </div>
+    </div>
+    <div class="card-body">
+      {% for row in properties_by_transaction.rows %}
+      <div class="bar-row">
+        <div class="bar-label">{{ row.transaction_type|default:"—" }}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:{% widthratio row.total properties_by_transaction.max 100 %}%"></div></div>
+        <div class="bar-value">{{ row.total }}</div>
+      </div>
+      {% empty %}<div class="empty-state">Aucune donnée.</div>{% endfor %}
+    </div>
   </div>
-  {% empty %}<div class="empty-state">Aucune donnée.</div>{% endfor %}
-</div>
 
-<div class="card">
-  <h2>Réservations par statut</h2>
-  {% for row in reservations_by_status.rows %}
-  <div class="bar-row">
-    <div class="bar-label">{{ row.status|default:"—" }}</div>
-    <div class="bar-track"><div class="bar-fill" style="width:{% widthratio row.total reservations_by_status.max 100 %}%"></div></div>
-    <div class="bar-value">{{ row.total }}</div>
+  <div class="card" style="margin-bottom:0">
+    <div class="card-header">
+      <div class="card-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Réservations par statut
+      </div>
+    </div>
+    <div class="card-body">
+      {% for row in reservations_by_status.rows %}
+      <div class="bar-row">
+        <div class="bar-label">{{ row.status|default:"—" }}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:{% widthratio row.total reservations_by_status.max 100 %}%"></div></div>
+        <div class="bar-value">{{ row.total }}</div>
+      </div>
+      {% empty %}<div class="empty-state">Aucune donnée.</div>{% endfor %}
+    </div>
   </div>
-  {% empty %}<div class="empty-state">Aucune donnée.</div>{% endfor %}
-</div>
 
-<div class="card">
-  <h2>Avis par note</h2>
-  {% for row in reviews_by_rating.rows %}
-  <div class="bar-row">
-    <div class="bar-label">{{ row.rating }} ★</div>
-    <div class="bar-track"><div class="bar-fill" style="width:{% widthratio row.total reviews_by_rating.max 100 %}%"></div></div>
-    <div class="bar-value">{{ row.total }}</div>
+  <div class="card" style="margin-bottom:0">
+    <div class="card-header">
+      <div class="card-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        Avis par note
+      </div>
+    </div>
+    <div class="card-body">
+      {% for row in reviews_by_rating.rows %}
+      <div class="bar-row">
+        <div class="bar-label" style="display:flex;align-items:center;gap:4px">
+          {{ row.rating }}
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="#F59E0B" stroke="#D97706" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </div>
+        <div class="bar-track"><div class="bar-fill" style="width:{% widthratio row.total reviews_by_rating.max 100 %}%"></div></div>
+        <div class="bar-value">{{ row.total }}</div>
+      </div>
+      {% empty %}<div class="empty-state">Aucune donnée.</div>{% endfor %}
+    </div>
   </div>
-  {% empty %}<div class="empty-state">Aucune donnée.</div>{% endfor %}
-</div>
 
-<div class="card">
-  <h2>Propriétaires les plus actifs (agents et bailleurs, par nombre d'annonces)</h2>
-  {% if top_agents %}
-  <div class="table-wrap"><table>
-    <thead><tr><th>Propriétaire</th><th>Annonces</th></tr></thead>
-    <tbody>
-      {% for row in top_agents %}
-      <tr>
-        <td><a href="{% url 'dashboard:user_detail' row.agent__id %}">{{ row.agent__first_name }} {{ row.agent__last_name }}</a></td>
-        <td>{{ row.total }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table></div>
-  {% else %}<div class="empty-state">Aucune donnée.</div>{% endif %}
+  <div class="card" style="margin-bottom:0">
+    <div class="card-header">
+      <div class="card-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 17h-6"/><path d="M19 14l3 3-3 3"/></svg>
+        Top Propriétaires (par annonces)
+      </div>
+    </div>
+    <div class="card-body" style="padding:0">
+      {% if top_agents %}
+      <div class="table-wrap"><table>
+        <thead><tr><th>Propriétaire</th><th>Total</th></tr></thead>
+        <tbody>
+          {% for row in top_agents %}
+          <tr>
+            <td class="cell-primary"><a href="{% url 'dashboard:user_detail' row.agent__id %}">{{ row.agent__first_name }} {{ row.agent__last_name }}</a></td>
+            <td><span class="badge badge-primary">{{ row.total }} annonce{{ row.total|pluralize }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table></div>
+      {% else %}<div class="empty-state">Aucune donnée.</div>{% endif %}
+    </div>
+  </div>
 </div>
 {% endblock %}

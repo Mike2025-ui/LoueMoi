@@ -77,13 +77,12 @@ class AuthController extends StateNotifier<AsyncValue<User?>> {
   Future<void> requestActivation() async {
     final current = state.valueOrNull;
     if (current == null) return;
-    state = const AsyncValue.loading();
     try {
       final updated = await _repository.requestActivation();
       state = AsyncValue.data(updated);
-    } on ApiException catch (e, st) {
+    } catch (e) {
       state = AsyncValue.data(current);
-      state = AsyncValue.error(e, st);
+      rethrow;
     }
   }
 

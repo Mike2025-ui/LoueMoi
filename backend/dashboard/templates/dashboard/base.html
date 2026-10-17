@@ -8,50 +8,124 @@
 </head>
 <body>
   <div class="layout">
+    <!-- Barre Latérale (Sidebar) -->
     <aside class="sidebar" id="sidebar">
-      <div class="sidebar-brand">LoueMoi <span>Admin</span></div>
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <span>LoueMoi</span>
+          <span class="brand-badge">Admin</span>
+        </div>
+      </div>
+      
       <nav class="sidebar-nav">
-        <a href="{% url 'dashboard:index' %}" class="{% if active == 'index' %}active{% endif %}">🏠 Tableau de bord</a>
-        <a href="{% url 'dashboard:users_list' %}" class="{% if active == 'users' %}active{% endif %}">👥 Utilisateurs</a>
-        <a href="{% url 'dashboard:pending_activations' %}" class="{% if active == 'pending_activations' %}active{% endif %}">📋 Comptes à activer</a>
-        <a href="{% url 'dashboard:properties_list' %}" class="{% if active == 'properties' %}active{% endif %}">🏘️ Propriétés</a>
-        <a href="{% url 'dashboard:reservations_list' %}" class="{% if active == 'reservations' %}active{% endif %}">📅 Réservations</a>
-        <a href="{% url 'dashboard:conversations_list' %}" class="{% if active == 'conversations' %}active{% endif %}">💬 Conversations</a>
-        <a href="{% url 'dashboard:notifications_list' %}" class="{% if active == 'notifications' %}active{% endif %}">🔔 Notifications</a>
-        <a href="{% url 'dashboard:reviews_list' %}" class="{% if active == 'reviews' %}active{% endif %}">⭐ Avis</a>
-        <a href="{% url 'dashboard:agents_list' %}" class="{% if active == 'agents' %}active{% endif %}">👔 Agents</a>
-        <a href="{% url 'dashboard:fcm_list' %}" class="{% if active == 'fcm' %}active{% endif %}">📱 FCM</a>
-        <a href="{% url 'dashboard:statistics' %}" class="{% if active == 'statistics' %}active{% endif %}">📊 Statistiques</a>
+        <div class="sidebar-heading">Vue d'ensemble</div>
+        <a href="{% url 'dashboard:index' %}" class="{% if active == 'index' %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <span>Tableau de bord</span>
+        </a>
+        <a href="{% url 'dashboard:statistics' %}" class="{% if active == 'statistics' %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+          <span>Statistiques</span>
+        </a>
+
+        <div class="sidebar-heading">Gestion & Validations</div>
+        <a href="{% url 'dashboard:pending_activations' %}" class="{% if active == 'pending_activations' %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>
+          <span>Comptes à activer</span>
+          {% if pending_activations_count > 0 %}
+            <span class="nav-counter alert">{{ pending_activations_count }}</span>
+          {% endif %}
+        </a>
+        <a href="{% url 'dashboard:users_list' %}" class="{% if active == 'users' %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span>Utilisateurs</span>
+        </a>
+        <a href="{% url 'dashboard:agents_list' %}" class="{% if active == 'agents' %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+          <span>Agents immobiliers</span>
+        </a>
+
+        <div class="sidebar-heading">Activité Immobilière</div>
+        <a href="{% url 'dashboard:properties_list' %}" class="{% if active == 'properties' %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>
+          <span>Propriétés</span>
+        </a>
+        <a href="{% url 'dashboard:reservations_list' %}" class="{% if active == 'reservations' %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+          <span>Réservations</span>
+        </a>
+        <a href="{% url 'dashboard:reviews_list' %}" class="{% if active == 'reviews' %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <span>Avis & Notes</span>
+        </a>
+
+        <div class="sidebar-heading">Communications & Push</div>
+        <a href="{% url 'dashboard:conversations_list' %}" class="{% if active == 'conversations' %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span>Conversations</span>
+        </a>
+        <a href="{% url 'dashboard:notifications_list' %}" class="{% if active == 'notifications' %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+          <span>Notifications</span>
+        </a>
+        <a href="{% url 'dashboard:fcm_list' %}" class="{% if active == 'fcm' %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><line x1="12" x2="12.01" y1="18" y2="18"/></svg>
+          <span>Appareils FCM</span>
+        </a>
+
         <div class="sidebar-divider"></div>
-        <a href="/admin/" target="_blank" rel="noopener">⚙️ Django Admin</a>
+        <a href="/admin/" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span>Django Admin</span>
+        </a>
       </nav>
     </aside>
+
+    <!-- Conteneur Principal -->
     <div class="main">
       <header class="topbar">
-        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Ouvrir le menu" type="button">☰</button>
-        <h1 class="page-title">{% block page_title %}Tableau de bord{% endblock %}</h1>
+        <div class="topbar-left">
+          <button class="sidebar-toggle" id="sidebarToggle" aria-label="Ouvrir le menu" type="button">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <h1 class="page-title">{% block page_title %}Tableau de bord{% endblock %}</h1>
+        </div>
+
         <div class="topbar-right">
-          <span class="admin-name">{{ request.user.first_name }} {{ request.user.last_name }}</span>
-          <a href="{% url 'dashboard:logout' %}" class="btn-link">Déconnexion</a>
+          <div class="admin-pill">
+            <div class="admin-avatar">
+              {{ request.user.first_name|default:"A"|slice:":1" }}
+            </div>
+            <span class="admin-name">{{ request.user.first_name }} {{ request.user.last_name }}</span>
+          </div>
+          <a href="{% url 'dashboard:logout' %}" class="btn-logout" title="Se déconnecter">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+            <span>Déconnexion</span>
+          </a>
         </div>
       </header>
+
       <main class="content">
         {% block content %}{% endblock %}
       </main>
     </div>
   </div>
+
   <script>
     (function () {
       var toggle = document.getElementById('sidebarToggle');
       var sidebar = document.getElementById('sidebar');
-      toggle.addEventListener('click', function () {
-        sidebar.classList.toggle('open');
-      });
-      document.addEventListener('click', function (e) {
-        if (sidebar.classList.contains('open') && !sidebar.contains(e.target) && e.target !== toggle) {
-          sidebar.classList.remove('open');
-        }
-      });
+      if (toggle && sidebar) {
+        toggle.addEventListener('click', function (e) {
+          e.stopPropagation();
+          sidebar.classList.toggle('open');
+        });
+        document.addEventListener('click', function (e) {
+          if (sidebar.classList.contains('open') && !sidebar.contains(e.target)) {
+            sidebar.classList.remove('open');
+          }
+        });
+      }
     })();
   </script>
 </body>

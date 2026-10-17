@@ -1,78 +1,140 @@
 {% extends "dashboard/base.html" %}
-{% block title %}{{ obj.title }}{% endblock %}
+{% block title %}{{ obj.title }} · LoueMoi Admin{% endblock %}
 {% block page_title %}{{ obj.title }}{% endblock %}
 {% block content %}
-<a href="{% url 'dashboard:properties_list' %}">&laquo; Retour aux propriétés</a>
+<a href="{% url 'dashboard:properties_list' %}" class="back-link">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+  Retour aux propriétés
+</a>
 
 {% if obj.cover_image %}
-<div class="card">
-  <img src="{{ obj.cover_image }}" alt="{{ obj.title }}" style="max-width:100%;border-radius:10px;max-height:320px;object-fit:cover">
+<div class="card" style="padding:0;overflow:hidden">
+  <img src="{{ obj.cover_image }}" alt="{{ obj.title }}" style="width:100%;max-height:340px;object-fit:cover;display:block">
 </div>
 {% endif %}
 
 <div class="card">
-  <h2>Informations</h2>
-  <div class="detail-grid">
-    <div class="detail-field"><div class="label">Type</div><div class="value">{{ obj.get_type_display }} — {{ obj.category }}</div></div>
-    <div class="detail-field"><div class="label">Transaction</div><div class="value">{{ obj.get_transaction_type_display }}</div></div>
-    <div class="detail-field"><div class="label">Statut</div><div class="value">{{ obj.get_status_display }}</div></div>
-    <div class="detail-field"><div class="label">Prix</div><div class="value">{{ obj.price }}</div></div>
-    <div class="detail-field"><div class="label">Caution</div><div class="value">{{ obj.deposit|default:"—" }}</div></div>
-    <div class="detail-field"><div class="label">Avance</div><div class="value">{{ obj.advance|default:"—" }}</div></div>
-    <div class="detail-field"><div class="label">Ville</div><div class="value">{{ obj.city|default:"—" }}</div></div>
-    <div class="detail-field"><div class="label">Commune</div><div class="value">{{ obj.commune }}</div></div>
-    <div class="detail-field"><div class="label">Quartier</div><div class="value">{{ obj.district }}</div></div>
-    <div class="detail-field"><div class="label">Adresse</div><div class="value">{{ obj.address|default:"—" }}</div></div>
-    <div class="detail-field"><div class="label">Coordonnées GPS</div><div class="value">
-      {% if obj.latitude and obj.longitude %}{{ obj.latitude }}, {{ obj.longitude }}{% else %}Non renseignées{% endif %}
-    </div></div>
-    <div class="detail-field"><div class="label">Propriétaire</div><div class="value">
-      <a href="{% url 'dashboard:user_detail' obj.agent.pk %}">{{ obj.agent }}</a> ({{ obj.agent.get_role_display }})
-    </div></div>
-    <div class="detail-field"><div class="label">Vues</div><div class="value">{{ obj.views_count }}</div></div>
-    <div class="detail-field"><div class="label">Favoris</div><div class="value">{{ obj.favorites_count }}</div></div>
-    <div class="detail-field"><div class="label">Créée le</div><div class="value">{{ obj.created_at|date:"d/m/Y H:i" }}</div></div>
-    <div class="detail-field"><div class="label">Modifiée le</div><div class="value">{{ obj.updated_at|date:"d/m/Y H:i" }}</div></div>
+  <div class="card-header">
+    <div class="card-title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Informations de l'annonce
+    </div>
   </div>
-  {% if obj.description %}<p style="margin-top:16px">{{ obj.description }}</p>{% endif %}
+  <div class="card-body">
+    <div class="detail-grid">
+      <div class="detail-field"><div class="label">Type de bien</div><div class="value">{{ obj.get_type_display }} — {{ obj.category }}</div></div>
+      <div class="detail-field"><div class="label">Transaction</div><div class="value"><span class="badge badge-primary">{{ obj.get_transaction_type_display }}</span></div></div>
+      <div class="detail-field">
+        <div class="label">Statut</div>
+        <div class="value">
+          {% if obj.status == "disponible" %}
+            <span class="badge badge-success"><span class="badge-dot"></span>Disponible</span>
+          {% elif obj.status == "occupee" %}
+            <span class="badge badge-warning"><span class="badge-dot"></span>Occupée</span>
+          {% else %}
+            <span class="badge badge-muted">{{ obj.get_status_display }}</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="detail-field"><div class="label">Prix</div><div class="value" style="color:var(--primary);font-size:16px">{{ obj.price }} FCFA</div></div>
+      <div class="detail-field"><div class="label">Caution</div><div class="value">{{ obj.deposit|default:"—" }}</div></div>
+      <div class="detail-field"><div class="label">Avance</div><div class="value">{{ obj.advance|default:"—" }}</div></div>
+      <div class="detail-field"><div class="label">Ville / Région</div><div class="value">{{ obj.city|default:"Abidjan" }}</div></div>
+      <div class="detail-field"><div class="label">Commune</div><div class="value">{{ obj.commune }}</div></div>
+      <div class="detail-field"><div class="label">Quartier</div><div class="value">{{ obj.district }}</div></div>
+      <div class="detail-field"><div class="label">Adresse</div><div class="value">{{ obj.address|default:"—" }}</div></div>
+      <div class="detail-field">
+        <div class="label">Coordonnées GPS</div>
+        <div class="value">
+          {% if obj.latitude and obj.longitude %}{{ obj.latitude }}, {{ obj.longitude }}{% else %}Non renseignées{% endif %}
+        </div>
+      </div>
+      <div class="detail-field">
+        <div class="label">Propriétaire</div>
+        <div class="value">
+          <a href="{% url 'dashboard:user_detail' obj.agent.pk %}">{{ obj.agent }}</a>
+          <span class="badge badge-muted" style="font-size:11px">{{ obj.agent.get_role_display }}</span>
+        </div>
+      </div>
+      <div class="detail-field"><div class="label">Vues cumulées</div><div class="value">{{ obj.views_count }}</div></div>
+      <div class="detail-field"><div class="label">Mises en favoris</div><div class="value">{{ obj.favorites_count }}</div></div>
+      <div class="detail-field"><div class="label">Créée le</div><div class="value">{{ obj.created_at|date:"d/m/Y H:i" }}</div></div>
+      <div class="detail-field"><div class="label">Dernière mise à jour</div><div class="value">{{ obj.updated_at|date:"d/m/Y H:i" }}</div></div>
+    </div>
+    {% if obj.description %}
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border-light)">
+        <div class="label" style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px">Description</div>
+        <p style="color:var(--text-main);line-height:1.6">{{ obj.description }}</p>
+      </div>
+    {% endif %}
+  </div>
 </div>
 
 {% if obj.images %}
 <div class="card">
-  <h2>Photos ({{ obj.images|length }})</h2>
-  <div style="display:flex;gap:10px;flex-wrap:wrap">
-    {% for img in obj.images %}
-      <img src="{{ img }}" style="width:120px;height:90px;object-fit:cover;border-radius:8px">
-    {% endfor %}
+  <div class="card-header">
+    <div class="card-title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      Galerie photos ({{ obj.images|length }})
+    </div>
+  </div>
+  <div class="card-body">
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      {% for img in obj.images %}
+        <a href="{{ img }}" target="_blank">
+          <img src="{{ img }}" style="width:130px;height:100px;object-fit:cover;border-radius:var(--radius-md);border:1px solid var(--border)">
+        </a>
+      {% endfor %}
+    </div>
   </div>
 </div>
 {% endif %}
 
 <div class="card">
-  <h2>Réservations associées ({{ reservations|length }})</h2>
+  <div class="card-header">
+    <div class="card-title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Réservations associées ({{ reservations|length }})
+    </div>
+  </div>
   {% if reservations %}
   <div class="table-wrap"><table>
     <thead><tr><th>Client</th><th>Statut</th><th>Loyer</th><th>Date</th></tr></thead>
     <tbody>
       {% for r in reservations %}
-      <tr><td>{{ r.user }}</td><td>{{ r.get_status_display }}</td><td>{{ r.rent }}</td><td>{{ r.created_at|date:"d/m/Y" }}</td></tr>
+      <tr>
+        <td class="cell-primary"><a href="{% url 'dashboard:user_detail' r.user.pk %}">{{ r.user }}</a></td>
+        <td>{{ r.get_status_display }}</td>
+        <td style="font-weight:700">{{ r.rent }}</td>
+        <td class="cell-subtext">{{ r.created_at|date:"d/m/Y" }}</td>
+      </tr>
       {% endfor %}
     </tbody>
   </table></div>
-  {% else %}<div class="empty-state">Aucune réservation.</div>{% endif %}
+  {% else %}<div class="empty-state">Aucune réservation pour cette propriété.</div>{% endif %}
 </div>
 
 <div class="card">
-  <h2>Avis associés ({{ reviews|length }})</h2>
+  <div class="card-header">
+    <div class="card-title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      Avis associés ({{ reviews|length }})
+    </div>
+  </div>
   {% if reviews %}
   <div class="table-wrap"><table>
     <thead><tr><th>Auteur</th><th>Note</th><th>Commentaire</th><th>Date</th></tr></thead>
     <tbody>
       {% for rv in reviews %}
-      <tr><td>{{ rv.user }}</td><td>{{ rv.rating }}</td><td>{{ rv.comment|truncatechars:60 }}</td><td>{{ rv.created_at|date:"d/m/Y" }}</td></tr>
+      <tr>
+        <td class="cell-primary"><a href="{% url 'dashboard:user_detail' rv.user.pk %}">{{ rv.user }}</a></td>
+        <td>{{ rv.rating }}/5</td>
+        <td>{{ rv.comment|truncatechars:60 }}</td>
+        <td class="cell-subtext">{{ rv.created_at|date:"d/m/Y" }}</td>
+      </tr>
       {% endfor %}
     </tbody>
   </table></div>
-  {% else %}<div class="empty-state">Aucun avis.</div>{% endif %}
+  {% else %}<div class="empty-state">Aucun avis pour cette propriété.</div>{% endif %}
 </div>
 {% endblock %}

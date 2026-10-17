@@ -1,6 +1,6 @@
 {% extends "dashboard/base.html" %}
-{% block title %}Utilisateurs{% endblock %}
-{% block page_title %}Utilisateurs{% endblock %}
+{% block title %}Utilisateurs · LoueMoi Admin{% endblock %}
+{% block page_title %}Gestion des Utilisateurs{% endblock %}
 {% block content %}
 <form class="filters" method="get">
   <input type="text" name="q" placeholder="Téléphone, prénom, nom..." value="{{ q }}">
@@ -11,35 +11,64 @@
     {% endfor %}
   </select>
   <select name="active">
-    <option value="">Actif/Inactif</option>
+    <option value="">Tous les statuts</option>
     <option value="1" {% if active_filter == "1" %}selected{% endif %}>Actif</option>
     <option value="0" {% if active_filter == "0" %}selected{% endif %}>Inactif</option>
   </select>
-  <button type="submit">Filtrer</button>
+  <button type="submit">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    Filtrer
+  </button>
+  {% if q or role or active_filter %}
+    <a href="{% url 'dashboard:users_list' %}" class="btn-reset" style="padding:9px 14px;border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text-muted);font-size:13.5px;font-weight:500;text-decoration:none">Réinitialiser</a>
+  {% endif %}
 </form>
 
 <div class="card">
   <div class="table-wrap">
   <table>
     <thead><tr>
-      <th>Téléphone</th><th>Prénom</th><th>Nom</th><th>Rôle</th>
-      <th>Actif</th><th>Staff</th><th>Superuser</th><th>Inscription</th><th>Dernière connexion</th>
+      <th>Téléphone</th>
+      <th>Prénom & Nom</th>
+      <th>Rôle</th>
+      <th>Statut</th>
+      <th>Staff</th>
+      <th>Superuser</th>
+      <th>Inscription</th>
+      <th>Dernière connexion</th>
     </tr></thead>
     <tbody>
       {% for u in page_obj %}
       <tr onclick="window.location='{% url 'dashboard:user_detail' u.pk %}'" style="cursor:pointer">
-        <td>{{ u.phone }}</td>
-        <td>{{ u.first_name }}</td>
-        <td>{{ u.last_name }}</td>
+        <td class="cell-primary">{{ u.phone }}</td>
+        <td>{{ u.first_name }} {{ u.last_name }}</td>
         <td><span class="badge badge-primary">{{ u.get_role_display }}</span></td>
-        <td>{% if u.is_active %}<span class="badge badge-success">Actif</span>{% else %}<span class="badge badge-danger">Inactif</span>{% endif %}</td>
-        <td>{% if u.is_staff %}✅{% else %}—{% endif %}</td>
-        <td>{% if u.is_superuser %}✅{% else %}—{% endif %}</td>
+        <td>
+          {% if u.is_active %}
+            <span class="badge badge-success"><span class="badge-dot"></span>Actif</span>
+          {% else %}
+            <span class="badge badge-danger"><span class="badge-dot"></span>Inactif</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if u.is_staff %}
+            <span class="badge-bool-true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Oui</span>
+          {% else %}
+            <span class="badge-bool-false">Non</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if u.is_superuser %}
+            <span class="badge-bool-true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Oui</span>
+          {% else %}
+            <span class="badge-bool-false">Non</span>
+          {% endif %}
+        </td>
         <td>{{ u.date_joined|date:"d/m/Y" }}</td>
-        <td>{{ u.last_login|date:"d/m/Y H:i"|default:"Jamais" }}</td>
+        <td class="cell-subtext">{{ u.last_login|date:"d/m/Y H:i"|default:"Jamais" }}</td>
       </tr>
       {% empty %}
-      <tr><td colspan="9" class="empty-state">Aucun utilisateur trouvé.</td></tr>
+      <tr><td colspan="8" class="empty-state">Aucun utilisateur trouvé.</td></tr>
       {% endfor %}
     </tbody>
   </table>

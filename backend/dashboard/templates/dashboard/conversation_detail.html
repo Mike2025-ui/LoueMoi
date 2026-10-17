@@ -1,43 +1,93 @@
 {% extends "dashboard/base.html" %}
-{% block title %}Conversation{% endblock %}
+{% block title %}Conversation {{ obj.client }} ↔ {{ obj.agent }} · LoueMoi Admin{% endblock %}
 {% block page_title %}{{ obj.client }} ↔ {{ obj.agent }}{% endblock %}
 {% block content %}
-<a href="{% url 'dashboard:conversations_list' %}">&laquo; Retour aux conversations</a>
+<a href="{% url 'dashboard:conversations_list' %}" class="back-link">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+  Retour aux conversations
+</a>
 
 <div class="card">
-  <h2>Participants</h2>
-  <div class="detail-grid">
-    <div class="detail-field"><div class="label">Client / Bailleur</div><div class="value"><a href="{% url 'dashboard:user_detail' obj.client.pk %}">{{ obj.client }}</a></div></div>
-    <div class="detail-field"><div class="label">Agent</div><div class="value"><a href="{% url 'dashboard:user_detail' obj.agent.pk %}">{{ obj.agent }}</a></div></div>
-    <div class="detail-field"><div class="label">Propriété</div><div class="value">
-      {% if obj.property %}<a href="{% url 'dashboard:property_detail' obj.property.pk %}">{{ obj.property.title }}</a>{% else %}—{% endif %}
-    </div></div>
-    <div class="detail-field"><div class="label">Créée le</div><div class="value">{{ obj.created_at|date:"d/m/Y H:i" }}</div></div>
+  <div class="card-header">
+    <div class="card-title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Participants & Contexte
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="detail-grid">
+      <div class="detail-field">
+        <div class="label">Client / Locataire</div>
+        <div class="value"><a href="{% url 'dashboard:user_detail' obj.client.pk %}">{{ obj.client }}</a></div>
+      </div>
+      <div class="detail-field">
+        <div class="label">Agent / Propriétaire</div>
+        <div class="value"><a href="{% url 'dashboard:user_detail' obj.agent.pk %}">{{ obj.agent }}</a></div>
+      </div>
+      <div class="detail-field">
+        <div class="label">Propriété liée</div>
+        <div class="value">
+          {% if obj.property %}<a href="{% url 'dashboard:property_detail' obj.property.pk %}">{{ obj.property.title }}</a>{% else %}—{% endif %}
+        </div>
+      </div>
+      <div class="detail-field">
+        <div class="label">Créée le</div>
+        <div class="value">{{ obj.created_at|date:"d/m/Y H:i" }}</div>
+      </div>
+    </div>
   </div>
 </div>
 
 <div class="card">
-  <h2>Messages ({{ messages|length }})</h2>
-  <p style="color:var(--text-hint);font-size:12px;margin-top:-8px">
-    Consultation en lecture seule, réservée à l'administration. Aucune fonctionnalité de réponse ou d'usurpation d'utilisateur.
+  <div class="card-header">
+    <div class="card-title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Historique des messages ({{ messages|length }})
+    </div>
+  </div>
+  <p style="color:var(--text-muted);font-size:12px;padding:12px 22px 0">
+    Consultation en lecture seule, réservée à la modération et au support administratif.
   </p>
   {% if messages %}
   <div class="table-wrap"><table>
-    <thead><tr><th>Expéditeur</th><th>Destinataire</th><th>Contenu</th><th>Type</th><th>Pièce jointe</th><th>Lu</th><th>Date</th></tr></thead>
+    <thead><tr>
+      <th>Expéditeur</th>
+      <th>Destinataire</th>
+      <th>Message</th>
+      <th>Type</th>
+      <th>Pièce jointe</th>
+      <th>État</th>
+      <th>Date & Heure</th>
+    </tr></thead>
     <tbody>
       {% for m in messages %}
       <tr>
-        <td>{{ m.sender }}</td>
+        <td class="cell-primary">{{ m.sender }}</td>
         <td>{{ m.receiver }}</td>
-        <td>{{ m.content|default:"—"|truncatechars:60 }}</td>
-        <td>{{ m.get_attachment_type_display }}</td>
-        <td>{% if m.attachment %}✅{% else %}—{% endif %}</td>
-        <td>{% if m.is_read %}✅{% else %}—{% endif %}</td>
-        <td>{{ m.created_at|date:"d/m/Y H:i" }}</td>
+        <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ m.content|default:"—" }}</td>
+        <td><span class="badge badge-muted">{{ m.get_attachment_type_display }}</span></td>
+        <td>
+          {% if m.attachment %}
+            <a href="{{ m.attachment.url }}" target="_blank" class="badge badge-primary">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+              Fichier
+            </a>
+          {% else %}
+            <span class="cell-subtext">—</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if m.is_read %}
+            <span class="badge-bool-true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Lu</span>
+          {% else %}
+            <span class="badge-bool-false">Non lu</span>
+          {% endif %}
+        </td>
+        <td class="cell-subtext">{{ m.created_at|date:"d/m/Y H:i" }}</td>
       </tr>
       {% endfor %}
     </tbody>
   </table></div>
-  {% else %}<div class="empty-state">Aucun message.</div>{% endif %}
+  {% else %}<div class="empty-state">Aucun message échangé.</div>{% endif %}
 </div>
 {% endblock %}

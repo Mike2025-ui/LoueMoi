@@ -1,12 +1,19 @@
 {% if page_obj.paginator.num_pages > 1 %}
 <div class="pagination">
   {% if page_obj.has_previous %}
-    <a href="?{{ querystring }}page={{ page_obj.previous_page_number }}">&laquo; Précédent</a>
+    <a href="?{{ querystring }}page={{ page_obj.previous_page_number }}" style="display:inline-flex;align-items:center;gap:4px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      Précédent
+    </a>
   {% endif %}
   <span class="current">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
   {% if page_obj.has_next %}
-    <a href="?{{ querystring }}page={{ page_obj.next_page_number }}">Suivant &raquo;</a>
+    <a href="?{{ querystring }}page={{ page_obj.next_page_number }}" style="display:inline-flex;align-items:center;gap:4px">
+      Suivant
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+    </a>
   {% endif %}
-  <span>({{ page_obj.paginator.count }} résultat{{ page_obj.paginator.count|pluralize }})</span>
+  <span style="border:none;background:transparent;color:var(--text-muted);font-size:12.5px">({{ page_obj.paginator.count }} résultat{{ page_obj.paginator.count|pluralize }})</span>
 </div>
 {% endif %}
+

@@ -20,9 +20,11 @@ class PendingActivationScreen extends ConsumerStatefulWidget {
 
 class _PendingActivationScreenState
     extends ConsumerState<PendingActivationScreen> {
+  bool _isRequesting = false;
   bool _isChecking = false;
 
   Future<void> _handleRequestActivation() async {
+    setState(() => _isRequesting = true);
     try {
       await ref.read(authControllerProvider.notifier).requestActivation();
       if (!mounted) return;
@@ -44,12 +46,16 @@ class _PendingActivationScreenState
           backgroundColor: Colors.red.shade700,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _isRequesting = false);
     }
   }
 
   Future<void> _checkStatus() async {
     setState(() => _isChecking = true);
-    await ref.read(authControllerProvider.notifier).refreshProfile();
+    try {
+      await ref.read(authControllerProvider.notifier).refreshProfile();
+    } catch (_) {}
     if (!mounted) return;
     setState(() => _isChecking = false);
 
@@ -84,12 +90,30 @@ class _PendingActivationScreenState
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
     final user = authState.valueOrNull;
-    final isLoading = authState.isLoading || _isChecking;
+    final isLoading = _isRequesting || _isChecking;
 
     if (user == null) {
-      return const Scaffold(
+      if (authState.isLoading) {
+        return const Scaffold(
+          backgroundColor: AppColors.background,
+          body: Center(child: CircularProgressIndicator()),
+        );
+      }
+      return Scaffold(
         backgroundColor: AppColors.background,
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text("Session non disponible"),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => context.go(AppRoutes.login),
+                child: const Text("Se connecter"),
+              ),
+            ],
+          ),
+        ),
       );
     }
 

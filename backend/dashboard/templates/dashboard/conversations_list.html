@@ -1,31 +1,42 @@
 {% extends "dashboard/base.html" %}
-{% block title %}Conversations{% endblock %}
-{% block page_title %}Conversations{% endblock %}
+{% block title %}Conversations · LoueMoi Admin{% endblock %}
+{% block page_title %}Messagerie & Échanges{% endblock %}
 {% block content %}
 <form class="filters" method="get">
   <input type="text" name="q" placeholder="Client, agent, propriété..." value="{{ q }}">
-  <button type="submit">Rechercher</button>
+  <button type="submit">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    Rechercher
+  </button>
+  {% if q %}
+    <a href="{% url 'dashboard:conversations_list' %}" class="btn-reset" style="padding:9px 14px;border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text-muted);font-size:13.5px;font-weight:500;text-decoration:none">Réinitialiser</a>
+  {% endif %}
 </form>
 
 <div class="card">
   <div class="table-wrap">
   <table>
     <thead><tr>
-      <th>Client / Bailleur</th><th>Agent</th><th>Propriété</th><th>Dernier message</th><th>Messages</th><th>Créée le</th>
+      <th>Client / Bailleur</th>
+      <th>Agent</th>
+      <th>Propriété liée</th>
+      <th>Dernier message</th>
+      <th>Volume</th>
+      <th>Date de création</th>
     </tr></thead>
     <tbody>
       {% for c in page_obj %}
       <tr onclick="window.location='{% url 'dashboard:conversation_detail' c.pk %}'" style="cursor:pointer">
-        <td>{{ c.client }}</td>
+        <td class="cell-primary">{{ c.client }}</td>
         <td>{{ c.agent }}</td>
-        <td>{{ c.property|default:"—" }}</td>
-        <td>
-          {% if c.last_message_content %}{{ c.last_message_content|truncatechars:40 }}
-          {% elif c.last_message_attachment_type and c.last_message_attachment_type != "text" %}[pièce jointe]
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.property|default:"—" }}</td>
+        <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" class="cell-subtext">
+          {% if c.last_message_content %}{{ c.last_message_content }}
+          {% elif c.last_message_attachment_type and c.last_message_attachment_type != "text" %}<span class="badge badge-muted">Pièce jointe</span>
           {% else %}—{% endif %}
         </td>
-        <td>{{ c.messages_count }}</td>
-        <td>{{ c.created_at|date:"d/m/Y" }}</td>
+        <td><span class="badge badge-primary">{{ c.messages_count }} msg{{ c.messages_count|pluralize }}</span></td>
+        <td class="cell-subtext">{{ c.created_at|date:"d/m/Y" }}</td>
       </tr>
       {% empty %}
       <tr><td colspan="6" class="empty-state">Aucune conversation trouvée.</td></tr>
