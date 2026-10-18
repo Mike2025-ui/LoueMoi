@@ -149,6 +149,58 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
         curve: Curves.easeOut,
       );
     } else {
+      _confirmAndSubmit();
+    }
+  }
+
+  Future<void> _confirmAndSubmit() async {
+    if (_isEditing) {
+      _submit();
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
+        title: Row(
+          children: const [
+            Icon(Icons.calendar_month, color: AppColors.primary),
+            SizedBox(width: 8),
+            Text('Durée de publication', style: AppTextStyles.h4),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            Text(
+              'Votre annonce sera mise en ligne pour une durée d\'un mois (30 jours).',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppColors.textPrimary),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Elle sera visible par tous les utilisateurs de LoueMoi. Vous recevrez une notification avant expiration et pourrez la reconduire à tout moment.',
+              style: AppTextStyles.body,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Vérifier', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.sm)),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Confirmer et publier', style: TextStyle(color: AppColors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
       _submit();
     }
   }
@@ -447,6 +499,24 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (_step == _totalSteps - 1) ...[
+                      if (!_isEditing) ...[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(Icons.event_available, size: 15, color: AppColors.primary),
+                            SizedBox(width: 6),
+                            Text(
+                              'Validité de l\'annonce : 30 jours (1 mois)',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                      ],
                       TextButton(
                         onPressed: _submitting ? null : _cancel,
                         child: const Text('Annuler', style: AppTextStyles.link),
@@ -1449,6 +1519,46 @@ class _StepPreview extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text('Aperçu de votre annonce', style: AppTextStyles.h3),
+          const SizedBox(height: AppSpacing.md),
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              color: AppColors.primaryLight.withOpacity(0.45),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(color: AppColors.primary.withOpacity(0.25)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.info_outline, color: AppColors.primary, size: 22),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        'Durée de publication : 1 mois (30 jours)',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Votre annonce sera visible pendant 30 jours à compter de sa mise en ligne. Vous serez averti(e) avant son expiration et pourrez la reconduire.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: AppSpacing.md),
           ClipRRect(
             borderRadius: BorderRadius.circular(AppRadius.md),

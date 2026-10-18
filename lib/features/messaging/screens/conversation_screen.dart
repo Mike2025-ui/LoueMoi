@@ -208,23 +208,28 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           ),
           SafeArea(
             top: false,
-            child: Padding(
+            child: Container(
               padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.screenPadding,
-                vertical: AppSpacing.sm,
+                horizontal: AppSpacing.sm,
+                vertical: AppSpacing.xs + 2,
+              ),
+              decoration: const BoxDecoration(
+                color: AppColors.surface,
+                border: Border(top: BorderSide(color: AppColors.border, width: 0.5)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (_hasStagedAttachment) _StagedAttachmentPreview(
-                    image: _stagedImage,
-                    video: _stagedVideo,
-                    voice: _stagedVoice,
-                    onCancel: _clearStagedAttachment,
-                  ),
+                  if (_hasStagedAttachment)
+                    _StagedAttachmentPreview(
+                      image: _stagedImage,
+                      video: _stagedVideo,
+                      voice: _stagedVoice,
+                      onCancel: _clearStagedAttachment,
+                    ),
                   if (_isRecording)
                     const Padding(
-                      padding: EdgeInsets.only(bottom: AppSpacing.sm),
+                      padding: EdgeInsets.only(bottom: AppSpacing.xs),
                       child: Row(
                         children: [
                           Icon(Icons.fiber_manual_record, size: 14, color: AppColors.danger),
@@ -234,32 +239,25 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                       ),
                     ),
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      // Les 3 IconButton de médias réclamaient chacun leur
-                      // cible tactile Material par défaut (48x48), soit
-                      // 144px avant même d'atteindre le champ de texte — sur
-                      // un écran étroit, cela ne laissait presque plus de
-                      // place à la zone de saisie (le placeholder "Votre
-                      // message..." s'affichait tronqué en "Votr...",
-                      // donnant l'impression d'une seconde barre visuelle
-                      // sur téléphone réel). Cible resserrée à 36x36, avec
-                      // un padding réduit : les 3 boutons restent
-                      // pleinement cliquables mais rendent la place au champ.
                       IconButton(
                         onPressed: _hasStagedAttachment || _isRecording ? null : _pickImage,
                         icon: const Icon(Icons.image_outlined, color: AppColors.textSecondary),
                         iconSize: 22,
                         padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                        constraints: const BoxConstraints(minWidth: 32, minHeight: 38),
                         visualDensity: VisualDensity.compact,
+                        tooltip: 'Photo',
                       ),
                       IconButton(
                         onPressed: _hasStagedAttachment || _isRecording ? null : _pickVideo,
                         icon: const Icon(Icons.videocam_outlined, color: AppColors.textSecondary),
                         iconSize: 22,
                         padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                        constraints: const BoxConstraints(minWidth: 32, minHeight: 38),
                         visualDensity: VisualDensity.compact,
+                        tooltip: 'Vidéo',
                       ),
                       IconButton(
                         onPressed: _hasStagedAttachment && !_isRecording ? null : _toggleRecording,
@@ -269,47 +267,62 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                         ),
                         iconSize: 22,
                         padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                        constraints: const BoxConstraints(minWidth: 32, minHeight: 38),
                         visualDensity: VisualDensity.compact,
+                        tooltip: _isRecording ? 'Arrêter' : 'Vocal',
                       ),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                          constraints: const BoxConstraints(minHeight: 42, maxHeight: 120),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                           decoration: BoxDecoration(
                             color: AppColors.surfaceMuted,
-                            borderRadius: BorderRadius.circular(AppRadius.pill),
+                            borderRadius: BorderRadius.circular(20),
                             border: Border.all(color: AppColors.border),
                           ),
                           child: TextField(
                             controller: _controller,
                             enabled: !_isRecording,
+                            minLines: 1,
+                            maxLines: 5,
+                            keyboardType: TextInputType.multiline,
+                            textCapitalization: TextCapitalization.sentences,
+                            style: const TextStyle(
+                              fontSize: 14.5,
+                              color: AppColors.textPrimary,
+                              height: 1.35,
+                            ),
                             decoration: const InputDecoration(
                               hintText: 'Message...',
+                              hintStyle: TextStyle(
+                                fontSize: 14,
+                                color: AppColors.textHint,
+                              ),
                               border: InputBorder.none,
                               enabledBorder: InputBorder.none,
                               focusedBorder: InputBorder.none,
                               errorBorder: InputBorder.none,
                               disabledBorder: InputBorder.none,
-                              contentPadding: EdgeInsets.zero,
+                              contentPadding: EdgeInsets.symmetric(vertical: 8),
                               isDense: true,
                             ),
-                            textInputAction: TextInputAction.send,
-                            onSubmitted: (_) => _send(),
                           ),
                         ),
                       ),
-                      const SizedBox(width: AppSpacing.sm),
+                      const SizedBox(width: 6),
                       InkWell(
                         onTap: _sending || _isRecording ? null : _send,
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
                         child: Container(
-                          width: 44,
-                          height: 44,
+                          width: 40,
+                          height: 40,
+                          margin: const EdgeInsets.only(bottom: 1),
                           decoration: BoxDecoration(
                             color: AppColors.primary.withValues(alpha: _sending ? 0.5 : 1),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.send, color: AppColors.white, size: 20),
+                          child: const Icon(Icons.send, color: AppColors.white, size: 19),
                         ),
                       ),
                     ],

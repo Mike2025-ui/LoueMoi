@@ -479,3 +479,102 @@ class ActivationRequestTests(APITestCase):
         self.client.force_authenticate(user=client)
         response = self.client.post("/api/auth/request-activation/", format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class IkoddiSmsProviderTests(APITestCase):
+    def test_normalize_phone_number(self):
+        from accounts.sms import normalize_phone_number
+
+        self.assertEqual(normalize_phone_number("0701020304"), "+2250701020304")
+        self.assertEqual(normalize_phone_number("+225 07 01 02 03 04"), "+2250701020304")
+        self.assertEqual(normalize_phone_number("002250701020304"), "+2250701020304")
+        self.assertEqual(normalize_phone_number("2250701020304"), "+2250701020304")
+        self.assertEqual(normalize_phone_number("+33612345678"), "+33612345678")
+        self.assertEqual(normalize_phone_number(""), "")
+
+    def test_get_sms_provider_default(self):
+        import os
+        from accounts.sms import LoggingSmsProvider, get_sms_provider
+        from django.test import override_settings
+
+        with override_settings(IKODDI_API_KEY=""):
+            # Ensure env vars are also empty for this test
+            orig_ikoddi = os.environ.pop("IKODDI_API_KEY", None)
+            orig_ikkodi = os.environ.pop("IKKODI_API_KEY", None)
+            try:
+                provider = get_sms_provider()
+                self.assertIsInstance(provider, LoggingSmsProvider)
+            finally:
+                if orig_ikoddi:
+                    os.environ["IKODDI_API_KEY"] = orig_ikoddi
+                if orig_ikkodi:
+                    os.environ["IKKODI_API_KEY"] = orig_ikkodi
+
+    def test_get_sms_provider_with_api_key(self):
+        from accounts.sms import IkoddiSmsProvider, get_sms_provider
+        from django.test import override_settings
+
+        with override_settings(IKODDI_API_KEY="test-key-123"):
+            provider = get_sms_provider()
+            self.assertIsInstance(provider, IkoddiSmsProvider)
+            self.assertEqual(provider.api_key, "test-key-123")
+            self.assertEqual(provider.sender_id, "LoueMoi")
+
+    def test_ikoddi_sms_provider_send_success(self):
+        import io
+        import json
+        from unittest.mock import patch
+        from accounts.sms import IkoddiSmsProvider
+
+        provider = IkoddiSmsProvider(api_key="secret-api-key", sender_id="LoueMoi")
+
+        class MockResponse:
+            status = 200
+            def read(self):
+                return b'{"status": "success", "message_id": "msg-123"}'
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                pass
+
+        with patch("urllib.request.urlopen", return_value=MockResponse()) as mock_urlopen:
+            success = provider.send("0701020304", "Votre code LoueMoi : 123456")
+            self.assertTrue(success)
+            self.assertTrue(mock_urlopen.called)
+            req = mock_urlopen.call_args[0][0]
+            self.assertEqual(req.headers.get("Authorization"), "Bearer secret-api-key")
+            sent_data = json.loads(req.data.decode("utf-8"))
+            self.assertEqual(sent_data["to"], "+2250701020304")
+            self.assertEqual(sent_data["sender"], "LoueMoi")
+            self.assertEqual(sent_data["message"], "Votre code LoueMoi : 123456")
+
+    def test_ikoddi_sms_provider_handles_http_error(self):
+        import urllib.error
+        from unittest.mock import patch
+        from accounts.sms import IkoddiSmsProvider
+
+        provider = IkoddiSmsProvider(api_key="invalid-key")
+        http_err = urllib.error.HTTPError(
+            url="https://api.ikoddi.com/v1/sms/send",
+            code=401,
+            msg="Unauthorized",
+            hdrs={},
+            fp=None,
+        )
+
+        with patch("urllib.request.urlopen", side_effect=http_err):
+            success = provider.send("0701020304", "Test message")
+            self.assertFalse(success)
+
+    def test_ikoddi_sms_provider_handles_network_error(self):
+        import urllib.error
+        from unittest.mock import patch
+        from accounts.sms import IkoddiSmsProvider
+
+        provider = IkoddiSmsProvider(api_key="any-key")
+        url_err = urllib.error.URLError(reason="Connection refused")
+
+        with patch("urllib.request.urlopen", side_effect=url_err):
+            success = provider.send("0701020304", "Test message")
+            self.assertFalse(success)
+

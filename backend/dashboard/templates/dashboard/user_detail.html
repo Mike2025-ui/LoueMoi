@@ -2,10 +2,18 @@
 {% block title %}{{ obj.first_name }} {{ obj.last_name }} · LoueMoi Admin{% endblock %}
 {% block page_title %}{{ obj.first_name }} {{ obj.last_name }}{% endblock %}
 {% block content %}
-<a href="{% url 'dashboard:users_list' %}" class="back-link">
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-  Retour aux utilisateurs
-</a>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;flex-wrap:wrap;gap:10px">
+  <a href="{% url 'dashboard:users_list' %}" class="back-link" style="margin-bottom:0">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    Retour aux utilisateurs
+  </a>
+  {% if obj != request.user %}
+    <a href="{% url 'dashboard:delete_user' obj.pk %}" class="btn-action-reject" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;padding:8px 14px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+      Supprimer cet utilisateur
+    </a>
+  {% endif %}
+</div>
 
 {% if not obj.is_approved and obj.role in "agent,bailleur" %}
 <div class="alert-banner warning" style="margin-bottom:20px">
@@ -274,4 +282,27 @@
   </table></div>
   {% else %}<div class="empty-state">Aucune notification.</div>{% endif %}
 </div>
+
+{% if obj != request.user %}
+<div class="card" style="border-left:4px solid var(--danger);margin-top:24px">
+  <div class="card-header">
+    <div class="card-title" style="color:var(--danger)">
+      <span class="section-icon grad-rose">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      </span>
+      <span>Zone de danger</span>
+    </div>
+  </div>
+  <div class="card-body" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px">
+    <div>
+      <div style="font-weight:600;color:var(--text-primary);font-size:14px">Supprimer définitivement ce compte</div>
+      <div style="color:var(--text-muted);font-size:13px;margin-top:2px">Supprime l'utilisateur, ses annonces immobilières, ses réservations, ses messages et son historique.</div>
+    </div>
+    <a href="{% url 'dashboard:delete_user' obj.pk %}" class="btn-action-reject" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;padding:8px 16px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      Supprimer cet utilisateur
+    </a>
+  </div>
+</div>
+{% endif %}
 {% endblock %}

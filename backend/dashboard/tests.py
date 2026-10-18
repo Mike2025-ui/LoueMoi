@@ -285,3 +285,30 @@ class DashboardDataAccuracyTests(TestCase):
         self.assertEqual(response.status_code, 302)
         unapproved.refresh_from_db()
         self.assertTrue(unapproved.is_approved)
+
+    def test_delete_user_view_deletes_user_and_cascades_safely(self):
+        target_agent = _make_user("0700000090", User.ROLE_AGENT)
+        client_user = _make_user("0700000091", User.ROLE_CLIENT)
+        prop = Property.objects.create(
+            title="Bien à supprimer", category="Studio", type="logement",
+            transaction_type="location", price=100000, commune="X", district="Y",
+            agent=target_agent,
+        )
+        res = Reservation.objects.create(property=prop, user=client_user, rent=100000)
+
+        # GET affiche la page de confirmation
+        get_response = self.client.get(reverse("dashboard:delete_user", args=[target_agent.pk]))
+        self.assertEqual(get_response.status_code, 200)
+        self.assertContains(get_response, "Supprimer définitivement")
+
+        # POST effectue la suppression en cascade sans ProtectedError
+        post_response = self.client.post(reverse("dashboard:delete_user", args=[target_agent.pk]))
+        self.assertEqual(post_response.status_code, 302)
+        self.assertFalse(User.objects.filter(pk=target_agent.pk).exists())
+        self.assertFalse(Property.objects.filter(pk=prop.pk).exists())
+        self.assertFalse(Reservation.objects.filter(pk=res.pk).exists())
+
+    def test_cannot_delete_logged_in_admin(self):
+        response = self.client.post(reverse("dashboard:delete_user", args=[self.admin.pk]))
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(User.objects.filter(pk=self.admin.pk).exists())

@@ -198,6 +198,15 @@ SIMPLE_JWT = {
 # sert qu'à documenter la variable attendue. Absente en dev : les
 # notifications restent créées en base, seul le push FCM est sauté.
 
+# --- Passerelle SMS OTP (IKODDI) -----------------------------------------
+# Configuration de la passerelle SMS Ikoddi pour l'envoi d'OTP
+# de réinitialisation de mot de passe ("Mot de passe oublié").
+# Les valeurs sont lues depuis l'environnement sur le serveur de production.
+IKODDI_API_KEY = os.environ.get("IKODDI_API_KEY") or os.environ.get("IKKODI_API_KEY", "")
+IKODDI_SENDER_ID = os.environ.get("IKODDI_SENDER_ID") or os.environ.get("IKKODI_SENDER_ID", "LoueMoi")
+IKODDI_API_URL = os.environ.get("IKODDI_API_URL") or os.environ.get("IKKODI_API_URL", "https://api.ikoddi.com/v1/sms/send")
+
+
 # --- CORS --------------------------------------------------------------
 # Dev uniquement : l'app mobile n'a pas d'origine web à restreindre.
 CORS_ALLOW_ALL_ORIGINS = DEBUG
