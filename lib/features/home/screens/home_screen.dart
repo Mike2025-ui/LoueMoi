@@ -194,7 +194,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   InkWell(
-                    onTap: () => showFiltersSheet(context),
+                    onTap: () => showFiltersSheet(context, ref),
                     child: Container(
                       width: 48,
                       height: 48,

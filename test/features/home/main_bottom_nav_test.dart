@@ -6,6 +6,7 @@ import 'package:louemoi/features/auth/data/auth_repository.dart';
 import 'package:louemoi/features/auth/models/user.dart';
 import 'package:louemoi/features/auth/models/user_role.dart';
 import 'package:louemoi/features/auth/providers/auth_providers.dart';
+import 'package:louemoi/features/filters/providers/filter_providers.dart';
 import 'package:louemoi/features/home/widgets/main_bottom_nav.dart';
 import 'package:louemoi/features/messaging/providers/message_providers.dart';
 
@@ -199,5 +200,19 @@ void main() {
     await tester.tap(find.text('Menu'));
     await tester.pumpAndSettle();
     expect(find.byType(FloatingActionButton), findsOneWidget);
+  });
+
+  testWidgets('le bouton plus est masqué quand la feuille de filtres est ouverte', (tester) async {
+    await _pumpAt(
+      tester,
+      const Size(375, 800),
+      extraOverrides: [
+        authControllerProvider.overrideWith((ref) => AuthController(_FakeAgentAuthRepository())),
+        isFiltersSheetOpenProvider.overrideWith((ref) => true),
+      ],
+    );
+
+    // Même sur l'onglet Menu (index 0) d'un agent/bailleur : le FAB n'apparaît pas
+    expect(find.byType(FloatingActionButton), findsNothing);
   });
 }

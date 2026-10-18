@@ -13,16 +13,26 @@ import '../models/filter_params.dart';
 import '../providers/filter_providers.dart';
 import '../widgets/filter_toggle_chip.dart';
 
-Future<void> showFiltersSheet(BuildContext context) {
-  return showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: AppColors.white,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
-    ),
-    builder: (_) => const FiltersSheet(),
-  );
+Future<void> showFiltersSheet(BuildContext context, [WidgetRef? ref]) async {
+  if (ref != null) {
+    ref.read(isFiltersSheetOpenProvider.notifier).state = true;
+  }
+  try {
+    await showModalBottomSheet(
+      context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      backgroundColor: AppColors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
+      ),
+      builder: (_) => const FiltersSheet(),
+    );
+  } finally {
+    if (ref != null) {
+      ref.read(isFiltersSheetOpenProvider.notifier).state = false;
+    }
+  }
 }
 
 class FiltersSheet extends ConsumerStatefulWidget {
@@ -95,7 +105,7 @@ class _FiltersSheetState extends ConsumerState<FiltersSheet> {
     // property_providers.dart) — sans cette synchronisation, choisir
     // "Vente" ici n'aurait aucun effet sur la recherche réellement lancée.
     ref.read(homeTransactionTypeProvider.notifier).state = updated.transactionType;
-    Navigator.of(context).pop();
+    Navigator.of(context, rootNavigator: true).pop();
   }
 
   @override
@@ -119,7 +129,7 @@ class _FiltersSheetState extends ConsumerState<FiltersSheet> {
               child: Row(
                 children: [
                   InkWell(
-                    onTap: () => Navigator.of(context).pop(),
+                    onTap: () => Navigator.of(context, rootNavigator: true).pop(),
                     child: const Icon(Icons.close, size: 22),
                   ),
                   const Expanded(

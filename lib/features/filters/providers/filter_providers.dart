@@ -19,3 +19,8 @@ final draftFilterParamsProvider = StateProvider.autoDispose<FilterParams>((ref) 
 
 /// Filtres réellement appliqués à la recherche (null = aucun filtre avancé).
 final appliedFilterParamsProvider = StateProvider<FilterParams?>((ref) => null);
+
+/// Indique si la feuille de filtres est actuellement ouverte,
+/// afin de masquer immédiatement le bouton FAB "+" de publication.
+final isFiltersSheetOpenProvider = StateProvider<bool>((ref) => false);
+
