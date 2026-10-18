@@ -34,3 +34,4 @@ class CreateSubscriptionSerializer(serializers.Serializer):
         allow_blank=True,
         default="",
     )
+

@@ -162,11 +162,11 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
-        title: Row(
-          children: const [
+        title: const Row(
+          children: [
             Icon(Icons.calendar_month, color: AppColors.primary),
             SizedBox(width: 8),
-            Text('Durée de publication', style: AppTextStyles.h4),
+            Text('Durée de publication', style: AppTextStyles.h3),
           ],
         ),
         content: Column(

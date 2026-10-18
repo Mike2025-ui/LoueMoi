@@ -114,3 +114,4 @@ def verify_webhook_signature(raw_body: bytes, received_signature: str) -> bool:
     ).hexdigest()
 
     return hmac.compare_digest(expected_signature.lower(), received_signature.lower())
+

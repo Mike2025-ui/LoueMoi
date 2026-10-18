@@ -25,3 +25,4 @@ class SubscriptionAdmin(admin.ModelAdmin):
         for sub in queryset:
             sub.activate_for_30_days()
         self.message_user(request, f"{queryset.count()} abonnement(s) activé(s) avec succès.")
+

@@ -132,3 +132,4 @@ class UserSubscriptionStatus extends Equatable {
         expiresAt,
       ];
 }
+

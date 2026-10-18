@@ -38,3 +38,4 @@ class ApiPaymentRepository implements PaymentRepository {
     return SubscriptionResult.fromJson(response.data ?? {});
   }
 }
+

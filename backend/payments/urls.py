@@ -16,3 +16,4 @@ urlpatterns = [
     path("redirect/success/", redirect_success, name="payment-redirect-success"),
     path("redirect/error/", redirect_error, name="payment-redirect-error"),
 ]
+

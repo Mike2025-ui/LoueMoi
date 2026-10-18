@@ -470,18 +470,8 @@ class _AProposTab extends ConsumerWidget {
   Future<void> _showVisitRequestSheet(BuildContext context, WidgetRef ref) async {
     final canProceed = await _ensureCanContact(context, ref);
     if (!canProceed) return;
-          content: const Text('Veuillez vous connecter pour demander une visite.'),
-          backgroundColor: AppColors.primary,
-          action: SnackBarAction(
-            label: 'Se connecter',
-            textColor: AppColors.white,
-            onPressed: () => context.push(AppRoutes.login),
-          ),
-        ),
-      );
-      return;
-    }
 
+    if (!context.mounted) return;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
