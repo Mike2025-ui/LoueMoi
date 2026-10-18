@@ -27,6 +27,10 @@ class PropertyReviewListCreateView(generics.ListCreateAPIView):
         if property_obj.agent == self.request.user:
             raise ValidationError("Vous ne pouvez pas laisser d'avis sur votre propre annonce.")
 
+        # Règle anti-spam : un utilisateur ne peut laisser qu'un seul avis par annonce.
+        if Review.objects.filter(user=self.request.user, property=property_obj).exists():
+            raise ValidationError("Vous avez déjà laissé un avis sur cette annonce.")
+
         review = serializer.save(user=self.request.user, property=property_obj)
 
         # Le propriétaire réel du bien est notifié de l'avis reçu

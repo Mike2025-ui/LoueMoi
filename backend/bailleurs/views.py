@@ -98,7 +98,7 @@ class BailleurSearchView(generics.ListAPIView):
     permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
-        queryset = User.objects.filter(role=User.ROLE_BAILLEUR)
+        queryset = User.objects.filter(role=User.ROLE_BAILLEUR, is_active=True, is_approved=True)
 
         search = self.request.query_params.get("search")
         if search:

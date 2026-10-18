@@ -112,7 +112,9 @@ class AgentSearchView(generics.ListAPIView):
     permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
-        queryset = User.objects.filter(role=User.ROLE_AGENT).select_related("agent_profile")
+        queryset = User.objects.filter(
+            role=User.ROLE_AGENT, is_active=True, is_approved=True
+        ).select_related("agent_profile")
 
         search = self.request.query_params.get("search")
         if search:

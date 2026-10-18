@@ -9,16 +9,37 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
+import secrets
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get(
-    "DJANGO_SECRET_KEY",
-    "django-insecure-0^gqu*mhq#bm@drivr56&hnruln=$0eoa*mx_t*1ek=b*4_q8b",
-)
+_SECRET_KEY_ENV = os.environ.get("DJANGO_SECRET_KEY")
+_SECRET_FILE = BASE_DIR / ".secret_key"
 
-DEBUG = os.environ.get("DJANGO_DEBUG", "True") == "True"
+DEBUG = os.environ.get("DJANGO_DEBUG", "True").lower() in ("true", "1", "yes")
 
-ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "*").split(",")
+if _SECRET_KEY_ENV:
+    SECRET_KEY = _SECRET_KEY_ENV
+elif not DEBUG:
+    if _SECRET_FILE.exists():
+        SECRET_KEY = _SECRET_FILE.read_text().strip()
+    else:
+        SECRET_KEY = secrets.token_urlsafe(64)
+        try:
+            _SECRET_FILE.write_text(SECRET_KEY)
+            _SECRET_FILE.chmod(0o600)
+        except Exception:
+            pass
+else:
+    SECRET_KEY = "django-insecure-0^gqu*mhq#bm@drivr56&hnruln=$0eoa*mx_t*1ek=b*4_q8b"
+
+_raw_allowed = os.environ.get("DJANGO_ALLOWED_HOSTS", "").strip()
+if _raw_allowed:
+    ALLOWED_HOSTS = [h.strip() for h in _raw_allowed.split(",") if h.strip()]
+elif DEBUG:
+    ALLOWED_HOSTS = ["*"]
+else:
+    ALLOWED_HOSTS = ["transfert-online.site", "www.transfert-online.site", "127.0.0.1", "localhost"]
 
 
 INSTALLED_APPS = [
@@ -143,6 +164,15 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticatedOrReadOnly",
     ),
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "300/minute",
+        "user": "1200/minute",
+        "auth": "30/minute",
+    },
     "DEFAULT_FILTER_BACKENDS": ("django_filters.rest_framework.DjangoFilterBackend",),
     "DEFAULT_PAGINATION_CLASS": "config.pagination.DefaultPagination",
     "PAGE_SIZE": 20,
@@ -182,15 +212,20 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
 
-CSRF_TRUSTED_ORIGINS = [
-    origin.strip()
-    for origin in os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",")
-    if origin.strip()
-]
+_raw_csrf = os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "").strip()
+if _raw_csrf:
+    CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in _raw_csrf.split(",") if origin.strip()]
+else:
+    CSRF_TRUSTED_ORIGINS = [
+        "https://transfert-online.site",
+        "https://www.transfert-online.site",
+    ]
 
 if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    CSRF_COOKIE_HTTPONLY = True
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = "DENY"

@@ -2,35 +2,48 @@ from rest_framework import permissions
 
 
 class IsAgent(permissions.BasePermission):
-    """Autorise uniquement les utilisateurs `role=agent`. Réutilisable par
-    toute app ayant besoin de restreindre une action aux agents (properties,
-    et plus tard reservations/messaging si nécessaire)."""
+    """Autorise uniquement les utilisateurs `role=agent` actifs."""
 
     message = "Seul un agent immobilier peut effectuer cette action."
 
     def has_permission(self, request, view):
         user = request.user
-        return bool(user and user.is_authenticated and user.role == user.ROLE_AGENT)
+        return bool(
+            user
+            and user.is_authenticated
+            and user.is_active
+            and (user.role == user.ROLE_AGENT or user.is_staff)
+        )
 
 
 class IsBailleur(permissions.BasePermission):
-    """Autorise uniquement les utilisateurs `role=bailleur`."""
+    """Autorise uniquement les utilisateurs `role=bailleur` actifs."""
 
     message = "Seul un bailleur peut effectuer cette action."
 
     def has_permission(self, request, view):
         user = request.user
-        return bool(user and user.is_authenticated and user.role == user.ROLE_BAILLEUR)
+        return bool(
+            user
+            and user.is_authenticated
+            and user.is_active
+            and (user.role == user.ROLE_BAILLEUR or user.is_staff)
+        )
 
 
 class CanOwnProperties(permissions.BasePermission):
-    """Autorise `role=agent` OU `role=bailleur` — les deux seuls rôles
-    habilités à publier/posséder des annonces. Rôles strictement
-    indépendants : cette permission ne crée aucune délégation entre eux,
-    elle vérifie juste que l'appelant est l'un ou l'autre."""
+    """Autorise `role=agent` OU `role=bailleur` approuvé — les deux seuls rôles
+    habilités à publier/posséder des annonces. Exige que le compte ait été
+    approuvé par l'administrateur (is_approved=True) et soit actif."""
 
-    message = "Seuls un agent immobilier ou un bailleur peuvent publier une annonce."
+    message = "Votre compte doit être activé par un administrateur pour publier ou gérer une annonce."
 
     def has_permission(self, request, view):
         user = request.user
-        return bool(user and user.is_authenticated and user.can_own_properties)
+        return bool(
+            user
+            and user.is_authenticated
+            and user.is_active
+            and user.can_own_properties
+            and (user.is_approved or user.is_staff)
+        )

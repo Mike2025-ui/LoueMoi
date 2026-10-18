@@ -70,3 +70,11 @@ class ReviewEligibilityTests(APITestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data["results"]), 1)
+
+    def test_user_cannot_post_duplicate_reviews(self):
+        # Un utilisateur ne peut pas spammer d'avis sur la même annonce
+        response1 = self._post_review(self.reviewer, rating=5, comment="Premier avis.")
+        self.assertEqual(response1.status_code, status.HTTP_201_CREATED)
+        response2 = self._post_review(self.reviewer, rating=4, comment="Deuxième avis.")
+        self.assertEqual(response2.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("déjà laissé un avis", str(response2.data))

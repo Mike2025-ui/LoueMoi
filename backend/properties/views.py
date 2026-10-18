@@ -1,4 +1,9 @@
 import math
+import os
+import re
+import uuid
+
+from PIL import Image
 
 from django.core.files.storage import default_storage
 from django.db.models import ExpressionWrapper, F, FloatField, Q, Value
@@ -252,13 +257,45 @@ class PropertyViewSet(viewsets.ModelViewSet):
                 return Response(
                     {"image": ["Aucun fichier reçu."]}, status=status.HTTP_400_BAD_REQUEST
                 )
+
+            # Sécurité : taille maximale 10 Mo par photo
+            max_size_bytes = 10 * 1024 * 1024
+            if image_file.size > max_size_bytes:
+                return Response(
+                    {"image": ["La photo dépasse la taille maximale autorisée (10 Mo)."]},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Sécurité : validation de l'extension
+            ext = os.path.splitext(image_file.name or "")[1].lower()
+            allowed_extensions = {".jpg", ".jpeg", ".png", ".webp"}
+            if ext not in allowed_extensions:
+                return Response(
+                    {"image": ["Format d'image non autorisé (JPG, PNG, WebP uniquement)."]},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Sécurité : vérification d'intégrité de l'image avec Pillow (anti-script / polyglot)
+            try:
+                img = Image.open(image_file)
+                img.verify()
+                image_file.seek(0)
+            except Exception:
+                return Response(
+                    {"image": ["Fichier image corrompu ou invalide."]},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
             is_cover = str(request.data.get("is_cover", "")).lower() in ("1", "true", "yes")
             category = str(request.data.get("category", "")).strip().lower()
-            file_name = image_file.name
-            if category and not file_name.startswith("cat_"):
-                file_name = f"cat_{category}_{file_name}"
+            # Nettoyage de la catégorie contre les caractères dangereux et path traversal
+            clean_category = re.sub(r"[^a-zA-Z0-9_-]", "", category)[:30]
+            prefix = f"cat_{clean_category}_" if clean_category else ""
+            # Nom de fichier aléatoire sécurisé (UUID) pour prévenir collisions et injections
+            safe_file_name = f"{prefix}{uuid.uuid4().hex[:12]}{ext}"
+
             saved_path = default_storage.save(
-                f"properties/{property_obj.pk}/{file_name}", image_file
+                f"properties/{property_obj.pk}/{safe_file_name}", image_file
             )
             url = request.build_absolute_uri(default_storage.url(saved_path))
 

@@ -1341,3 +1341,88 @@ class PropertyVideoTests(APITestCase):
         too_long = _make_video_file(duration_seconds=61)
         response = self.client.post(self.url, {"video": too_long}, format="multipart")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class PropertySecurityTests(APITestCase):
+    """Vérifications de sécurité : permissions d'activation et validation des uploads."""
+
+    def setUp(self):
+        self.unapproved_agent = User.objects.create_user(
+            phone="+2250799999901",
+            password="secret123",
+            first_name="Unapproved",
+            last_name="Agent",
+            role=User.ROLE_AGENT,
+            is_approved=False,
+        )
+        self.approved_agent = User.objects.create_user(
+            phone="+2250799999902",
+            password="secret123",
+            first_name="Approved",
+            last_name="Agent",
+            role=User.ROLE_AGENT,
+            is_approved=True,
+        )
+        self.property = Property.objects.create(
+            title="Villa test",
+            category="Villa",
+            type="logement",
+            transaction_type="location",
+            price=200000,
+            commune="Cocody",
+            district="Angre",
+            agent=self.approved_agent,
+        )
+
+    def test_unapproved_agent_cannot_create_property(self):
+        self.client.force_authenticate(user=self.unapproved_agent)
+        response = self.client.post(
+            "/api/properties/",
+            {
+                "title": "Tentative non autorisée",
+                "category": "Studio",
+                "type": "logement",
+                "transaction_type": "location",
+                "price": 100000,
+                "commune": "Cocody",
+                "district": "Angre",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertIn("activé", response.data.get("detail", "").lower())
+
+    def test_upload_image_rejects_dangerous_extension(self):
+        self.client.force_authenticate(user=self.approved_agent)
+        fake_file = SimpleUploadedFile("script.html", b"<h1>Hello</h1>", content_type="text/html")
+        response = self.client.post(
+            f"/api/properties/{self.property.id}/upload-image/",
+            {"image": fake_file},
+            format="multipart",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("non autorisé", str(response.data))
+
+    def test_upload_image_accepts_valid_image_with_safe_uuid_name(self):
+        import io
+        from PIL import Image
+
+        self.client.force_authenticate(user=self.approved_agent)
+        buf = io.BytesIO()
+        img = Image.new("RGB", (10, 10), color="blue")
+        img.save(buf, format="JPEG")
+        buf.seek(0)
+        image_file = SimpleUploadedFile("chambre.jpg", buf.read(), content_type="image/jpeg")
+
+        response = self.client.post(
+            f"/api/properties/{self.property.id}/upload-image/",
+            {"image": image_file, "category": "salon"},
+            format="multipart",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.property.refresh_from_db()
+        self.assertEqual(len(self.property.images), 1)
+        saved_url = self.property.images[0]
+        # Vérifie que le nom contient bien le préfixe de catégorie nettoyé et une extension valide
+        self.assertIn("cat_salon_", saved_url)
+        self.assertTrue(saved_url.endswith(".jpg"))

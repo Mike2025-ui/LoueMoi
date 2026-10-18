@@ -51,6 +51,13 @@ def serve_media(request, path, document_root=None, show_indexes=False):
     video_player. Une syntaxe Range absente, invalide, ou multi-plages
     (rarissime pour un lecteur vidéo) retombe simplement sur le
     comportement standard (200, fichier entier)."""
+    # Sécurité : les pièces jointes de messagerie privées ne doivent jamais
+    # être servies directement via MEDIA_URL — seul l'endpoint authentifié
+    # MessageAttachmentDownloadView (/api/messages/{id}/attachment/) est autorisé.
+    clean_path = path.lstrip("/\\")
+    if clean_path.startswith("messages/") or clean_path.startswith("private_messages/"):
+        return HttpResponse("Accès direct aux pièces jointes privé interdit.", status=403)
+
     range_header = request.META.get("HTTP_RANGE")
     if not range_header:
         response = django_static_serve(
