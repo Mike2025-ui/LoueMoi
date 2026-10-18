@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions
 from rest_framework.exceptions import ValidationError
 
@@ -19,7 +20,7 @@ class PropertyReviewListCreateView(generics.ListCreateAPIView):
         return Review.objects.filter(property_id=self.kwargs["property_id"])
 
     def perform_create(self, serializer):
-        property_obj = Property.objects.get(pk=self.kwargs["property_id"])
+        property_obj = get_object_or_404(Property, pk=self.kwargs["property_id"])
 
         # Règle métier : tout le monde peut donner son avis et attribuer des étoiles
         # à une annonce, à l'exception du propriétaire du bien lui-même.

@@ -24,6 +24,15 @@
 </form>
 
 <div class="card">
+  <div class="card-header">
+    <h2 class="card-title">
+      <span class="section-icon grad-indigo">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><line x1="12" x2="12.01" y1="18" y2="18"/></svg>
+      </span>
+      <span>Appareils enregistrés (FCM)</span>
+    </h2>
+    <span class="badge badge-muted">{{ page_obj.paginator.count }} appareil(s)</span>
+  </div>
   <div class="table-wrap">
   <table>
     <thead><tr>

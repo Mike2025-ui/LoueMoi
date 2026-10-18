@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/env.dart';
 import '../../../core/network/network_providers.dart';
+import '../../properties/providers/property_providers.dart';
 import '../data/api_review_repository.dart';
 import '../data/review_repository.dart';
 import '../models/review.dart';
@@ -25,4 +26,6 @@ Future<void> addReview(
   final repository = ref.read(reviewRepositoryProvider);
   await repository.addReview(propertyId: propertyId, comment: comment, rating: rating);
   ref.invalidate(reviewsByPropertyProvider(propertyId));
+  ref.invalidate(propertyByIdProvider(propertyId));
+  ref.invalidate(propertiesControllerProvider);
 }

@@ -39,7 +39,12 @@ class BailleurDashboardView(APIView):
             "reservations_count": Reservation.objects.filter(property__agent=user).count(),
             "favorites_received": Favorite.objects.filter(property__agent=user).count(),
             "views_count": properties.aggregate(total=Sum("views_count"))["total"] or 0,
-            "messages_count": Conversation.objects.filter(client=user).count(),
+            "messages_count": (
+                Conversation.objects.filter(Q(client=user) | Q(agent=user))
+                .filter(messages__isnull=False)
+                .distinct()
+                .count()
+            ),
             "reviews_count": reviews.count(),
             "average_rating": round(float(average_rating), 2) if average_rating else 0.0,
         }

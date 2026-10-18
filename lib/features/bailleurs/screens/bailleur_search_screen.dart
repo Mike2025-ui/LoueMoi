@@ -8,6 +8,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/feedback.dart';
 import '../../../core/utils/media_url.dart';
+import '../../auth/providers/auth_providers.dart';
 import '../../messaging/providers/message_providers.dart';
 import '../models/bailleur_search_result.dart';
 import '../providers/bailleur_search_providers.dart';
@@ -32,6 +33,31 @@ class BailleurSearchScreen extends ConsumerWidget {
   }
 
   Future<void> _message(BuildContext context, WidgetRef ref, BailleurSearchResult bailleur) async {
+    final currentUser = ref.read(authControllerProvider).valueOrNull;
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Veuillez vous connecter pour contacter ce bailleur.'),
+          backgroundColor: AppColors.primary,
+          action: SnackBarAction(
+            label: 'Se connecter',
+            textColor: AppColors.white,
+            onPressed: () => context.push(AppRoutes.login),
+          ),
+        ),
+      );
+      return;
+    }
+    if (currentUser.id == bailleur.id) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vous ne pouvez pas démarrer une conversation avec vous-même.'),
+          backgroundColor: AppColors.primary,
+        ),
+      );
+      return;
+    }
+
     try {
       final repository = ref.read(messageRepositoryProvider);
       final conversationId = await repository.getOrCreateConversationId(agentId: bailleur.id);

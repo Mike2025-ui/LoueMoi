@@ -477,5 +477,8 @@ def activate_user(request, pk):
             request,
             f"Le compte de {user.first_name} {user.last_name} ({user.get_role_display()}) a été activé avec succès !",
         )
+        referer = request.META.get("HTTP_REFERER", "")
+        if "users/" in referer:
+            return redirect("dashboard:user_detail", pk=user.pk)
     return redirect("dashboard:pending_activations")
 

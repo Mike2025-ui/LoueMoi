@@ -1,4 +1,5 @@
 from datetime import timedelta
+from decimal import Decimal
 
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
@@ -70,14 +71,14 @@ class Property(models.Model):
         decimal_places=6,
         null=True,
         blank=True,
-        validators=[MinValueValidator(-90), MaxValueValidator(90)],
+        validators=[MinValueValidator(Decimal("-90")), MaxValueValidator(Decimal("90"))],
     )
     longitude = models.DecimalField(
         max_digits=9,
         decimal_places=6,
         null=True,
         blank=True,
-        validators=[MinValueValidator(-180), MaxValueValidator(180)],
+        validators=[MinValueValidator(Decimal("-180")), MaxValueValidator(Decimal("180"))],
     )
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="disponible")

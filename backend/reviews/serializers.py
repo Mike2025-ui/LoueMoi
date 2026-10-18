@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from rest_framework import serializers
 
 from .models import Review
@@ -12,7 +14,15 @@ class ReviewSerializer(serializers.ModelSerializer):
     user_name = serializers.SerializerMethodField()
     user_photo = serializers.SerializerMethodField()
 
-    rating = serializers.FloatField(required=False, default=5.0, min_value=1.0, max_value=5.0)
+    rating = serializers.DecimalField(
+        max_digits=2,
+        decimal_places=1,
+        required=False,
+        default=Decimal("5.0"),
+        min_value=Decimal("1.0"),
+        max_value=Decimal("5.0"),
+        coerce_to_string=False,
+    )
     comment = serializers.CharField(required=False, allow_blank=True, default="")
 
     class Meta:
