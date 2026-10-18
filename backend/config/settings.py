@@ -13,6 +13,22 @@ import secrets
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Chargement automatique des variables d'environnement depuis backend/.env si présent
+_env_path = BASE_DIR / ".env"
+if _env_path.exists():
+    try:
+        with open(_env_path, encoding="utf-8") as _f:
+            for _line in _f:
+                _line = _line.strip()
+                if _line and not _line.startswith("#") and "=" in _line:
+                    _k, _v = _line.split("=", 1)
+                    _k = _k.strip()
+                    _v = _v.strip().strip("'\"")
+                    if _k and _k not in os.environ:
+                        os.environ[_k] = _v
+    except Exception:
+        pass
+
 _SECRET_KEY_ENV = os.environ.get("DJANGO_SECRET_KEY")
 _SECRET_FILE = BASE_DIR / ".secret_key"
 
