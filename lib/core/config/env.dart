@@ -1,5 +1,3 @@
-import 'dart:io' show Platform;
-
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 enum AppEnvironment { development, staging, production }
@@ -46,13 +44,10 @@ class Env {
     final fromFile = dotenv.isInitialized ? dotenv.env['API_BASE_URL'] : null;
     if (fromFile != null && fromFile.isNotEmpty) return fromFile;
 
-    if (_current == AppEnvironment.development) {
-      // Adresse locale par défaut pour `python manage.py runserver`, sans
-      // configuration : 10.0.2.2 est l'alias de l'hôte depuis l'émulateur
-      // Android, 127.0.0.1 depuis le simulateur iOS.
-      return Platform.isAndroid ? 'http://10.0.2.2:8000' : 'http://127.0.0.1:8000';
-    }
-    return 'https://api.louemoi.example.com';
+    // Valeur par défaut pointant sur le backend de production VPS :
+    // garantit que les appareils physiques (smartphones) et les builds
+    // fonctionnent immédiatement sans erreur de réseau / 10.0.2.2.
+    return 'https://transfert-online.site';
   }
 
   /// URL de tuiles carto (flutter_map). Par défaut : serveur public
