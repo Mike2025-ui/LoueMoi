@@ -34,31 +34,81 @@ class BailleurSpaceScreen extends ConsumerWidget {
           children: [
             Row(
               children: [
-                CircleAvatar(
-                  radius: 36,
-                  backgroundColor: AppColors.primaryLight,
-                  backgroundImage: user?.photo != null
-                      ? NetworkImage(buildMediaUrl(user!.photo!))
-                      : null,
-                  child: user?.photo == null
-                      ? const Icon(Icons.person, size: 36, color: AppColors.primary)
-                      : null,
+                Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 36,
+                      backgroundColor: AppColors.primaryLight,
+                      backgroundImage: user?.photo != null
+                          ? NetworkImage(buildMediaUrl(user!.photo!))
+                          : null,
+                      child: user?.photo == null
+                          ? const Icon(Icons.person, size: 36, color: AppColors.primary)
+                          : null,
+                    ),
+                    if (user?.isVerifiedUser ?? false)
+                      const Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: CircleAvatar(
+                          radius: 10,
+                          backgroundColor: AppColors.primary,
+                          child: Icon(
+                            Icons.check,
+                            size: 12,
+                            color: AppColors.white,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(user?.fullName ?? 'Bailleur', style: AppTextStyles.bodyMedium),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              user?.fullName ?? 'Bailleur',
+                              style: AppTextStyles.bodyMedium,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (user?.isVerifiedUser ?? false) ...[
+                            const SizedBox(width: AppSpacing.xs),
+                            const Icon(
+                              Icons.verified,
+                              size: 16,
+                              color: AppColors.primary,
+                            ),
+                          ],
+                        ],
+                      ),
                       Text(user?.phone ?? '', style: AppTextStyles.caption),
                       const Text('Bailleur', style: AppTextStyles.small),
                     ],
                   ),
                 ),
+                TextButton.icon(
+                  onPressed: () => context.push(AppRoutes.editProfile),
+                  icon: const Icon(
+                    Icons.edit_outlined,
+                    size: 16,
+                    color: AppColors.primary,
+                  ),
+                  label: const Text('Modifier', style: AppTextStyles.link),
+                ),
               ],
             ),
             const SizedBox(height: AppSpacing.lg),
             const Divider(),
+            ProfileMenuTile(
+              icon: Icons.person_outline,
+              label: 'Modifier mon profil',
+              onTap: () => context.push(AppRoutes.editProfile),
+            ),
             ProfileMenuTile(
               icon: Icons.apartment_outlined,
               label: 'Mes biens',

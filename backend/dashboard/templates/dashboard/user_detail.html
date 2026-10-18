@@ -7,12 +7,30 @@
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
     Retour aux utilisateurs
   </a>
-  {% if obj != request.user %}
-    <a href="{% url 'dashboard:delete_user' obj.pk %}" class="btn-action-reject" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;padding:8px 14px">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-      Supprimer cet utilisateur
-    </a>
-  {% endif %}
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    {% if obj.role in "agent,bailleur" %}
+      <form method="post" action="{% url 'dashboard:toggle_certificate' obj.pk %}" style="display:inline">
+        {% csrf_token %}
+        {% if obj.is_verified %}
+          <button type="submit" class="btn-action-reject" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;cursor:pointer" onclick="return confirm('Voulez-vous retirer le badge Certifié de cet {{ obj.get_role_display }} ?');">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            Retirer le badge Certifié
+          </button>
+        {% else %}
+          <button type="submit" class="btn-action-success" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;cursor:pointer" onclick="return confirm('Activer le badge Certifié pour cet {{ obj.get_role_display }} à sa demande ?');">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Activer le badge Certifié
+          </button>
+        {% endif %}
+      </form>
+    {% endif %}
+    {% if obj != request.user %}
+      <a href="{% url 'dashboard:delete_user' obj.pk %}" class="btn-action-reject" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;padding:8px 14px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+        Supprimer cet utilisateur
+      </a>
+    {% endif %}
+  </div>
 </div>
 
 {% if not obj.is_approved and obj.role in "agent,bailleur" %}
@@ -57,7 +75,10 @@
   </div>
   <div class="card-body">
     <div class="detail-grid">
-      <div class="detail-field"><div class="label">Téléphone</div><div class="value">{{ obj.phone }}</div></div>
+      <div class="detail-field">
+        <div class="label">Téléphone <span style="font-size:11px;color:var(--text-muted);font-weight:normal">(Immuable)</span></div>
+        <div class="value" style="font-family:monospace;font-weight:600">{{ obj.phone }}</div>
+      </div>
       <div class="detail-field">
         <div class="label">WhatsApp</div>
         <div class="value">
@@ -68,7 +89,37 @@
           {% else %}—{% endif %}
         </div>
       </div>
-      <div class="detail-field"><div class="label">Rôle</div><div class="value"><span class="badge badge-primary">{{ obj.get_role_display }}</span></div></div>
+      <div class="detail-field">
+        <div class="label">Rôle <span style="font-size:11px;color:var(--text-muted);font-weight:normal">(Immuable)</span></div>
+        <div class="value"><span class="badge badge-primary">{{ obj.get_role_display }}</span></div>
+      </div>
+      <div class="detail-field">
+        <div class="label">Badge Certificat</div>
+        <div class="value" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          {% if obj.role in "agent,bailleur" %}
+            {% if obj.is_verified %}
+              <span class="badge badge-success"><span class="badge-dot"></span>Certifié</span>
+              <form method="post" action="{% url 'dashboard:toggle_certificate' obj.pk %}" style="display:inline">
+                {% csrf_token %}
+                <button type="submit" class="btn-action-reject" style="padding:4px 10px;font-size:12px;cursor:pointer" onclick="return confirm('Voulez-vous retirer le badge Certifié de cet {{ obj.get_role_display }} ?');">
+                  Retirer le badge
+                </button>
+              </form>
+            {% else %}
+              <span class="badge badge-muted">Non certifié</span>
+              <form method="post" action="{% url 'dashboard:toggle_certificate' obj.pk %}" style="display:inline">
+                {% csrf_token %}
+                <button type="submit" class="btn-action-success" style="padding:4px 10px;font-size:12px;cursor:pointer" onclick="return confirm('Activer le badge Certifié pour cet {{ obj.get_role_display }} à sa demande ?');">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  Activer le badge Certifié
+                </button>
+              </form>
+            {% endif %}
+          {% else %}
+            <span class="cell-subtext">Non éligible (réservé aux agents et bailleurs)</span>
+          {% endif %}
+        </div>
+      </div>
       <div class="detail-field">
         <div class="label">Statut du compte</div>
         <div class="value">

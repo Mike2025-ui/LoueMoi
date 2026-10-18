@@ -76,6 +76,10 @@ class User(AbstractBaseUser, PermissionsMixin):
         help_text="Indique si l'utilisateur a soumis une demande d'activation.",
     )
     activation_requested_at = models.DateTimeField(null=True, blank=True)
+    is_verified = models.BooleanField(
+        default=False,
+        help_text="Badge de certification (agents et bailleurs uniquement).",
+    )
     date_joined = models.DateTimeField(auto_now_add=True)
 
     objects = UserManager()
@@ -88,6 +92,20 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.phone})"
+
+    def save(self, *args, **kwargs):
+        # Règle de sécurité stricte : le rôle des clients, agents et bailleurs
+        # ainsi que leurs numéros de téléphone ne doivent JAMAIS être modifiables.
+        if self.pk:
+            orig = User.objects.filter(pk=self.pk).values("role", "phone").first()
+            if orig:
+                if orig["role"] in (self.ROLE_CLIENT, self.ROLE_AGENT, self.ROLE_BAILLEUR):
+                    self.role = orig["role"]
+                self.phone = orig["phone"]
+        # Seuls les agents et bailleurs peuvent avoir un badge de certification
+        if self.role == self.ROLE_CLIENT:
+            self.is_verified = False
+        super().save(*args, **kwargs)
 
     @property
     def is_agent(self):

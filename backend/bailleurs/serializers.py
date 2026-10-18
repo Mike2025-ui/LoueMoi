@@ -19,3 +19,5 @@ class BailleurSearchSerializer(serializers.Serializer):
     # "Appeler" (téléphonie native) côté Flutter — même principe que
     # AgentSearchSerializer.phone.
     phone = serializers.CharField()
+    is_verified = serializers.BooleanField(default=False)
+

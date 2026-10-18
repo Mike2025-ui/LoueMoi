@@ -13,6 +13,7 @@ class User extends Equatable {
   final UserRole role;
   final bool isApproved;
   final bool activationRequested;
+  final bool isVerified;
 
   /// Non-null uniquement quand [role] == [UserRole.agent] — un client n'a
   /// jamais de profil agent.
@@ -29,6 +30,7 @@ class User extends Equatable {
     this.role = UserRole.client,
     this.isApproved = true,
     this.activationRequested = false,
+    this.isVerified = false,
     this.agentProfile,
   });
 
@@ -36,6 +38,15 @@ class User extends Equatable {
 
   bool get isAgent => role == UserRole.agent;
   bool get isBailleur => role == UserRole.bailleur;
+
+  /// Seuls les agents et les bailleurs peuvent être certifiés
+  bool get isVerifiedUser {
+    if (role == UserRole.client) return false;
+    if (isAgent) {
+      return (agentProfile?.isVerified ?? false) || isVerified;
+    }
+    return isVerified;
+  }
 
   /// Les comptes agent et bailleur doivent être approuvés par l'administrateur
   /// avant de pouvoir accéder à l'application.
@@ -67,6 +78,7 @@ class User extends Equatable {
       role: role,
       isApproved: isApproved,
       activationRequested: json['activation_requested'] as bool? ?? false,
+      isVerified: json['is_verified'] as bool? ?? false,
       agentProfile: agentProfileJson != null ? AgentProfile.fromJson(agentProfileJson) : null,
     );
   }
@@ -82,6 +94,7 @@ class User extends Equatable {
         'role': role.toJson(),
         'is_approved': isApproved,
         'activation_requested': activationRequested,
+        'is_verified': isVerified,
       };
 
   @override
@@ -96,6 +109,7 @@ class User extends Equatable {
         role,
         isApproved,
         activationRequested,
+        isVerified,
         agentProfile,
       ];
 }

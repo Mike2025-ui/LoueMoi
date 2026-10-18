@@ -312,3 +312,43 @@ class DashboardDataAccuracyTests(TestCase):
         response = self.client.post(reverse("dashboard:delete_user", args=[self.admin.pk]))
         self.assertEqual(response.status_code, 302)
         self.assertTrue(User.objects.filter(pk=self.admin.pk).exists())
+
+    def test_toggle_certificate_for_agent(self):
+        target_agent = _make_user("0700000092", User.ROLE_AGENT)
+        profile = AgentProfile.objects.create(user=target_agent, agency_name="Agence Immo")
+        self.assertFalse(target_agent.is_verified)
+        self.assertFalse(profile.is_verified)
+
+        # Activer le badge
+        response = self.client.post(reverse("dashboard:toggle_certificate", args=[target_agent.pk]))
+        self.assertEqual(response.status_code, 302)
+        target_agent.refresh_from_db()
+        profile.refresh_from_db()
+        self.assertTrue(target_agent.is_verified)
+        self.assertTrue(profile.is_verified)
+
+        # Désactiver le badge
+        response2 = self.client.post(reverse("dashboard:toggle_certificate", args=[target_agent.pk]))
+        self.assertEqual(response2.status_code, 302)
+        target_agent.refresh_from_db()
+        profile.refresh_from_db()
+        self.assertFalse(target_agent.is_verified)
+        self.assertFalse(profile.is_verified)
+
+    def test_toggle_certificate_for_bailleur(self):
+        target_bailleur = _make_user("0700000093", User.ROLE_BAILLEUR)
+        self.assertFalse(target_bailleur.is_verified)
+
+        # Activer le badge
+        response = self.client.post(reverse("dashboard:toggle_certificate", args=[target_bailleur.pk]))
+        self.assertEqual(response.status_code, 302)
+        target_bailleur.refresh_from_db()
+        self.assertTrue(target_bailleur.is_verified)
+
+    def test_toggle_certificate_forbidden_for_client(self):
+        target_client = _make_user("0700000094", User.ROLE_CLIENT)
+        response = self.client.post(reverse("dashboard:toggle_certificate", args=[target_client.pk]))
+        self.assertEqual(response.status_code, 302)
+        target_client.refresh_from_db()
+        self.assertFalse(target_client.is_verified)
+

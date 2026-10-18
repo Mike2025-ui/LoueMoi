@@ -528,3 +528,45 @@ def activate_user(request, pk):
             return redirect("dashboard:user_detail", pk=user.pk)
     return redirect("dashboard:pending_activations")
 
+
+@staff_required
+def toggle_certificate(request, pk):
+    """Active ou désactive le badge Certificat pour un agent ou un bailleur.
+    Règle métier stricte : seuls les agents et bailleurs peuvent avoir un badge de certification."""
+    user = get_object_or_404(User, pk=pk)
+    if user.role not in (User.ROLE_AGENT, User.ROLE_BAILLEUR):
+        messages.error(
+            request,
+            "Action refusée : seuls les agents et les bailleurs peuvent obtenir un badge de certification.",
+        )
+        return redirect("dashboard:user_detail", pk=pk)
+
+    if request.method == "POST":
+        new_status = not user.is_verified
+        user.is_verified = new_status
+        user.save(update_fields=["is_verified"])
+
+        if user.role == User.ROLE_AGENT:
+            profile, _ = AgentProfile.objects.get_or_create(user=user)
+            profile.is_verified = new_status
+            profile.certification_status = (
+                AgentProfile.CERTIFICATION_APPROVED
+                if new_status
+                else AgentProfile.CERTIFICATION_NOT_REQUESTED
+            )
+            profile.save(update_fields=["is_verified", "certification_status"])
+
+        action_label = "activé" if new_status else "retiré"
+        messages.success(
+            request,
+            f"Badge de certification {action_label} avec succès pour {user.first_name} {user.last_name} ({user.get_role_display()}) !",
+        )
+
+    referer = request.META.get("HTTP_REFERER", "")
+    if "users/" in referer:
+        return redirect("dashboard:user_detail", pk=pk)
+    if "agents" in referer:
+        return redirect("dashboard:agents_list")
+    return redirect("dashboard:user_detail", pk=pk)
+
+

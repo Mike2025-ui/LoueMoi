@@ -8,7 +8,7 @@ class FilterParams extends Equatable {
   final String commune;
   final String district;
   final bool isFuture;
-  final PropertyType propertyType;
+  final PropertyType? propertyType;
   final String? category;
   final double? budgetMin;
   final double? budgetMax;
@@ -18,11 +18,23 @@ class FilterParams extends Equatable {
     this.commune = '',
     this.district = '',
     this.isFuture = false,
-    this.propertyType = PropertyType.logement,
+    this.propertyType,
     this.category,
     this.budgetMin,
     this.budgetMax,
   });
+
+  /// Indique si au moins un filtre avancé (autre que le toggle de base
+  /// Location/Vente) est actuellement actif.
+  bool get hasActiveAdvancedFilters {
+    return commune.trim().isNotEmpty ||
+        district.trim().isNotEmpty ||
+        isFuture ||
+        propertyType != null ||
+        (category != null && category!.isNotEmpty) ||
+        budgetMin != null ||
+        budgetMax != null;
+  }
 
   FilterParams copyWith({
     TransactionType? transactionType,
@@ -33,16 +45,20 @@ class FilterParams extends Equatable {
     String? category,
     double? budgetMin,
     double? budgetMax,
+    bool clearPropertyType = false,
+    bool clearCategory = false,
+    bool clearBudgetMin = false,
+    bool clearBudgetMax = false,
   }) {
     return FilterParams(
       transactionType: transactionType ?? this.transactionType,
       commune: commune ?? this.commune,
       district: district ?? this.district,
       isFuture: isFuture ?? this.isFuture,
-      propertyType: propertyType ?? this.propertyType,
-      category: category ?? this.category,
-      budgetMin: budgetMin ?? this.budgetMin,
-      budgetMax: budgetMax ?? this.budgetMax,
+      propertyType: clearPropertyType ? null : (propertyType ?? this.propertyType),
+      category: clearCategory ? null : (category ?? this.category),
+      budgetMin: clearBudgetMin ? null : (budgetMin ?? this.budgetMin),
+      budgetMax: clearBudgetMax ? null : (budgetMax ?? this.budgetMax),
     );
   }
 

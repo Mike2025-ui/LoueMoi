@@ -113,38 +113,46 @@ class RoleRegistrationTests(APITestCase):
 
 
 class AdminRoleManagementTests(APITestCase):
-    """Test 13 : seule l'administration Django peut changer un rôle."""
+    """Règle de sécurité stricte : le rôle des clients, agents et bailleurs ainsi que les numéros
+    de téléphone ne doivent JAMAIS être modifiables."""
 
-    def test_django_admin_can_change_a_user_role(self):
-        admin = User.objects.create_superuser(
-            phone="+2250700000099", password="adminpass", first_name="Super", last_name="Admin"
-        )
+    def test_role_and_phone_are_strictly_immutable(self):
         target = User.objects.create_user(
-            phone="+2250700000014", password="secret123", first_name="A", last_name="B"
+            phone="+2250700000014", password="secret123", first_name="A", last_name="B", role=User.ROLE_CLIENT,
         )
         self.assertEqual(target.role, User.ROLE_CLIENT)
+        self.assertEqual(target.phone, "+2250700000014")
 
-        self.client.force_login(admin)
-        response = self.client.get(f"/admin/accounts/user/{target.pk}/change/")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-        # Ce que fait concrètement l'admin en soumettant le formulaire :
-        # modifier le champ `role`, jamais accessible via l'API publique.
+        # Tentative de modification directe de rôle et de téléphone
         target.role = User.ROLE_AGENT
-        target.save(update_fields=["role"])
+        target.phone = "+2250799999999"
+        target.save()
         target.refresh_from_db()
-        self.assertEqual(target.role, User.ROLE_AGENT)
+
+        # Le rôle et le téléphone restent strictement inchangés
+        self.assertEqual(target.role, User.ROLE_CLIENT)
+        self.assertEqual(target.phone, "+2250700000014")
+
+    def test_client_cannot_have_certificate_badge(self):
+        target = User.objects.create_user(
+            phone="+2250700000018", password="secret123", first_name="A", last_name="B", role=User.ROLE_CLIENT,
+        )
+        target.is_verified = True
+        target.save()
+        target.refresh_from_db()
+        self.assertFalse(target.is_verified)
 
     def test_role_is_not_editable_via_public_me_endpoint(self):
         user = User.objects.create_user(
             phone="+2250700000015", password="secret123", first_name="A", last_name="B"
         )
         self.client.force_authenticate(user=user)
-        response = self.client.patch("/api/users/me/", {"role": "agent"}, format="json")
+        response = self.client.patch("/api/users/me/", {"role": "agent", "phone": "+2250799999999"}, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         user.refresh_from_db()
-        # `role` est read_only sur UserSerializer : la tentative est ignorée.
+        # `role` et `phone` sont protégés en lecture seule : la tentative est ignorée.
         self.assertEqual(user.role, User.ROLE_CLIENT)
+        self.assertEqual(user.phone, "+2250700000015")
 
 
 class LoginAndMeRoleTests(APITestCase):

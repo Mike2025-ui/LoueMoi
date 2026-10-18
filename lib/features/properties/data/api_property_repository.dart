@@ -23,7 +23,9 @@ class ApiPropertyRepository implements PropertyRepository {
     if (filters == null) return query;
 
     query['transaction_type'] = filters.transactionType.name;
-    query['type'] = filters.propertyType.name;
+    if (filters.propertyType != null) {
+      query['type'] = filters.propertyType!.name;
+    }
     if (filters.commune.isNotEmpty) query['commune'] = filters.commune;
     if (filters.district.isNotEmpty) query['district'] = filters.district;
     if (filters.isFuture) query['is_future'] = true;

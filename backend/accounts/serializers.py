@@ -11,6 +11,7 @@ User = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
     # `agent_profile` est null pour un client — jamais généré pour ce rôle.
     agent_profile = AgentProfileSerializer(read_only=True)
+    is_verified = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -26,15 +27,33 @@ class UserSerializer(serializers.ModelSerializer):
             "activation_requested",
             "activation_requested_at",
             "agent_profile",
+            "is_verified",
         ]
-        # `role`, `is_approved`, etc. ne sont pas modifiables par l'utilisateur via PATCH /api/users/me/
+        # Sécurité stricte : phone, role, is_verified, etc. ne sont jamais modifiables via l'API
         read_only_fields = [
             "id",
+            "phone",
             "role",
             "is_approved",
+            "is_verified",
             "activation_requested",
             "activation_requested_at",
         ]
+
+    def get_is_verified(self, user):
+        if user.role == User.ROLE_AGENT:
+            profile = getattr(user, "agent_profile", None)
+            return bool(profile and profile.is_verified)
+        if user.role == User.ROLE_BAILLEUR:
+            return bool(user.is_verified)
+        return False
+
+    def update(self, instance, validated_data):
+        # Défense en profondeur : rôle et numéro de téléphone strictement immuables
+        validated_data.pop("role", None)
+        validated_data.pop("phone", None)
+        validated_data.pop("is_verified", None)
+        return super().update(instance, validated_data)
 
 
 class RegisterSerializer(serializers.ModelSerializer):

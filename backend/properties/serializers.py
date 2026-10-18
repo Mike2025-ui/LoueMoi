@@ -29,8 +29,12 @@ class AgentSerializer(serializers.Serializer):
         return (profile.whatsapp if profile and profile.whatsapp else user.whatsapp)
 
     def get_is_verified(self, user):
-        profile = self._profile(user)
-        return bool(profile and profile.is_verified)
+        if getattr(user, "role", "") == "agent":
+            profile = self._profile(user)
+            return bool(profile and profile.is_verified)
+        if getattr(user, "role", "") == "bailleur":
+            return bool(getattr(user, "is_verified", False))
+        return False
 
     def get_rating(self, user):
         profile = self._profile(user)

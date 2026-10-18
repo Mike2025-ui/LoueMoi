@@ -61,7 +61,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     final transactionType = ref.watch(homeTransactionTypeProvider);
     final propertiesAsync = ref.watch(propertiesListProvider);
-    final unreadCount = ref.watch(unreadNotificationsCountProvider).valueOrNull ?? 0;
+    final unreadCount =
+        ref.watch(unreadNotificationsCountProvider).valueOrNull ?? 0;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -108,8 +109,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 color: AppColors.danger,
                                 shape: BoxShape.circle,
                               ),
-                              constraints:
-                                  const BoxConstraints(minWidth: 16, minHeight: 16),
+                              constraints: const BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                              ),
                               child: Text(
                                 '$unreadCount',
                                 textAlign: TextAlign.center,
@@ -129,16 +132,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             const SizedBox(height: AppSpacing.md),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.screenPadding,
+              ),
               child: Row(
                 children: [
                   Expanded(
                     child: _TransactionToggleButton(
                       label: 'Location',
                       isActive: transactionType == TransactionType.location,
-                      onTap: () => ref
-                          .read(homeTransactionTypeProvider.notifier)
-                          .state = TransactionType.location,
+                      onTap: () =>
+                          ref.read(homeTransactionTypeProvider.notifier).state =
+                              TransactionType.location,
                     ),
                   ),
                   const SizedBox(width: AppSpacing.md),
@@ -146,9 +151,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     child: _TransactionToggleButton(
                       label: 'Vente',
                       isActive: transactionType == TransactionType.vente,
-                      onTap: () => ref
-                          .read(homeTransactionTypeProvider.notifier)
-                          .state = TransactionType.vente,
+                      onTap: () =>
+                          ref.read(homeTransactionTypeProvider.notifier).state =
+                              TransactionType.vente,
                     ),
                   ),
                 ],
@@ -156,13 +161,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             const SizedBox(height: AppSpacing.md),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.screenPadding,
+              ),
               child: Row(
                 children: [
                   Expanded(
                     child: Container(
                       height: 48,
-                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.surfaceMuted,
                         borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -170,12 +179,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.search, size: 20, color: AppColors.textHint),
+                          const Icon(
+                            Icons.search,
+                            size: 20,
+                            color: AppColors.textHint,
+                          ),
                           const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: TextField(
                               onChanged: (v) =>
-                                  ref.read(searchQueryProvider.notifier).state = v,
+                                  ref.read(searchQueryProvider.notifier).state =
+                                      v,
                               decoration: const InputDecoration(
                                 hintText: 'Recherche...',
                                 border: InputBorder.none,
@@ -203,7 +217,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         borderRadius: BorderRadius.circular(AppRadius.pill),
                         border: Border.all(color: AppColors.border),
                       ),
-                      child: const Icon(Icons.tune, size: 20, color: AppColors.textPrimary),
+                      child: const Icon(
+                        Icons.tune,
+                        size: 20,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                   ),
                   const SizedBox(width: AppSpacing.sm),
@@ -217,7 +235,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         borderRadius: BorderRadius.circular(AppRadius.pill),
                         border: Border.all(color: AppColors.border),
                       ),
-                      child: const Icon(Icons.map_outlined, size: 20, color: AppColors.textPrimary),
+                      child: const Icon(
+                        Icons.map_outlined,
+                        size: 20,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                   ),
                 ],
@@ -230,7 +252,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: RefreshIndicator(
                 color: AppColors.primary,
                 onRefresh: () async {
-                  await ref.read(propertiesControllerProvider.notifier).refresh();
+                  await ref
+                      .read(propertiesControllerProvider.notifier)
+                      .refresh();
                 },
                 child: propertiesAsync.when(
                   data: (properties) {
@@ -257,31 +281,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         AppSpacing.screenPadding,
                         100,
                       ),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: AppSpacing.md,
-                        mainAxisSpacing: AppSpacing.lg,
-                        childAspectRatio: 0.68,
-                      ),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: AppSpacing.md,
+                            mainAxisSpacing: AppSpacing.lg,
+                            childAspectRatio: 0.68,
+                          ),
                       itemCount: properties.length,
                       itemBuilder: (context, index) {
                         final property = properties[index];
                         return PropertyCard(
                           property: property,
-                          onTap: () =>
-                              context.push(AppRoutes.propertyDetailPath(property.id)),
+                          onTap: () => context.push(
+                            AppRoutes.propertyDetailPath(property.id),
+                          ),
                           onFavoriteTap: () async {
                             try {
                               await toggleFavorite(ref, property.id);
                             } catch (e) {
-                              if (context.mounted) showErrorSnackbar(context, e);
+                              if (context.mounted)
+                                showErrorSnackbar(context, e);
                             }
                           },
                         );
                       },
                     );
                   },
-                  loading: () => const Center(child: CircularProgressIndicator()),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
                   error: (e, _) => ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     children: const [
@@ -326,7 +354,9 @@ class _TransactionToggleButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: isActive ? AppColors.primary : AppColors.white,
           borderRadius: BorderRadius.circular(AppRadius.pill),
-          border: Border.all(color: isActive ? AppColors.primary : AppColors.border),
+          border: Border.all(
+            color: isActive ? AppColors.primary : AppColors.border,
+          ),
         ),
         child: Text(
           label,
@@ -373,9 +403,12 @@ class _BudgetQuickChips extends ConsumerWidget {
       height: 38,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.screenPadding,
+        ),
         itemCount: options.length,
-        separatorBuilder: (context, index) => const SizedBox(width: AppSpacing.xs),
+        separatorBuilder: (context, index) =>
+            const SizedBox(width: AppSpacing.xs),
         itemBuilder: (context, index) {
           final (label, min, max) = options[index];
           final isSelected = (min == null && max == null)
@@ -405,7 +438,9 @@ class _BudgetQuickChips extends ConsumerWidget {
               if (min == null && max == null) {
                 // "Tous"
                 if (appliedFilters != null) {
-                  ref.read(appliedFilterParamsProvider.notifier).state = FilterParams(
+                  ref
+                      .read(appliedFilterParamsProvider.notifier)
+                      .state = FilterParams(
                     transactionType: appliedFilters.transactionType,
                     commune: appliedFilters.commune,
                     district: appliedFilters.district,
@@ -418,23 +453,31 @@ class _BudgetQuickChips extends ConsumerWidget {
                 }
               } else if (isSelected) {
                 // Deselect
-                ref.read(appliedFilterParamsProvider.notifier).state = FilterParams(
-                  transactionType: appliedFilters?.transactionType ?? transactionType,
+                ref
+                    .read(appliedFilterParamsProvider.notifier)
+                    .state = FilterParams(
+                  transactionType:
+                      appliedFilters?.transactionType ?? transactionType,
                   commune: appliedFilters?.commune ?? '',
                   district: appliedFilters?.district ?? '',
                   isFuture: appliedFilters?.isFuture ?? false,
-                  propertyType: appliedFilters?.propertyType ?? PropertyType.logement,
+                  propertyType:
+                      appliedFilters?.propertyType ?? PropertyType.logement,
                   category: appliedFilters?.category,
                   budgetMin: null,
                   budgetMax: null,
                 );
               } else {
-                ref.read(appliedFilterParamsProvider.notifier).state = FilterParams(
-                  transactionType: appliedFilters?.transactionType ?? transactionType,
+                ref
+                    .read(appliedFilterParamsProvider.notifier)
+                    .state = FilterParams(
+                  transactionType:
+                      appliedFilters?.transactionType ?? transactionType,
                   commune: appliedFilters?.commune ?? '',
                   district: appliedFilters?.district ?? '',
                   isFuture: appliedFilters?.isFuture ?? false,
-                  propertyType: appliedFilters?.propertyType ?? PropertyType.logement,
+                  propertyType:
+                      appliedFilters?.propertyType ?? PropertyType.logement,
                   category: appliedFilters?.category,
                   budgetMin: min,
                   budgetMax: max,
@@ -447,4 +490,3 @@ class _BudgetQuickChips extends ConsumerWidget {
     );
   }
 }
-

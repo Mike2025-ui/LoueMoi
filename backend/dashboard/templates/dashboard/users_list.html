@@ -52,7 +52,14 @@
       <tr onclick="window.location='{% url 'dashboard:user_detail' u.pk %}'" style="cursor:pointer">
         <td class="cell-primary">{{ u.phone }}</td>
         <td>{{ u.first_name }} {{ u.last_name }}</td>
-        <td><span class="badge badge-primary">{{ u.get_role_display }}</span></td>
+        <td>
+          <span class="badge badge-primary">{{ u.get_role_display }}</span>
+          {% if u.is_verified and u.role in "agent,bailleur" %}
+            <span class="badge badge-success" title="Certifié" style="padding:2px 6px;margin-left:4px;font-size:11px">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Certifié
+            </span>
+          {% endif %}
+        </td>
         <td>
           {% if u.role in "agent,bailleur" and not u.is_approved %}
             {% if u.activation_requested %}

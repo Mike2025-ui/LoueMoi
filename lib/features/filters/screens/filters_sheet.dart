@@ -77,6 +77,12 @@ class _FiltersSheetState extends ConsumerState<FiltersSheet> {
 
   void _selectPropertyType(PropertyType type) {
     final draft = ref.read(draftFilterParamsProvider);
+    // Si déjà sélectionné, on peut désélectionner (revenir à tous les types)
+    if (draft.propertyType == type) {
+      ref.read(draftFilterParamsProvider.notifier).state =
+          draft.copyWith(clearPropertyType: true, clearCategory: true);
+      return;
+    }
     String? category;
     switch (type) {
       case PropertyType.logement:
@@ -95,11 +101,21 @@ class _FiltersSheetState extends ConsumerState<FiltersSheet> {
 
   void _search() {
     final draft = ref.read(draftFilterParamsProvider);
+    final minVal = double.tryParse(_budgetMinController.text.trim());
+    final maxVal = double.tryParse(_budgetMaxController.text.trim());
     final updated = draft.copyWith(
-      budgetMin: double.tryParse(_budgetMinController.text),
-      budgetMax: double.tryParse(_budgetMaxController.text),
+      commune: _communeController.text.trim(),
+      district: _quartierController.text.trim(),
+      budgetMin: minVal,
+      budgetMax: maxVal,
+      clearBudgetMin: minVal == null,
+      clearBudgetMax: maxVal == null,
     );
-    ref.read(appliedFilterParamsProvider.notifier).state = updated;
+    if (updated.hasActiveAdvancedFilters) {
+      ref.read(appliedFilterParamsProvider.notifier).state = updated;
+    } else {
+      ref.read(appliedFilterParamsProvider.notifier).state = null;
+    }
     // homeTransactionTypeProvider reste la source de vérité pour le toggle
     // Location/Vente affiché sur HomeScreen (voir _effectiveFilters côté
     // property_providers.dart) — sans cette synchronisation, choisir
@@ -141,10 +157,13 @@ class _FiltersSheetState extends ConsumerState<FiltersSheet> {
                   ),
                   InkWell(
                     onTap: () {
-                      // Réinitialise tout sauf Location/Vente, qui reste
-                      // piloté par le toggle déjà visible sur HomeScreen.
-                      notifier.state =
+                      // Réinitialise tout (brouillon + filtres appliqués)
+                      // sauf Location/Vente, qui reste piloté par le toggle
+                      // déjà visible sur HomeScreen.
+                      final resetDraft =
                           const FilterParams().copyWith(transactionType: draft.transactionType);
+                      notifier.state = resetDraft;
+                      ref.read(appliedFilterParamsProvider.notifier).state = null;
                       _communeController.clear();
                       _quartierController.clear();
                       _budgetMinController.clear();

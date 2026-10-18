@@ -31,7 +31,12 @@ abstract class PropertyRepository {
   /// Suppression définitive — réservée au propriétaire côté Django.
   Future<void> deleteProperty(String id);
 
-  Future<Property> uploadImage(String propertyId, XFile file, {bool isCover = false, String? category});
+  Future<Property> uploadImage(
+    String propertyId,
+    XFile file, {
+    bool isCover = false,
+    String? category,
+  });
 
   /// Retire une photo déjà hébergée (par URL).
   Future<Property> deleteImage(String propertyId, String url);
@@ -61,7 +66,11 @@ abstract class PropertyRepository {
 
   /// Définit/modifie uniquement la position d'une annonce — réservé au
   /// propriétaire côté Django (même permission que updateProperty).
-  Future<Property> updatePropertyLocation(String id, double latitude, double longitude);
+  Future<Property> updatePropertyLocation(
+    String id,
+    double latitude,
+    double longitude,
+  );
 
   /// "Reconduire un bien" — fixe une nouvelle période de validité de 30
   /// jours (voir Property.PROPERTY_VALIDITY_DAYS côté Django) : mêmes
@@ -89,9 +98,14 @@ class MockPropertyRepository implements PropertyRepository {
   static const _pageSize = 20;
 
   @override
-  Future<PropertyPage> fetchProperties({FilterParams? filters, int page = 1}) async {
+  Future<PropertyPage> fetchProperties({
+    FilterParams? filters,
+    int page = 1,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 400));
-    var results = _properties.where((p) => p.status != PropertyStatus.accomplie).toList();
+    var results = _properties
+        .where((p) => p.status != PropertyStatus.accomplie)
+        .toList();
 
     if (filters != null) {
       results = results
@@ -100,20 +114,28 @@ class MockPropertyRepository implements PropertyRepository {
 
       if (filters.commune.isNotEmpty) {
         results = results
-            .where((p) =>
-                p.commune.toLowerCase().contains(filters.commune.toLowerCase()))
+            .where(
+              (p) => p.commune.toLowerCase().contains(
+                filters.commune.toLowerCase(),
+              ),
+            )
             .toList();
       }
       if (filters.district.isNotEmpty) {
         results = results
-            .where((p) =>
-                p.district.toLowerCase().contains(filters.district.toLowerCase()))
+            .where(
+              (p) => p.district.toLowerCase().contains(
+                filters.district.toLowerCase(),
+              ),
+            )
             .toList();
       }
       if (filters.isFuture) {
         results = results.where((p) => p.isFuture).toList();
       }
-      results = results.where((p) => p.type == filters.propertyType).toList();
+      if (filters.propertyType != null) {
+        results = results.where((p) => p.type == filters.propertyType).toList();
+      }
       if (filters.category != null && filters.category!.isNotEmpty) {
         results = results.where((p) => p.category == filters.category).toList();
       }
@@ -127,9 +149,15 @@ class MockPropertyRepository implements PropertyRepository {
 
     final start = (page - 1) * _pageSize;
     final end = (start + _pageSize).clamp(0, results.length);
-    final pageItems = start < results.length ? results.sublist(start, end) : <Property>[];
+    final pageItems = start < results.length
+        ? results.sublist(start, end)
+        : <Property>[];
 
-    return PropertyPage(results: pageItems, hasMore: end < results.length, count: results.length);
+    return PropertyPage(
+      results: pageItems,
+      hasMore: end < results.length,
+      count: results.length,
+    );
   }
 
   @override
@@ -151,7 +179,9 @@ class MockPropertyRepository implements PropertyRepository {
   @override
   Future<List<Property>> fetchFavorites() async {
     await Future.delayed(const Duration(milliseconds: 200));
-    return _properties.where((p) => p.isFavorite && p.status != PropertyStatus.accomplie).toList();
+    return _properties
+        .where((p) => p.isFavorite && p.status != PropertyStatus.accomplie)
+        .toList();
   }
 
   @override
@@ -167,7 +197,11 @@ class MockPropertyRepository implements PropertyRepository {
     // Un seul agent existe dans l'univers de démo : toutes les propriétés
     // mock lui appartiennent déjà.
     return _properties
-        .where((p) => p.agent.id == MockProperties.agentKouakou.id && p.status != PropertyStatus.accomplie)
+        .where(
+          (p) =>
+              p.agent.id == MockProperties.agentKouakou.id &&
+              p.status != PropertyStatus.accomplie,
+        )
         .toList();
   }
 
@@ -190,7 +224,10 @@ class MockPropertyRepository implements PropertyRepository {
   }
 
   @override
-  Future<Property> updateProperty(String id, Map<String, dynamic> changes) async {
+  Future<Property> updateProperty(
+    String id,
+    Map<String, dynamic> changes,
+  ) async {
     await Future.delayed(const Duration(milliseconds: 300));
     final index = _indexOrThrow(id);
     final current = _properties[index];
@@ -206,7 +243,12 @@ class MockPropertyRepository implements PropertyRepository {
   }
 
   @override
-  Future<Property> uploadImage(String propertyId, XFile file, {bool isCover = false, String? category}) async {
+  Future<Property> uploadImage(
+    String propertyId,
+    XFile file, {
+    bool isCover = false,
+    String? category,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 300));
     final index = _indexOrThrow(propertyId);
     final current = _properties[index];
@@ -216,7 +258,9 @@ class MockPropertyRepository implements PropertyRepository {
     final images = [...current.images, storedPath];
     final updated = current.copyWith(
       images: images,
-      coverImage: isCover || current.coverImage.isEmpty ? storedPath : current.coverImage,
+      coverImage: isCover || current.coverImage.isEmpty
+          ? storedPath
+          : current.coverImage,
     );
     _properties[index] = updated;
     return updated;
@@ -281,11 +325,18 @@ class MockPropertyRepository implements PropertyRepository {
     double? radiusKm,
   }) async {
     await Future.delayed(const Duration(milliseconds: 300));
-    final withCoords = _properties.where((p) => p.latitude != null && p.longitude != null);
+    final withCoords = _properties.where(
+      (p) => p.latitude != null && p.longitude != null,
+    );
     if (latitude != null && longitude != null) {
       final withDistance = withCoords.map(
         (p) => p.copyWith(
-          distanceKm: haversineKm(latitude, longitude, p.latitude!, p.longitude!),
+          distanceKm: haversineKm(
+            latitude,
+            longitude,
+            p.latitude!,
+            p.longitude!,
+          ),
         ),
       );
       final filtered = (radiusKm != null && radiusKm > 0)
@@ -298,10 +349,17 @@ class MockPropertyRepository implements PropertyRepository {
   }
 
   @override
-  Future<Property> updatePropertyLocation(String id, double latitude, double longitude) async {
+  Future<Property> updatePropertyLocation(
+    String id,
+    double latitude,
+    double longitude,
+  ) async {
     await Future.delayed(const Duration(milliseconds: 300));
     final index = _indexOrThrow(id);
-    final updated = _properties[index].copyWith(latitude: latitude, longitude: longitude);
+    final updated = _properties[index].copyWith(
+      latitude: latitude,
+      longitude: longitude,
+    );
     _properties[index] = updated;
     return updated;
   }
@@ -330,7 +388,10 @@ class MockPropertyRepository implements PropertyRepository {
   }
 
   @override
-  Future<Property> updatePropertyStatus(String id, PropertyStatus status) async {
+  Future<Property> updatePropertyStatus(
+    String id,
+    PropertyStatus status,
+  ) async {
     await Future.delayed(const Duration(milliseconds: 300));
     final index = _indexOrThrow(id);
     final updated = _properties[index].copyWith(status: status);
