@@ -1531,9 +1531,9 @@ class _StepPreview extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.all(AppSpacing.md),
             decoration: BoxDecoration(
-              color: AppColors.primaryLight.withOpacity(0.45),
+              color: AppColors.primaryLight.withValues(alpha: 0.45),
               borderRadius: BorderRadius.circular(AppRadius.md),
-              border: Border.all(color: AppColors.primary.withOpacity(0.25)),
+              border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,

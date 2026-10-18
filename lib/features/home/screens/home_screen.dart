@@ -300,8 +300,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             try {
                               await toggleFavorite(ref, property.id);
                             } catch (e) {
-                              if (context.mounted)
+                              if (context.mounted) {
                                 showErrorSnackbar(context, e);
+                              }
                             }
                           },
                         );
