@@ -12,6 +12,7 @@ class UserSerializer(serializers.ModelSerializer):
     # `agent_profile` est null pour un client — jamais généré pour ce rôle.
     agent_profile = AgentProfileSerializer(read_only=True)
     is_verified = serializers.SerializerMethodField()
+    has_active_subscription = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = User
@@ -28,6 +29,7 @@ class UserSerializer(serializers.ModelSerializer):
             "activation_requested_at",
             "agent_profile",
             "is_verified",
+            "has_active_subscription",
         ]
         # Sécurité stricte : phone, role, is_verified, etc. ne sont jamais modifiables via l'API
         read_only_fields = [
@@ -38,6 +40,7 @@ class UserSerializer(serializers.ModelSerializer):
             "is_verified",
             "activation_requested",
             "activation_requested_at",
+            "has_active_subscription",
         ]
 
     def get_is_verified(self, user):

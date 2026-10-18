@@ -20,6 +20,7 @@ class AgentSerializer(serializers.Serializer):
     photo = serializers.CharField(allow_null=True)
     is_verified = serializers.SerializerMethodField()
     rating = serializers.SerializerMethodField()
+    has_active_subscription = serializers.SerializerMethodField()
 
     def _profile(self, user):
         return getattr(user, "agent_profile", None)
@@ -40,10 +41,18 @@ class AgentSerializer(serializers.Serializer):
         profile = self._profile(user)
         return float(profile.rating) if profile else 0.0
 
+    def get_has_active_subscription(self, user):
+        from django.utils import timezone
+        return user.subscriptions.filter(
+            status="active",
+            expires_at__gt=timezone.now(),
+        ).exists()
+
 
 class PropertySerializer(serializers.ModelSerializer):
     agent = AgentSerializer(read_only=True)
     is_favorite = serializers.SerializerMethodField()
+    owner_has_active_subscription = serializers.SerializerMethodField()
 
     class Meta:
         model = Property
@@ -74,6 +83,7 @@ class PropertySerializer(serializers.ModelSerializer):
             "agent",
             "views_count",
             "favorites_count",
+            "owner_has_active_subscription",
             "published_at",
             "expires_at",
             "created_at",
@@ -97,6 +107,7 @@ class PropertySerializer(serializers.ModelSerializer):
             "status",
             "views_count",
             "favorites_count",
+            "owner_has_active_subscription",
             "video",
             "published_at",
             "expires_at",
@@ -109,6 +120,15 @@ class PropertySerializer(serializers.ModelSerializer):
         if request is None or not request.user.is_authenticated:
             return False
         return Favorite.objects.filter(user=request.user, property=obj).exists()
+
+    def get_owner_has_active_subscription(self, obj):
+        if not obj.agent:
+            return False
+        from django.utils import timezone
+        return obj.agent.subscriptions.filter(
+            status="active",
+            expires_at__gt=timezone.now(),
+        ).exists()
 
     def validate(self, attrs):
         # Les plages (-90/90, -180/180) sont déjà validées via les

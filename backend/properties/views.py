@@ -127,22 +127,24 @@ class PropertyViewSet(viewsets.ModelViewSet):
         property_obj.save(update_fields=["published_at", "expires_at"])
 
     def destroy(self, request, *args, **kwargs):
-        """Reservation.property est en PROTECT (on garde l'historique des
-        réservations même après suppression d'une annonce) : une suppression
-        qui violerait cette contrainte doit renvoyer une erreur propre (409),
-        jamais un 500 non géré."""
+        """Règle métier stricte :
+        - Si une réservation est en cours (status='enCours'), l'annonce ne peut pas être supprimée.
+        - Si les réservations associées sont accomplies ou annulées, l'annonce peut être supprimée."""
         instance = self.get_object()
-        video_field = instance.video
-        try:
-            instance.delete()
-        except ProtectedError:
+        if instance.reservations.filter(status="enCours").exists():
             return Response(
-                {"detail": "Impossible de supprimer une annonce ayant des réservations."},
-                status=status.HTTP_409_CONFLICT,
+                {
+                    "detail": "Impossible de supprimer cette annonce : une réservation est actuellement en cours. "
+                    "Vous devez d'abord la finaliser (accomplie) ou l'annuler."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
             )
-        # Nettoyage du fichier vidéo uniquement après suppression réussie de
-        # la ligne — si ProtectedError est levée ci-dessus (réservations
-        # actives), l'annonce ET sa vidéo doivent rester intactes.
+
+        video_field = instance.video
+        # Nettoyage des réservations terminées (accomplies ou annulées) pour lever la contrainte PROTECT
+        instance.reservations.filter(status__in=["accomplie", "annulee"]).delete()
+        instance.delete()
+
         if video_field:
             video_field.delete(save=False)
         return Response(status=status.HTTP_204_NO_CONTENT)

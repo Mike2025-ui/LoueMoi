@@ -125,6 +125,15 @@ class User(AbstractBaseUser, PermissionsMixin):
         annonces — deux rôles indépendants, sans hiérarchie entre eux."""
         return self.role in (self.ROLE_AGENT, self.ROLE_BAILLEUR)
 
+    @property
+    def has_active_subscription(self):
+        """Indique si l'utilisateur possède un abonnement actif non expiré."""
+        from django.utils import timezone
+        return self.subscriptions.filter(
+            status="active",
+            expires_at__gt=timezone.now(),
+        ).exists()
+
 
 class PasswordResetOTP(models.Model):
     """OTP pour "Mot de passe oublié" (connexion par téléphone, voir

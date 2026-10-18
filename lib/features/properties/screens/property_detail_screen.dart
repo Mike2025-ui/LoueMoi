@@ -19,6 +19,8 @@ import '../../../core/widgets/section_divider_title.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../../messaging/providers/message_providers.dart';
+import '../../payments/providers/payment_providers.dart';
+import '../../payments/widgets/subscription_modal.dart';
 import '../../reservations/models/reservation.dart';
 import '../../reservations/providers/reservation_providers.dart';
 import '../../reviews/providers/review_providers.dart';
@@ -344,7 +346,7 @@ class _AProposTab extends ConsumerWidget {
 
   final Property property;
 
-  Future<void> _contactAgent(BuildContext context, WidgetRef ref) async {
+  Future<bool> _ensureCanContact(BuildContext context, WidgetRef ref) async {
     final currentUser = ref.read(authControllerProvider).valueOrNull;
     if (currentUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -358,8 +360,43 @@ class _AProposTab extends ConsumerWidget {
           ),
         ),
       );
-      return;
+      return false;
     }
+
+    // 1. Si le propriétaire (agent ou bailleur) possède un abonnement : gratuit pour les clients !
+    if (property.ownerHasActiveSubscription || property.agent.hasActiveSubscription) {
+      return true;
+    }
+
+    // 2. Si le client connecté possède son propre abonnement : autorisé
+    if (currentUser.hasActiveSubscription) {
+      return true;
+    }
+
+    // 3. Vérification dynamique auprès du serveur
+    try {
+      final repository = ref.read(paymentRepositoryProvider);
+      final check = await repository.checkCanContact(propertyId: property.id);
+      if (check.canContact) {
+        return true;
+      }
+    } catch (_) {}
+
+    // 4. L'agent/bailleur n'a pas d'abonnement ET le client non plus -> ouvrir modal abonnement client (1 000 FCFA/mois)
+    if (!context.mounted) return false;
+    final subscribed = await showSubscriptionModal(
+      context,
+      isPro: false,
+      propertyId: property.id,
+      reason: 'subscription_required',
+    );
+    return subscribed == true;
+  }
+
+  Future<void> _contactAgent(BuildContext context, WidgetRef ref) async {
+    final canProceed = await _ensureCanContact(context, ref);
+    if (!canProceed) return;
+
     try {
       final repository = ref.read(messageRepositoryProvider);
       final conversationId = await repository.getOrCreateConversationId(
@@ -376,7 +413,10 @@ class _AProposTab extends ConsumerWidget {
     }
   }
 
-  Future<void> _callAgent(BuildContext context, String rawPhone) async {
+  Future<void> _callAgent(BuildContext context, WidgetRef ref, String rawPhone) async {
+    final canProceed = await _ensureCanContact(context, ref);
+    if (!canProceed) return;
+
     final cleanPhone = rawPhone.replaceAll(RegExp(r'[^0-9+]'), '');
     if (cleanPhone.isEmpty) return;
     final uri = Uri(scheme: 'tel', path: cleanPhone);
@@ -393,9 +433,13 @@ class _AProposTab extends ConsumerWidget {
 
   Future<void> _whatsappAgent(
     BuildContext context,
+    WidgetRef ref,
     String rawPhone,
     String propertyTitle,
   ) async {
+    final canProceed = await _ensureCanContact(context, ref);
+    if (!canProceed) return;
+
     final cleanPhone = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
     if (cleanPhone.isEmpty) return;
     final message =
@@ -423,11 +467,9 @@ class _AProposTab extends ConsumerWidget {
     }
   }
 
-  void _showVisitRequestSheet(BuildContext context, WidgetRef ref) {
-    final currentUser = ref.read(authControllerProvider).valueOrNull;
-    if (currentUser == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+  Future<void> _showVisitRequestSheet(BuildContext context, WidgetRef ref) async {
+    final canProceed = await _ensureCanContact(context, ref);
+    if (!canProceed) return;
           content: const Text('Veuillez vous connecter pour demander une visite.'),
           backgroundColor: AppColors.primary,
           action: SnackBarAction(
@@ -500,11 +542,12 @@ class _AProposTab extends ConsumerWidget {
           onMessageTap: isOwner ? null : () => _contactAgent(context, ref),
           onCallTap: isOwner || property.agent.phone.isEmpty
               ? null
-              : () => _callAgent(context, property.agent.phone),
+              : () => _callAgent(context, ref, property.agent.phone),
           onWhatsAppTap: isOwner
               ? null
               : () => _whatsappAgent(
                     context,
+                    ref,
                     property.agent.whatsapp.isNotEmpty
                         ? property.agent.whatsapp
                         : property.agent.phone,

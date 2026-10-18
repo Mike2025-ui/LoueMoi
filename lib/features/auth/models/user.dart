@@ -14,6 +14,7 @@ class User extends Equatable {
   final bool isApproved;
   final bool activationRequested;
   final bool isVerified;
+  final bool hasActiveSubscription;
 
   /// Non-null uniquement quand [role] == [UserRole.agent] — un client n'a
   /// jamais de profil agent.
@@ -31,6 +32,7 @@ class User extends Equatable {
     this.isApproved = true,
     this.activationRequested = false,
     this.isVerified = false,
+    this.hasActiveSubscription = false,
     this.agentProfile,
   });
 
@@ -79,6 +81,7 @@ class User extends Equatable {
       isApproved: isApproved,
       activationRequested: json['activation_requested'] as bool? ?? false,
       isVerified: json['is_verified'] as bool? ?? false,
+      hasActiveSubscription: json['has_active_subscription'] as bool? ?? false,
       agentProfile: agentProfileJson != null ? AgentProfile.fromJson(agentProfileJson) : null,
     );
   }
@@ -95,6 +98,7 @@ class User extends Equatable {
         'is_approved': isApproved,
         'activation_requested': activationRequested,
         'is_verified': isVerified,
+        'has_active_subscription': hasActiveSubscription,
       };
 
   @override
@@ -110,6 +114,7 @@ class User extends Equatable {
         isApproved,
         activationRequested,
         isVerified,
+        hasActiveSubscription,
         agentProfile,
       ];
 }

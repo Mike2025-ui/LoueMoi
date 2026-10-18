@@ -10,6 +10,8 @@ import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/property_image.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../../auth/providers/auth_providers.dart';
+import '../../payments/providers/payment_providers.dart';
+import '../../payments/widgets/subscription_modal.dart';
 import '../../properties/models/property.dart';
 import '../../properties/models/property_enums.dart';
 import '../../properties/providers/property_providers.dart';
@@ -479,6 +481,33 @@ class _OwnerActionsRowState extends ConsumerState<_OwnerActionsRow> {
   bool _completingReservation = false;
 
   Future<void> _openChat() async {
+    final currentUser = ref.read(authControllerProvider).valueOrNull;
+    final isPro = currentUser?.isAgent == true || currentUser?.isBailleur == true;
+    final hasActiveSub = currentUser?.hasActiveSubscription == true;
+
+    // Règle métier : les réservations sont gratuites, mais l'agent ou bailleur
+    // ne peut pas contacter ou discuter avec le client sans abonnement actif (3 000 FCFA/mois).
+    if (isPro && !hasActiveSub) {
+      bool needModal = true;
+      try {
+        final status = await ref.read(paymentRepositoryProvider).getSubscriptionStatus();
+        if (status.hasActiveSubscription) {
+          needModal = false;
+        }
+      } catch (_) {}
+
+      if (needModal) {
+        if (!mounted) return;
+        final subscribed = await showSubscriptionModal(
+          context,
+          isPro: true,
+          propertyId: widget.property.id,
+          reason: 'pro_subscription_required',
+        );
+        if (subscribed != true) return;
+      }
+    }
+
     setState(() => _openingChat = true);
     try {
       final repository = ref.read(reservationRepositoryProvider);

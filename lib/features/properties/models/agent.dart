@@ -9,6 +9,7 @@ class Agent extends Equatable {
   final String? photo;
   final bool isVerified;
   final double rating;
+  final bool hasActiveSubscription;
 
   const Agent({
     required this.id,
@@ -19,6 +20,7 @@ class Agent extends Equatable {
     this.photo,
     this.isVerified = false,
     this.rating = 0,
+    this.hasActiveSubscription = false,
   });
 
   /// Nom court affiché en en-tête (ex: "Mme Kouakou").
@@ -37,6 +39,7 @@ class Agent extends Equatable {
       photo: json['photo'] as String?,
       isVerified: json['is_verified'] as bool? ?? false,
       rating: (json['rating'] as num?)?.toDouble() ?? 0,
+      hasActiveSubscription: json['has_active_subscription'] as bool? ?? false,
     );
   }
 
@@ -49,9 +52,19 @@ class Agent extends Equatable {
         'photo': photo,
         'is_verified': isVerified,
         'rating': rating,
+        'has_active_subscription': hasActiveSubscription,
       };
 
   @override
-  List<Object?> get props =>
-      [id, firstName, lastName, phone, whatsapp, photo, isVerified, rating];
+  List<Object?> get props => [
+        id,
+        firstName,
+        lastName,
+        phone,
+        whatsapp,
+        photo,
+        isVerified,
+        rating,
+        hasActiveSubscription,
+      ];
 }

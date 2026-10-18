@@ -7,6 +7,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/media_url.dart';
 import '../../auth/providers/auth_providers.dart';
+import '../../payments/widgets/subscription_modal.dart';
 import '../widgets/profile_menu_tile.dart';
 
 /// Flux "Supprimer mon compte" (décision métier : désactivation, jamais de
@@ -138,7 +139,16 @@ class ProfileScreen extends ConsumerWidget {
                     : null,
               ),
               const SizedBox(height: AppSpacing.md),
-              Text(user?.fullName ?? 'Utilisateur', style: AppTextStyles.h3),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(user?.fullName ?? 'Utilisateur', style: AppTextStyles.h3),
+                  if (user?.isVerifiedUser ?? false) ...[
+                    const SizedBox(width: 6),
+                    const Icon(Icons.verified, color: AppColors.primary, size: 20),
+                  ],
+                ],
+              ),
               const SizedBox(height: 2),
               Text(user?.phone ?? '', style: AppTextStyles.caption),
               const SizedBox(height: AppSpacing.xl),
@@ -154,6 +164,18 @@ class ProfileScreen extends ConsumerWidget {
                 icon: Icons.person_add_alt_outlined,
                 label: 'Informations personnelles',
                 onTap: () => context.push(AppRoutes.personalInfo),
+              ),
+              ProfileMenuTile(
+                icon: Icons.workspace_premium_outlined,
+                label: (user?.hasActiveSubscription ?? false)
+                    ? 'Mon abonnement (Actif)'
+                    : 'Abonnement LoueMoi',
+                onTap: () {
+                  showSubscriptionModal(
+                    context,
+                    isPro: user?.canOwnProperties ?? false,
+                  );
+                },
               ),
               if (user?.isAgent ?? false)
                 ProfileMenuTile(

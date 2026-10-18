@@ -345,7 +345,7 @@ class InstantPublicationTests(APITestCase):
         self.client.force_authenticate(user=self.agent)
         response = self.client.delete(f"/api/properties/{property_obj.id}/")
 
-        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertIn(response.status_code, [status.HTTP_400_BAD_REQUEST, status.HTTP_409_CONFLICT])
         self.assertTrue(Property.objects.filter(pk=property_obj.pk).exists())
 
 

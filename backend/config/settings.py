@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     "messaging",
     "notifications",
     "dashboard",
+    "payments",
 ]
 
 MIDDLEWARE = [
@@ -205,6 +206,17 @@ SIMPLE_JWT = {
 IKODDI_API_KEY = os.environ.get("IKODDI_API_KEY") or os.environ.get("IKKODI_API_KEY", "")
 IKODDI_SENDER_ID = os.environ.get("IKODDI_SENDER_ID") or os.environ.get("IKKODI_SENDER_ID", "LoueMoi")
 IKODDI_API_URL = os.environ.get("IKODDI_API_URL") or os.environ.get("IKKODI_API_URL", "https://api.ikoddi.com/v1/sms/send")
+
+# --- Passerelle de Paiement & Abonnements (Jèko Checkout) ------------------
+# Clés API et Webhook Jèko (https://jeko.africa / https://mcp.jeko.africa)
+# Pour les abonnements mensuels :
+# - Bailleur / Agent : 3 000 FCFA / mois
+# - Client : 1 000 FCFA / mois (si bailleur non abonné)
+JEKO_API_KEY = os.environ.get("JEKO_API_KEY", "")
+JEKO_API_KEY_ID = os.environ.get("JEKO_API_KEY_ID", "")
+JEKO_STORE_ID = os.environ.get("JEKO_STORE_ID", "")
+JEKO_WEBHOOK_SECRET = os.environ.get("JEKO_WEBHOOK_SECRET", "")
+JEKO_API_URL = os.environ.get("JEKO_API_URL", "https://api.jeko.africa")
 
 
 # --- CORS --------------------------------------------------------------

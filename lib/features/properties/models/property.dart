@@ -35,6 +35,7 @@ class Property extends Equatable {
   final Agent agent;
   final int viewsCount;
   final int favoritesCount;
+  final bool ownerHasActiveSubscription;
 
   /// Non-null uniquement pour les résultats de recherche à proximité
   /// (GET /api/properties/nearby/) — calculée côté serveur, jamais
@@ -70,6 +71,7 @@ class Property extends Equatable {
     required this.agent,
     this.viewsCount = 0,
     this.favoritesCount = 0,
+    this.ownerHasActiveSubscription = false,
     this.distanceKm,
     required this.createdAt,
     required this.updatedAt,
@@ -124,6 +126,7 @@ class Property extends Equatable {
       agent: agent,
       viewsCount: viewsCount,
       favoritesCount: favoritesCount ?? this.favoritesCount,
+      ownerHasActiveSubscription: ownerHasActiveSubscription,
       distanceKm: distanceKm ?? this.distanceKm,
       createdAt: createdAt,
       updatedAt: updatedAt,
@@ -159,6 +162,7 @@ class Property extends Equatable {
       agent: Agent.fromJson(json['agent'] as Map<String, dynamic>),
       viewsCount: json['views_count'] as int? ?? 0,
       favoritesCount: json['favorites_count'] as int? ?? 0,
+      ownerHasActiveSubscription: json['owner_has_active_subscription'] as bool? ?? false,
       distanceKm: (json['distance_km'] as num?)?.toDouble(),
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
@@ -207,6 +211,7 @@ class Property extends Equatable {
         'agent': agent.toJson(),
         'views_count': viewsCount,
         'favorites_count': favoritesCount,
+        'owner_has_active_subscription': ownerHasActiveSubscription,
         if (distanceKm != null) 'distance_km': distanceKm,
         'created_at': createdAt.toIso8601String(),
         'updated_at': updatedAt.toIso8601String(),
@@ -238,6 +243,7 @@ class Property extends Equatable {
         agent,
         viewsCount,
         favoritesCount,
+        ownerHasActiveSubscription,
         distanceKm,
         createdAt,
         updatedAt,

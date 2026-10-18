@@ -26,7 +26,10 @@ class MyPropertiesScreen extends ConsumerWidget {
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
         title: const Text('Supprimer cette annonce ?'),
-        content: Text('« ${property.title} » sera définitivement supprimée.'),
+        content: Text(
+          '« ${property.title} » sera définitivement supprimée.\n\n'
+          'Note : Une annonce avec une réservation en cours ne peut pas être supprimée. La réservation doit d\'abord être accomplie ou annulée.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),

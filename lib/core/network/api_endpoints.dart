@@ -71,4 +71,13 @@ class ApiEndpoints {
   // Device tokens (FCM)
   static const String devices = '/api/devices/';
   static const String devicesDeactivate = '/api/devices/deactivate/';
+
+  // Payments & Abonnements (Jèko)
+  static const String subscriptionCreate = '/api/payments/subscriptions/create/';
+  static const String subscriptionStatus = '/api/payments/subscriptions/status/';
+  static String canContact({String? propertyId, String? ownerId}) {
+    if (propertyId != null) return '/api/payments/can-contact/?property_id=$propertyId';
+    if (ownerId != null) return '/api/payments/can-contact/?owner_id=$ownerId';
+    return '/api/payments/can-contact/';
+  }
 }
