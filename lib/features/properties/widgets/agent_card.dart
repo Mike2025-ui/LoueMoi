@@ -63,34 +63,29 @@ class AgentCard extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (onCallTap != null) ...[
-              _ActionButton(
-                icon: Icons.phone_outlined,
-                color: AppColors.success,
-                backgroundColor: AppColors.successBg,
-                tooltip: 'Appeler',
-                onTap: onCallTap!,
-              ),
-              const SizedBox(width: AppSpacing.xs),
-            ],
-            if (onWhatsAppTap != null) ...[
-              _ActionButton(
-                icon: Icons.chat,
-                color: const Color(0xFF25D366),
-                backgroundColor: const Color(0xFFE8F8EE),
-                tooltip: 'WhatsApp',
-                onTap: onWhatsAppTap!,
-              ),
-              const SizedBox(width: AppSpacing.xs),
-            ],
-            if (onMessageTap != null)
-              _ActionButton(
-                icon: Icons.chat_bubble_outline,
-                color: AppColors.primary,
-                backgroundColor: AppColors.primaryLight,
-                tooltip: 'Message LoueMoi',
-                onTap: onMessageTap!,
-              ),
+            _ActionButton(
+              icon: Icons.phone_outlined,
+              color: AppColors.success,
+              backgroundColor: AppColors.successBg,
+              tooltip: 'Appel',
+              onTap: onCallTap ?? () {},
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            _ActionButton(
+              icon: Icons.chat,
+              color: const Color(0xFF25D366),
+              backgroundColor: const Color(0xFFE8F8EE),
+              tooltip: 'WhatsApp',
+              onTap: onWhatsAppTap ?? () {},
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            _ActionButton(
+              icon: Icons.chat_bubble_outline,
+              color: AppColors.primary,
+              backgroundColor: AppColors.primaryLight,
+              tooltip: 'Conversation',
+              onTap: onMessageTap ?? () {},
+            ),
           ],
         ),
       ],

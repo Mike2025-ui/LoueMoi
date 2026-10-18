@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -108,6 +109,9 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
     switch (step) {
       case 1:
         if (form.title.trim().isEmpty) return 'Le titre est obligatoire.';
+        if (RegExp(r'\d').hasMatch(form.description)) {
+          return 'La description ne doit contenir aucun chiffre ni numéro de téléphone. Utilisez uniquement des caractères alphabétiques.';
+        }
         final price = form.transactionType == TransactionType.vente ? form.price : form.rent;
         if (price.trim().isEmpty || (double.tryParse(price) ?? 0) <= 0) {
           return form.transactionType == TransactionType.vente
@@ -655,9 +659,13 @@ class _StepGeneralInfoState extends ConsumerState<_StepGeneralInfo> {
           const SizedBox(height: AppSpacing.md),
           AppTextField(
             label: 'Description',
-            hint: 'Décrivez le bien en quelques phrases',
+            hint: 'Décrivez le bien en quelques phrases (chiffres interdits)',
             maxLines: 5,
             controller: _descCtrl,
+            inputFormatters: [
+              FilteringTextInputFormatter.deny(RegExp(r'\d')),
+            ],
+            helperText: 'Chiffres interdits pour éviter la divulgation de numéros.',
             onChanged: (v) => notifier.state = form.copyWith(description: v),
           ),
           const SizedBox(height: AppSpacing.lg),

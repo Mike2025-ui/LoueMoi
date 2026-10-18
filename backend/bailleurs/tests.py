@@ -93,11 +93,24 @@ class BailleurPropertiesListTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
 
+import uuid
+from payments.models import Subscription
+
+
+def _subscribe(user):
+    sub = Subscription.objects.create(
+        user=user,
+        plan=Subscription.PLAN_PRO if user.role in (User.ROLE_AGENT, User.ROLE_BAILLEUR) else Subscription.PLAN_CLIENT,
+        amount=3000 if user.role in (User.ROLE_AGENT, User.ROLE_BAILLEUR) else 1000,
+        reference=f"SUB-{uuid.uuid4().hex[:12]}",
+        status=Subscription.STATUS_PENDING,
+    )
+    sub.activate_for_30_days()
+    return sub
+
+
 class BailleurSearchTests(APITestCase):
-    """GET /api/bailleurs/ — décision métier "Recherche propriétaire" (un
-    agent peut chercher un bailleur, voir son profil public et ses annonces
-    publiques, éventuellement le contacter — jamais de transfert de
-    propriété). Symétrique de agents.tests pour AgentSearchView."""
+    """GET /api/bailleurs/ — réservé aux utilisateurs abonnés."""
 
     def setUp(self):
         self.bailleur = _make_bailleur("+2250711114020")
@@ -106,14 +119,28 @@ class BailleurSearchTests(APITestCase):
         self.bailleur.save(update_fields=["first_name", "last_name"])
         self.agent = _make_agent("+2250711114021")
         self.client_user = _make_client("+2250711114022")
+        self.client_unsubscribed = _make_client("+2250711114099")
+        _subscribe(self.client_user)
 
-    def test_search_is_public_even_for_anonymous_users(self):
+    def test_unauthenticated_or_unsubscribed_cannot_search_bailleurs(self):
+        # 1. Non connecté -> 401
+        response = self.client.get("/api/bailleurs/")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        # 2. Connecté mais non abonné -> 403
+        self.client.force_authenticate(user=self.client_unsubscribed)
+        response = self.client.get("/api/bailleurs/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_subscribed_user_can_search_bailleurs(self):
+        self.client.force_authenticate(user=self.client_user)
         response = self.client.get("/api/bailleurs/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         names = [f"{b['first_name']} {b['last_name']}" for b in response.data["results"]]
         self.assertIn("Awa Kone", names)
 
     def test_only_bailleurs_are_returned_never_agents_or_clients(self):
+        self.client.force_authenticate(user=self.client_user)
         response = self.client.get("/api/bailleurs/")
         ids = [b["id"] for b in response.data["results"]]
         self.assertIn(self.bailleur.id, ids)
@@ -121,6 +148,7 @@ class BailleurSearchTests(APITestCase):
         self.assertNotIn(self.client_user.id, ids)
 
     def test_search_filters_by_name(self):
+        self.client.force_authenticate(user=self.client_user)
         response = self.client.get("/api/bailleurs/?search=Kone")
         ids = [b["id"] for b in response.data["results"]]
         self.assertEqual(ids, [self.bailleur.id])
@@ -129,6 +157,7 @@ class BailleurSearchTests(APITestCase):
         self.assertEqual(no_match.data["results"], [])
 
     def test_response_never_exposes_password_or_tokens(self):
+        self.client.force_authenticate(user=self.client_user)
         response = self.client.get("/api/bailleurs/")
         result = response.data["results"][0]
         self.assertNotIn("password", result)

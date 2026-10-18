@@ -23,9 +23,24 @@ def _make_client(phone):
     )
 
 
+import uuid
+from payments.models import Subscription
+
+
+def _subscribe(user):
+    sub = Subscription.objects.create(
+        user=user,
+        plan=Subscription.PLAN_PRO if user.role in (User.ROLE_AGENT, User.ROLE_BAILLEUR) else Subscription.PLAN_CLIENT,
+        amount=3000 if user.role in (User.ROLE_AGENT, User.ROLE_BAILLEUR) else 1000,
+        reference=f"SUB-{uuid.uuid4().hex[:12]}",
+        status=Subscription.STATUS_PENDING,
+    )
+    sub.activate_for_30_days()
+    return sub
+
+
 class AgentSearchTests(APITestCase):
-    """Tests 21, 22, 23 (mission finalisation) : GET /api/agents/ — public,
-    filtrable, sans données privées."""
+    """GET /api/agents/ — réservé aux utilisateurs abonnés."""
 
     def setUp(self):
         self.agent_kouassi = _make_agent(
@@ -35,8 +50,21 @@ class AgentSearchTests(APITestCase):
             "+2250711115002", first_name="Kouakou", agency_name="Kouakou Immobilier"
         )
         self.client_user = _make_client("+2250711115003")
+        self.client_unsubscribed = _make_client("+2250711115004")
+        _subscribe(self.client_user)
 
-    def test_list_is_public_and_lists_agents(self):
+    def test_unauthenticated_or_unsubscribed_cannot_search(self):
+        # 1. Non connecté -> 401
+        response = self.client.get("/api/agents/")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        # 2. Connecté mais non abonné -> 403
+        self.client.force_authenticate(user=self.client_unsubscribed)
+        response = self.client.get("/api/agents/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_subscribed_user_can_list_agents(self):
+        self.client.force_authenticate(user=self.client_user)
         response = self.client.get("/api/agents/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         names = [r["first_name"] for r in response.data["results"]]
@@ -44,6 +72,7 @@ class AgentSearchTests(APITestCase):
         self.assertIn("Kouakou", names)
 
     def test_search_filters_by_name(self):
+        self.client.force_authenticate(user=self.client_user)
         response = self.client.get("/api/agents/?search=Kouassi")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         names = [r["first_name"] for r in response.data["results"]]
@@ -51,17 +80,21 @@ class AgentSearchTests(APITestCase):
         self.assertNotIn("Kouakou", names)
 
     def test_search_filters_by_agency_name(self):
+        self.client.force_authenticate(user=self.client_user)
         response = self.client.get("/api/agents/?search=ABC")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         names = [r["first_name"] for r in response.data["results"]]
         self.assertIn("Kouassi", names)
         self.assertNotIn("Kouakou", names)
 
     def test_list_excludes_clients(self):
+        self.client.force_authenticate(user=self.client_user)
         response = self.client.get("/api/agents/")
         names = [r["first_name"] for r in response.data["results"]]
         self.assertNotIn("Client", names)
 
     def test_never_exposes_private_fields(self):
+        self.client.force_authenticate(user=self.client_user)
         response = self.client.get("/api/agents/")
         for agent in response.data["results"]:
             self.assertNotIn("password", agent)
@@ -70,6 +103,7 @@ class AgentSearchTests(APITestCase):
             self.assertNotIn("token", agent)
 
     def test_exposes_only_expected_public_fields(self):
+        self.client.force_authenticate(user=self.client_user)
         response = self.client.get("/api/agents/")
         agent = response.data["results"][0]
         expected = {

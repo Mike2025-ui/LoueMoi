@@ -418,7 +418,12 @@ class _AProposTab extends ConsumerWidget {
     if (!canProceed) return;
 
     final cleanPhone = rawPhone.replaceAll(RegExp(r'[^0-9+]'), '');
-    if (cleanPhone.isEmpty) return;
+    if (cleanPhone.isEmpty) {
+      if (context.mounted) {
+        showErrorSnackbar(context, "Numéro de téléphone non renseigné.");
+      }
+      return;
+    }
     final uri = Uri(scheme: 'tel', path: cleanPhone);
     try {
       if (await canLaunchUrl(uri)) {
@@ -441,7 +446,12 @@ class _AProposTab extends ConsumerWidget {
     if (!canProceed) return;
 
     final cleanPhone = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
-    if (cleanPhone.isEmpty) return;
+    if (cleanPhone.isEmpty) {
+      if (context.mounted) {
+        showErrorSnackbar(context, "Numéro WhatsApp non renseigné.");
+      }
+      return;
+    }
     final message =
         "Bonjour, je vous contacte depuis LoueMoi concernant votre annonce : $propertyTitle";
     final appUri = Uri.parse(
@@ -524,17 +534,26 @@ class _AProposTab extends ConsumerWidget {
     final currentUser = ref.watch(authControllerProvider).valueOrNull;
     final isOwner = currentUser != null && currentUser.id == property.agent.id;
 
+    void showOwnerNotice() {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Vous êtes l'auteur de cette annonce."),
+          backgroundColor: AppColors.primary,
+        ),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         AgentCard(
           agent: property.agent,
-          onMessageTap: isOwner ? null : () => _contactAgent(context, ref),
-          onCallTap: isOwner || property.agent.phone.isEmpty
-              ? null
+          onMessageTap: isOwner ? showOwnerNotice : () => _contactAgent(context, ref),
+          onCallTap: isOwner
+              ? showOwnerNotice
               : () => _callAgent(context, ref, property.agent.phone),
           onWhatsAppTap: isOwner
-              ? null
+              ? showOwnerNotice
               : () => _whatsappAgent(
                     context,
                     ref,
@@ -545,62 +564,59 @@ class _AProposTab extends ConsumerWidget {
                   ),
         ),
         const SizedBox(height: AppSpacing.md),
-        if (!isOwner) ...[
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isCompact = constraints.maxWidth < 340;
-              final visitBtn = ElevatedButton.icon(
-                onPressed: () => _showVisitRequestSheet(context, ref),
-                icon: const Icon(Icons.calendar_month_outlined, size: 18),
-                label: const Text('Visiter ce bien', maxLines: 1, overflow: TextOverflow.ellipsis),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.pill),
-                  ),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isCompact = constraints.maxWidth < 340;
+            final visitBtn = ElevatedButton.icon(
+              onPressed: isOwner ? showOwnerNotice : () => _showVisitRequestSheet(context, ref),
+              icon: const Icon(Icons.calendar_month_outlined, size: 18),
+              label: const Text('Visiter ce bien', maxLines: 1, overflow: TextOverflow.ellipsis),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
                 ),
-              );
+              ),
+            );
 
-              final discussBtn = OutlinedButton.icon(
-                onPressed: () => _contactAgent(context, ref),
-                icon: const Icon(Icons.chat_bubble_outline, size: 18),
-                label: const Text('Discuter', maxLines: 1, overflow: TextOverflow.ellipsis),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.primary,
-                  side: const BorderSide(color: AppColors.primary),
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.pill),
-                  ),
+            final discussBtn = OutlinedButton.icon(
+              onPressed: isOwner ? showOwnerNotice : () => _contactAgent(context, ref),
+              icon: const Icon(Icons.chat_bubble_outline, size: 18),
+              label: const Text('Discuter', maxLines: 1, overflow: TextOverflow.ellipsis),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                side: const BorderSide(color: AppColors.primary),
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
                 ),
-              );
+              ),
+            );
 
-              if (isCompact) {
-                return Column(
-                  children: [
-                    SizedBox(width: double.infinity, child: visitBtn),
-                    const SizedBox(height: AppSpacing.sm),
-                    SizedBox(width: double.infinity, child: discussBtn),
-                  ],
-                );
-              }
-
-              return Row(
+            if (isCompact) {
+              return Column(
                 children: [
-                  Expanded(child: visitBtn),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(child: discussBtn),
+                  SizedBox(width: double.infinity, child: visitBtn),
+                  const SizedBox(height: AppSpacing.sm),
+                  SizedBox(width: double.infinity, child: discussBtn),
                 ],
               );
-            },
-          ),
-          const SizedBox(height: AppSpacing.md),
-          const _SafetyAdviceBanner(),
-          const SizedBox(height: AppSpacing.lg),
-        ] else ...[
+            }
+
+            return Row(
+              children: [
+                Expanded(child: visitBtn),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(child: discussBtn),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: AppSpacing.md),
+        if (isOwner) ...[
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -626,8 +642,10 @@ class _AProposTab extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.md),
         ],
+        const _SafetyAdviceBanner(),
+        const SizedBox(height: AppSpacing.lg),
         const SectionDividerTitle(title: 'Détails'),
         const SizedBox(height: AppSpacing.md),
         const Text('Configuration', style: AppTextStyles.caption),

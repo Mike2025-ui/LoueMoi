@@ -4,7 +4,7 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from accounts.permissions import IsAgent
+from accounts.permissions import HasActiveSubscription, IsAgent
 from messaging.models import Conversation
 from properties.models import Favorite, Property
 from reservations.models import Reservation
@@ -109,7 +109,7 @@ class AgentSearchView(generics.ListAPIView):
     """
 
     serializer_class = AgentSearchSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated, HasActiveSubscription]
 
     def get_queryset(self):
         queryset = User.objects.filter(

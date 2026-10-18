@@ -4,7 +4,7 @@ from rest_framework import generics, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from accounts.permissions import IsBailleur
+from accounts.permissions import HasActiveSubscription, IsBailleur
 from messaging.models import Conversation
 from properties.models import Favorite, Property
 from properties.serializers import PropertySerializer
@@ -95,7 +95,7 @@ class BailleurSearchView(generics.ListAPIView):
     """
 
     serializer_class = BailleurSearchSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated, HasActiveSubscription]
 
     def get_queryset(self):
         queryset = User.objects.filter(role=User.ROLE_BAILLEUR, is_active=True, is_approved=True)

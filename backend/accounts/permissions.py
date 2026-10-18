@@ -47,3 +47,19 @@ class CanOwnProperties(permissions.BasePermission):
             and user.can_own_properties
             and (user.is_approved or user.is_staff)
         )
+
+
+class HasActiveSubscription(permissions.BasePermission):
+    """Autorise uniquement les utilisateurs connectés possédant un abonnement actif (ou administrateurs)."""
+
+    message = "Un abonnement actif est requis pour effectuer cette recherche."
+
+    def has_permission(self, request, view):
+        user = request.user
+        return bool(
+            user
+            and user.is_authenticated
+            and user.is_active
+            and (user.has_active_subscription or user.is_staff)
+        )
+

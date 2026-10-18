@@ -10,6 +10,8 @@ import '../../../core/utils/feedback.dart';
 import '../../../core/utils/media_url.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../../messaging/providers/message_providers.dart';
+import '../../payments/providers/payment_providers.dart';
+import '../../payments/widgets/subscription_modal.dart';
 import '../models/agent_search_result.dart';
 import '../providers/agent_search_providers.dart';
 
@@ -70,6 +72,51 @@ class AgentSearchScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final currentUser = ref.watch(authControllerProvider).valueOrNull;
+    final subStatus = ref.watch(userSubscriptionStatusProvider).valueOrNull;
+    final hasActiveSub = (currentUser?.hasActiveSubscription == true) ||
+        (subStatus?.hasActiveSubscription == true);
+
+    if (currentUser == null) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(title: const Text('Trouver un agent')),
+        body: _LockedSubscriptionView(
+          icon: Icons.lock_outline,
+          title: 'Connexion requise',
+          description:
+              'Veuillez vous connecter pour accéder à l\'annuaire et rechercher les agents immobiliers certifiés.',
+          buttonLabel: 'Se connecter',
+          onPressed: () => context.push(AppRoutes.login),
+        ),
+      );
+    }
+
+    if (!hasActiveSub) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(title: const Text('Trouver un agent')),
+        body: _LockedSubscriptionView(
+          icon: Icons.workspace_premium_outlined,
+          title: 'Abonnement requis',
+          description:
+              'La recherche et la consultation des agents immobiliers sont réservées aux membres abonnés.\n\n'
+              '• Clients : 1 000 FCFA / mois\n'
+              '• Professionnels : 3 000 FCFA / mois',
+          buttonLabel: 'S\'abonner maintenant',
+          onPressed: () async {
+            final isPro = currentUser.isAgent || currentUser.isBailleur;
+            final subscribed = await showSubscriptionModal(context, isPro: isPro);
+            if (subscribed == true) {
+              ref.invalidate(authControllerProvider);
+              ref.invalidate(userSubscriptionStatusProvider);
+              ref.invalidate(agentSearchResultsProvider);
+            }
+          },
+        ),
+      );
+    }
+
     final resultsAsync = ref.watch(agentSearchResultsProvider);
 
     return Scaffold(
@@ -133,12 +180,99 @@ class AgentSearchScreen extends ConsumerWidget {
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => const Center(
-                child: Text('Impossible de charger les agents.', style: AppTextStyles.caption),
+              error: (e, _) => Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.screenPadding),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.lock_person_outlined, size: 40, color: AppColors.primary),
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        e.toString().contains('abonnement')
+                            ? 'Un abonnement actif est requis pour effectuer cette recherche.'
+                            : 'Impossible de charger les agents.',
+                        style: AppTextStyles.caption,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      ElevatedButton(
+                        onPressed: () => ref.invalidate(agentSearchResultsProvider),
+                        child: const Text('Réessayer'),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _LockedSubscriptionView extends StatelessWidget {
+  const _LockedSubscriptionView({
+    required this.title,
+    required this.description,
+    required this.buttonLabel,
+    required this.onPressed,
+    this.icon = Icons.lock_outline,
+  });
+
+  final String title;
+  final String description;
+  final String buttonLabel;
+  final VoidCallback onPressed;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight.withValues(alpha: 0.5),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 48, color: AppColors.primary),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              title,
+              style: AppTextStyles.h2,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              description,
+              style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                ),
+                onPressed: onPressed,
+                child: Text(buttonLabel, style: AppTextStyles.button),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

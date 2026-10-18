@@ -130,6 +130,20 @@ class PropertySerializer(serializers.ModelSerializer):
             expires_at__gt=timezone.now(),
         ).exists()
 
+    def validate_description(self, value):
+        if not value:
+            return value
+        import re
+        # Règle anti-contournement d'abonnement :
+        # Empêche l'agent ou le bailleur d'insérer un numéro de téléphone dans la description.
+        # La description doit contenir uniquement des caractères alphabétiques (pas de chiffres).
+        if re.search(r"\d", value):
+            raise serializers.ValidationError(
+                "La description ne doit contenir aucun chiffre ni numéro de téléphone. "
+                "Utilisez uniquement des caractères alphabétiques."
+            )
+        return value
+
     def validate(self, attrs):
         # Les plages (-90/90, -180/180) sont déjà validées via les
         # validators du modèle (propagés automatiquement par DRF). Ici on
