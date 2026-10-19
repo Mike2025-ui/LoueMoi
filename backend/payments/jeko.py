@@ -37,6 +37,15 @@ def create_payment_request(
     api_url = getattr(settings, "JEKO_API_URL", "https://api.jeko.africa").strip().rstrip("/")
     force_simulation = getattr(settings, "JEKO_SIMULATION_MODE", False)
 
+    # Détection et inversion automatique si JEKO_API_KEY et JEKO_API_KEY_ID ont été intervertis
+    # (Ex: la clé secrète commence par 'jeko_' et l'ID est un UUID ou ne commence pas par 'jeko_')
+    if api_key_id.startswith("jeko_") and not api_key.startswith("jeko_"):
+        logger.warning(
+            "JEKO_API_KEY et JEKO_API_KEY_ID semblent inversés dans le fichier .env. "
+            "Inversion automatique appliquée pour l'authentification Jèko."
+        )
+        api_key, api_key_id = api_key_id, api_key
+
     # Mode simulation si les clés Jèko ne sont pas encore configurées ou si le mode simulation est forcé
     if force_simulation or not (api_key and api_key_id and store_id):
         logger.warning(
