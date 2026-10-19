@@ -106,6 +106,11 @@ class User(AbstractBaseUser, PermissionsMixin):
         if self.role == self.ROLE_CLIENT:
             self.is_verified = False
         super().save(*args, **kwargs)
+        if self.role == self.ROLE_AGENT:
+            profile = getattr(self, "agent_profile", None)
+            if profile and profile.is_verified != self.is_verified:
+                profile.is_verified = self.is_verified
+                profile.save(update_fields=["is_verified"])
 
     @property
     def is_agent(self):

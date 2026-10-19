@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -26,7 +27,9 @@ class ConversationScreen extends ConsumerStatefulWidget {
 
 class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   final _controller = TextEditingController();
+  final _scrollController = ScrollController();
   final _voiceRecorder = VoiceRecorderService();
+  Timer? _pollTimer;
 
   XFile? _stagedImage;
   XFile? _stagedVideo;
@@ -37,7 +40,13 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   @override
   void initState() {
     super.initState();
+    _controller.addListener(() => setState(() {}));
     _markRead();
+    _pollTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (mounted) {
+        ref.invalidate(messagesProvider(widget.conversationId));
+      }
+    });
   }
 
   /// Non bloquant : la conversation reste consultable même si le marquage
@@ -51,9 +60,23 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
 
   @override
   void dispose() {
+    _pollTimer?.cancel();
+    _scrollController.dispose();
     _controller.dispose();
     _voiceRecorder.dispose();
     super.dispose();
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   bool get _hasStagedAttachment =>
@@ -161,6 +184,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       );
       _controller.clear();
       _clearStagedAttachment();
+      _scrollToBottom();
     } catch (e) {
       if (mounted) showErrorSnackbar(context, e);
     } finally {
@@ -168,10 +192,56 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     }
   }
 
+  Future<void> _showAttachmentMenu() async {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md, horizontal: AppSpacing.lg),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _AttachmentOption(
+                  icon: Icons.image_outlined,
+                  color: AppColors.primary,
+                  label: 'Photo',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickImage();
+                  },
+                ),
+                _AttachmentOption(
+                  icon: Icons.videocam_outlined,
+                  color: AppColors.accent,
+                  label: 'Vidéo',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickVideo();
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    ref.listen(messagesProvider(widget.conversationId), (_, next) {
+      _scrollToBottom();
+    });
+
     final messagesAsync = ref.watch(messagesProvider(widget.conversationId));
     final currentUserId = ref.watch(authControllerProvider).valueOrNull?.id;
+    final hasText = _controller.text.trim().isNotEmpty;
+    final canSend = hasText || _hasStagedAttachment;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -188,6 +258,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                   );
                 }
                 return ListView.builder(
+                  controller: _scrollController,
                   padding: const EdgeInsets.all(AppSpacing.screenPadding),
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
@@ -242,43 +313,21 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       IconButton(
-                        onPressed: _hasStagedAttachment || _isRecording ? null : _pickImage,
-                        icon: const Icon(Icons.image_outlined, color: AppColors.textSecondary),
-                        iconSize: 22,
+                        onPressed: _hasStagedAttachment || _isRecording ? null : _showAttachmentMenu,
+                        icon: const Icon(Icons.attach_file, color: AppColors.textSecondary),
+                        iconSize: 24,
                         padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 32, minHeight: 38),
-                        visualDensity: VisualDensity.compact,
-                        tooltip: 'Photo',
+                        constraints: const BoxConstraints(minWidth: 38, minHeight: 42),
+                        tooltip: 'Joindre un fichier',
                       ),
-                      IconButton(
-                        onPressed: _hasStagedAttachment || _isRecording ? null : _pickVideo,
-                        icon: const Icon(Icons.videocam_outlined, color: AppColors.textSecondary),
-                        iconSize: 22,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 32, minHeight: 38),
-                        visualDensity: VisualDensity.compact,
-                        tooltip: 'Vidéo',
-                      ),
-                      IconButton(
-                        onPressed: _hasStagedAttachment && !_isRecording ? null : _toggleRecording,
-                        icon: Icon(
-                          _isRecording ? Icons.stop_circle : Icons.mic_none,
-                          color: _isRecording ? AppColors.danger : AppColors.textSecondary,
-                        ),
-                        iconSize: 22,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 32, minHeight: 38),
-                        visualDensity: VisualDensity.compact,
-                        tooltip: _isRecording ? 'Arrêter' : 'Vocal',
-                      ),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: 2),
                       Expanded(
                         child: Container(
                           constraints: const BoxConstraints(minHeight: 42, maxHeight: 120),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                           decoration: BoxDecoration(
                             color: AppColors.surfaceMuted,
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(22),
                             border: Border.all(color: AppColors.border),
                           ),
                           child: TextField(
@@ -311,20 +360,51 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                         ),
                       ),
                       const SizedBox(width: 6),
-                      InkWell(
-                        onTap: _sending || _isRecording ? null : _send,
-                        borderRadius: BorderRadius.circular(AppRadius.pill),
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          margin: const EdgeInsets.only(bottom: 1),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: _sending ? 0.5 : 1),
-                            shape: BoxShape.circle,
+                      if (_isRecording)
+                        InkWell(
+                          onTap: _toggleRecording,
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                          child: Container(
+                            width: 42,
+                            height: 42,
+                            margin: const EdgeInsets.only(bottom: 1),
+                            decoration: const BoxDecoration(
+                              color: AppColors.danger,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.stop, color: AppColors.white, size: 22),
                           ),
-                          child: const Icon(Icons.send, color: AppColors.white, size: 19),
+                        )
+                      else if (canSend)
+                        InkWell(
+                          onTap: _sending ? null : _send,
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                          child: Container(
+                            width: 42,
+                            height: 42,
+                            margin: const EdgeInsets.only(bottom: 1),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: _sending ? 0.5 : 1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.send, color: AppColors.white, size: 20),
+                          ),
+                        )
+                      else
+                        InkWell(
+                          onTap: _toggleRecording,
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                          child: Container(
+                            width: 42,
+                            height: 42,
+                            margin: const EdgeInsets.only(bottom: 1),
+                            decoration: const BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.mic_none, color: AppColors.white, size: 22),
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ],
@@ -396,6 +476,47 @@ class _StagedAttachmentPreview extends StatelessWidget {
             icon: const Icon(Icons.close, size: 18, color: AppColors.textHint),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AttachmentOption extends StatelessWidget {
+  const _AttachmentOption({
+    required this.icon,
+    required this.color,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 26),
+            ),
+            const SizedBox(height: 8),
+            Text(label, style: AppTextStyles.bodyMedium),
+          ],
+        ),
       ),
     );
   }

@@ -44,12 +44,16 @@ class UserSerializer(serializers.ModelSerializer):
         ]
 
     def get_is_verified(self, user):
-        if user.role == User.ROLE_AGENT:
-            profile = getattr(user, "agent_profile", None)
-            return bool(profile and profile.is_verified)
-        if user.role == User.ROLE_BAILLEUR:
-            return bool(user.is_verified)
-        return False
+        if user.role not in (User.ROLE_AGENT, User.ROLE_BAILLEUR):
+            return False
+        # Badge manuel accordé par l'administrateur
+        if user.is_verified:
+            return True
+        profile = getattr(user, "agent_profile", None)
+        if profile and profile.is_verified:
+            return True
+        # Badge automatique accordé lors d'un abonnement actif
+        return user.has_active_subscription
 
     def update(self, instance, validated_data):
         # Défense en profondeur : rôle et numéro de téléphone strictement immuables
@@ -85,6 +89,21 @@ class RegisterSerializer(serializers.ModelSerializer):
             "password_confirm",
             "role",
         ]
+
+    def validate_phone(self, value):
+        from accounts.sms import normalize_phone_number
+        normalized = normalize_phone_number(value)
+        if not normalized:
+            raise serializers.ValidationError("Numéro de téléphone invalide.")
+        if User.objects.filter(phone=normalized).exists():
+            raise serializers.ValidationError("Ce numéro de téléphone est déjà associé à un compte.")
+        return normalized
+
+    def validate_whatsapp(self, value):
+        if not value:
+            return ""
+        from accounts.sms import normalize_phone_number
+        return normalize_phone_number(value)
 
     def validate(self, attrs):
         if attrs["password"] != attrs.pop("password_confirm"):

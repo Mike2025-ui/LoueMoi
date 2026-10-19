@@ -235,9 +235,9 @@ class PropertyViewSet(viewsets.ModelViewSet):
                 {"detail": "Une annonce accomplie ne peut pas être reconduite."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        if property_obj.status != "annulee":
+        if property_obj.status != "annulee" and not property_obj.is_expired:
             return Response(
-                {"detail": "Seules les annonces annulées peuvent être reconduites."},
+                {"detail": "Seules les annonces annulées ou expirées peuvent être reconduites."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         property_obj.status = "disponible"

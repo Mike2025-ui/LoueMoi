@@ -10,6 +10,7 @@ class Agent extends Equatable {
   final bool isVerified;
   final double rating;
   final bool hasActiveSubscription;
+  final String role;
 
   const Agent({
     required this.id,
@@ -21,13 +22,17 @@ class Agent extends Equatable {
     this.isVerified = false,
     this.rating = 0,
     this.hasActiveSubscription = false,
+    this.role = 'agent',
   });
 
   /// Nom court affiché en en-tête (ex: "Mme Kouakou").
   String get shortName => firstName;
 
   /// Nom complet affiché en sous-titre (ex: "Marie Therese Ange").
-  String get fullName => lastName;
+  String get fullName => '$firstName $lastName'.trim();
+
+  bool get isBailleur => role == 'bailleur';
+  String get roleLabel => isBailleur ? 'Bailleur' : 'Agent immobilier';
 
   factory Agent.fromJson(Map<String, dynamic> json) {
     return Agent(
@@ -40,6 +45,7 @@ class Agent extends Equatable {
       isVerified: json['is_verified'] as bool? ?? false,
       rating: (json['rating'] as num?)?.toDouble() ?? 0,
       hasActiveSubscription: json['has_active_subscription'] as bool? ?? false,
+      role: json['role'] as String? ?? 'agent',
     );
   }
 
@@ -53,6 +59,7 @@ class Agent extends Equatable {
         'is_verified': isVerified,
         'rating': rating,
         'has_active_subscription': hasActiveSubscription,
+        'role': role,
       };
 
   @override
@@ -63,6 +70,7 @@ class Agent extends Equatable {
         phone,
         whatsapp,
         photo,
+        role,
         isVerified,
         rating,
         hasActiveSubscription,

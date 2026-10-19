@@ -44,9 +44,11 @@ class LoginView(APIView):
     throttle_scope = "auth"
 
     def post(self, request):
-        phone = request.data.get("phone")
+        phone = request.data.get("phone", "")
         password = request.data.get("password")
-        user = User.objects.filter(phone=phone).first()
+        from .sms import normalize_phone_number
+        normalized = normalize_phone_number(phone)
+        user = User.objects.filter(phone=normalized).first() or User.objects.filter(phone=phone).first()
         if user is None or not user.check_password(password):
             return Response(
                 {"detail": "Numéro de téléphone ou mot de passe invalide."},
@@ -152,11 +154,13 @@ class PasswordResetRequestView(APIView):
     throttle_scope = "auth"
 
     def post(self, request):
-        phone = request.data.get("phone")
+        phone = request.data.get("phone", "")
         if not phone:
             return Response({"detail": _GENERIC_OTP_REQUEST_DETAIL})
 
-        user = User.objects.filter(phone=phone).first()
+        from .sms import normalize_phone_number
+        normalized_phone = normalize_phone_number(phone)
+        user = User.objects.filter(phone=normalized_phone).first() or User.objects.filter(phone=phone).first()
         if user is None:
             return Response({"detail": _GENERIC_OTP_REQUEST_DETAIL})
 
@@ -172,8 +176,9 @@ class PasswordResetRequestView(APIView):
             return Response({"detail": _GENERIC_OTP_REQUEST_DETAIL})
 
         _otp, code = PasswordResetOTP.generate_for(user)
+        target_phone = normalized_phone or phone
         get_sms_provider().send(
-            phone,
+            target_phone,
             f"Votre code LoueMoi : {code} (valide {PasswordResetOTP.VALIDITY_MINUTES} minutes).",
         )
         return Response({"detail": _GENERIC_OTP_REQUEST_DETAIL})

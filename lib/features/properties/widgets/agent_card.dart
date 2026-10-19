@@ -56,7 +56,7 @@ class AgentCard extends StatelessWidget {
             children: [
               Text(agent.shortName, style: AppTextStyles.bodyMedium),
               Text(agent.fullName, style: AppTextStyles.caption),
-              const Text('Agent immobilier', style: AppTextStyles.small),
+              Text(agent.roleLabel, style: AppTextStyles.small),
             ],
           ),
         ),

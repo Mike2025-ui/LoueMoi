@@ -34,12 +34,13 @@ FilterParams _effectiveFilters(Ref ref) {
 /// chargées et en ajoute une nouvelle via [loadNextPage]. Recréé
 /// automatiquement quand l'onglet Location/Vente ou les filtres changent.
 class PropertiesController extends StateNotifier<AsyncValue<List<Property>>> {
-  PropertiesController(this._repository, this._filters) : super(const AsyncValue.loading()) {
+  PropertiesController(this._repository, this._filters, [this._ref]) : super(const AsyncValue.loading()) {
     _loadFirstPage();
   }
 
   final PropertyRepository _repository;
   final FilterParams _filters;
+  final Ref? _ref;
 
   int _page = 1;
   bool _hasMore = true;
@@ -55,6 +56,9 @@ class PropertiesController extends StateNotifier<AsyncValue<List<Property>>> {
       _page = 1;
       _hasMore = page.hasMore;
       state = AsyncValue.data(page.results);
+      if (_ref != null) {
+        _ref.read(homePropertiesCacheProvider.notifier).state = page.results;
+      }
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }
@@ -71,7 +75,11 @@ class PropertiesController extends StateNotifier<AsyncValue<List<Property>>> {
       final nextPage = await _repository.fetchProperties(filters: _filters, page: _page + 1);
       _page += 1;
       _hasMore = nextPage.hasMore;
-      state = AsyncValue.data([...current, ...nextPage.results]);
+      final combined = [...current, ...nextPage.results];
+      state = AsyncValue.data(combined);
+      if (_ref != null) {
+        _ref.read(homePropertiesCacheProvider.notifier).state = combined;
+      }
     } catch (_) {
       // Erreur non bloquante : l'utilisateur peut re-scroller pour réessayer,
       // la liste déjà chargée reste affichée.
@@ -97,7 +105,7 @@ final propertiesControllerProvider = StateNotifierProvider.autoDispose<Propertie
     AsyncValue<List<Property>>>((ref) {
   final repository = ref.watch(propertyRepositoryProvider);
   final filters = _effectiveFilters(ref);
-  return PropertiesController(repository, filters);
+  return PropertiesController(repository, filters, ref);
 });
 
 /// Liste affichée à l'écran : la pagination de [propertiesControllerProvider],

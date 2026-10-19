@@ -89,11 +89,11 @@ class MyPropertiesScreen extends ConsumerWidget {
     }
   }
 
-  /// "Reconduire un bien" : réservé strictement aux annonces annulées.
+  /// "Reconduire un bien" : réservé aux annonces annulées ou expirées (30 jours).
   Future<void> _renew(BuildContext context, WidgetRef ref, Property property) async {
-    if (property.status != PropertyStatus.annulee) {
+    if (property.status != PropertyStatus.annulee && !property.isExpired) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Seules les annonces annulées peuvent être reconduites.')),
+        const SnackBar(content: Text('Seules les annonces annulées ou expirées peuvent être reconduites.')),
       );
       return;
     }
@@ -327,7 +327,7 @@ class _MyPropertyTile extends StatelessWidget {
             Wrap(
               alignment: WrapAlignment.end,
               children: [
-                if (property.status == PropertyStatus.annulee)
+                if (property.status == PropertyStatus.annulee || property.isExpired)
                   TextButton.icon(
                     onPressed: onRenew,
                     icon: const Icon(Icons.refresh, size: 16, color: AppColors.primary),

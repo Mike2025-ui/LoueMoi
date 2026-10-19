@@ -125,6 +125,12 @@ class MessageListCreateView(generics.ListCreateAPIView):
         if user not in (conversation.client, conversation.agent):
             raise serializers.ValidationError("Vous ne faites pas partie de cette conversation.")
         receiver = conversation.agent if user == conversation.client else conversation.client
+
+        # Un agent ou bailleur ne peut pas envoyer de message à un client sans abonnement actif
+        if user.role in ("agent", "bailleur") and receiver.role == "client":
+            if not user.has_active_subscription:
+                raise PermissionDenied("Un abonnement actif est requis pour contacter ou répondre à un client.")
+
         message = serializer.save(sender=user, receiver=receiver)
 
         # Couvre les trois cas du cahier des charges (bailleur↔agent,

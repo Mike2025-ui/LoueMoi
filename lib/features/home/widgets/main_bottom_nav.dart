@@ -7,8 +7,10 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../auth/providers/auth_providers.dart';
+import '../../filters/models/filter_params.dart';
 import '../../filters/providers/filter_providers.dart';
 import '../../messaging/providers/message_providers.dart';
+import '../../properties/providers/property_providers.dart';
 
 /// Shell de navigation principal : bottom bar + FAB central "+"
 /// (Menu / Favoris / Publier / Réservations / Conversations / Profil), conforme
@@ -39,7 +41,15 @@ class MainBottomNav extends ConsumerWidget {
   ];
 
   void _onTap(WidgetRef ref, int branchIndex) {
-    if (branchIndex == 3) {
+    if (branchIndex == 0) {
+      // Pour réinitialiser les filtres, le menu sert à réinitialiser les filtres
+      ref.read(appliedFilterParamsProvider.notifier).state = null;
+      ref.read(searchQueryProvider.notifier).state = '';
+      ref.read(draftFilterParamsProvider.notifier).state = const FilterParams().copyWith(
+        transactionType: ref.read(homeTransactionTypeProvider),
+      );
+      ref.read(propertiesControllerProvider.notifier).refresh();
+    } else if (branchIndex == 3) {
       ref.invalidate(conversationsProvider);
     }
     navigationShell.goBranch(

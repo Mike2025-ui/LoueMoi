@@ -338,6 +338,16 @@ class ReservationConversationTests(APITestCase):
             property=self.property_obj, user=self.client_user,
             rent=100000, deposit=0, advance=0, status="enCours",
         )
+        from datetime import timedelta
+        from django.utils import timezone
+        from payments.models import Subscription
+        self.subscription = Subscription.objects.create(
+            user=self.bailleur,
+            plan=Subscription.PLAN_PRO,
+            status=Subscription.STATUS_ACTIVE,
+            expires_at=timezone.now() + timedelta(days=30),
+            amount=3000,
+        )
 
     def test_owner_can_open_conversation_with_non_agent_client(self):
         self.client.force_authenticate(user=self.bailleur)
@@ -345,6 +355,13 @@ class ReservationConversationTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["client"], self.client_user.id)
         self.assertEqual(response.data["agent"], self.bailleur.id)
+
+    def test_owner_without_subscription_cannot_open_conversation(self):
+        self.subscription.status = "expired"
+        self.subscription.save()
+        self.client.force_authenticate(user=self.bailleur)
+        response = self.client.post(f"/api/reservations/{self.reservation.id}/conversation/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_calling_twice_reuses_the_same_conversation(self):
         self.client.force_authenticate(user=self.bailleur)

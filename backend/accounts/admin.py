@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
+from django.db import transaction
 
 from .models import PasswordResetOTP, User
 
@@ -9,9 +10,11 @@ class UserAdmin(DjangoUserAdmin):
     ordering = ["-date_joined"]
     list_display = [
         "phone", "first_name", "last_name", "role",
+        "is_approved", "is_verified",
         "is_staff", "is_superuser", "is_active", "last_login", "date_joined",
     ]
-    list_filter = ["role", "is_staff", "is_superuser", "is_active"]
+    list_editable = ["is_approved", "is_verified"]
+    list_filter = ["role", "is_approved", "is_verified", "is_staff", "is_superuser", "is_active"]
     search_fields = ["phone", "first_name", "last_name"]
     fieldsets = (
         (None, {"fields": ("phone", "password")}),
@@ -19,6 +22,10 @@ class UserAdmin(DjangoUserAdmin):
         # C'est ici que l'administration peut créer/promouvoir un agent —
         # jamais possible depuis l'inscription publique côté Flutter.
         ("Rôle", {"fields": ("role",)}),
+        (
+            "Statut & Validation",
+            {"fields": ("is_approved", "is_verified", "activation_requested", "activation_requested_at")},
+        ),
         (
             "Permissions",
             {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")},
@@ -39,6 +46,24 @@ class UserAdmin(DjangoUserAdmin):
             },
         ),
     )
+
+    def delete_model(self, request, obj):
+        """Permet à l'administrateur de supprimer n'importe quel utilisateur dans le dashboard,
+        même s'il possède des annonces ou des réservations protégées par PROTECT."""
+        with transaction.atomic():
+            for prop in obj.properties.all():
+                prop.reservations.all().delete()
+                prop.delete()
+            obj.delete()
+
+    def delete_queryset(self, request, queryset):
+        """Suppression en masse dans le dashboard sans erreur ProtectedError."""
+        with transaction.atomic():
+            for user in queryset:
+                for prop in user.properties.all():
+                    prop.reservations.all().delete()
+                    prop.delete()
+                user.delete()
 
 
 @admin.register(PasswordResetOTP)

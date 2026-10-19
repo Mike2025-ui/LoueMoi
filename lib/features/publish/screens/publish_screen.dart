@@ -87,8 +87,11 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
     }
     try {
       final repository = ref.read(propertyRepositoryProvider);
-      final property = await repository.fetchPropertyById(widget.editPropertyId!);
-      ref.read(publishFormProvider.notifier).state = PublishFormState.fromProperty(property);
+      final property = await repository.fetchPropertyById(
+        widget.editPropertyId!,
+      );
+      ref.read(publishFormProvider.notifier).state =
+          PublishFormState.fromProperty(property);
       setState(() => _loadingInitial = false);
     } catch (e) {
       setState(() {
@@ -112,7 +115,9 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
         if (RegExp(r'\d').hasMatch(form.description)) {
           return 'La description ne doit contenir aucun chiffre ni numéro de téléphone. Utilisez uniquement des caractères alphabétiques.';
         }
-        final price = form.transactionType == TransactionType.vente ? form.price : form.rent;
+        final price = form.transactionType == TransactionType.vente
+            ? form.price
+            : form.rent;
         if (price.trim().isEmpty || (double.tryParse(price) ?? 0) <= 0) {
           return form.transactionType == TransactionType.vente
               ? 'Indiquez un prix de vente valide.'
@@ -129,7 +134,8 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
           if (form.coverImageFile == null) {
             return 'La photo de couverture est obligatoire.';
           }
-          if (form.propertyType != PropertyType.terrain && form.chambreImages.isEmpty) {
+          if (form.propertyType != PropertyType.terrain &&
+              form.chambreImages.isEmpty) {
             return 'Au moins une photo pour la ou les chambre(s) est obligatoire.';
           }
         }
@@ -143,7 +149,9 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
   void _next() {
     final error = _validateStep(_step);
     if (error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error)));
       return;
     }
     if (_step < _totalSteps - 1) {
@@ -165,7 +173,9 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
         title: const Row(
           children: [
             Icon(Icons.calendar_month, color: AppColors.primary),
@@ -179,7 +189,11 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
           children: const [
             Text(
               'Votre annonce sera mise en ligne pour une durée d\'un mois (30 jours).',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppColors.textPrimary),
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                color: AppColors.textPrimary,
+              ),
             ),
             SizedBox(height: 8),
             Text(
@@ -191,15 +205,23 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Vérifier', style: TextStyle(color: AppColors.textSecondary)),
+            child: const Text(
+              'Vérifier',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.sm)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
             ),
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Confirmer et publier', style: TextStyle(color: AppColors.white)),
+            child: const Text(
+              'Confirmer et publier',
+              style: TextStyle(color: AppColors.white),
+            ),
           ),
         ],
       ),
@@ -224,28 +246,38 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
   List<String> _buildFeatures(PublishFormState form) {
     return [
       if (form.propertyType == PropertyType.logement) ...[
-        if (form.chambres.trim().isNotEmpty) '${form.chambres.trim()} chambre(s)',
-        if (form.sallesDeBain.trim().isNotEmpty) '${form.sallesDeBain.trim()} salle(s) de bain',
+        if (form.chambres.trim().isNotEmpty)
+          '${form.chambres.trim()} chambre(s)',
+        if (form.sallesDeBain.trim().isNotEmpty)
+          '${form.sallesDeBain.trim()} salle(s) de bain',
       ],
-      if (form.propertyType == PropertyType.terrain && form.typeTerrain.trim().isNotEmpty)
+      if (form.propertyType == PropertyType.terrain &&
+          form.typeTerrain.trim().isNotEmpty)
         form.typeTerrain.trim(),
       if (form.superficie.trim().isNotEmpty) '${form.superficie.trim()} m²',
     ];
   }
 
   Future<void> _submit() async {
-    if (_submitting) return; // un clic pendant une publication en cours est ignoré
+    if (_submitting) {
+      return; // un clic pendant une publication en cours est ignoré
+    }
     final error = _validateStep(4);
     if (error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error)));
       return;
     }
 
     setState(() => _submitting = true);
     final form = ref.read(publishFormProvider);
     final repository = ref.read(propertyRepositoryProvider);
-    final priceValue = double.tryParse(
-          form.transactionType == TransactionType.vente ? form.price : form.rent,
+    final priceValue =
+        double.tryParse(
+          form.transactionType == TransactionType.vente
+              ? form.price
+              : form.rent,
         ) ??
         0;
     final isLocation = form.transactionType == TransactionType.location;
@@ -275,7 +307,10 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
           'features': _buildFeatures(form),
           'amenities': form.characteristics.toList(),
         };
-        saved = await repository.updateProperty(widget.editPropertyId!, payload);
+        saved = await repository.updateProperty(
+          widget.editPropertyId!,
+          payload,
+        );
       } else if (_createdProperty != null) {
         // Tentative précédente : la propriété a déjà été créée côté serveur
         // mais l'envoi d'une photo avait échoué. On ne recrée jamais la
@@ -293,10 +328,12 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
           category: form.category,
           transactionType: form.transactionType,
           price: priceValue,
-          deposit:
-              isLocation && form.deposit.trim().isNotEmpty ? double.tryParse(form.deposit) : null,
-          advance:
-              isLocation && form.advance.trim().isNotEmpty ? double.tryParse(form.advance) : null,
+          deposit: isLocation && form.deposit.trim().isNotEmpty
+              ? double.tryParse(form.deposit)
+              : null,
+          advance: isLocation && form.advance.trim().isNotEmpty
+              ? double.tryParse(form.advance)
+              : null,
           city: form.city,
           commune: form.commune.trim(),
           district: form.district.trim(),
@@ -349,12 +386,18 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
       ref.invalidate(propertiesControllerProvider);
       ref.invalidate(propertiesListProvider);
       ref.invalidate(myPropertiesProvider);
-      if (_isEditing) ref.invalidate(propertyByIdProvider(widget.editPropertyId!));
+      if (_isEditing) {
+        ref.invalidate(propertyByIdProvider(widget.editPropertyId!));
+      }
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_isEditing ? 'Annonce modifiée avec succès.' : 'Annonce publiée avec succès.'),
+          content: Text(
+            _isEditing
+                ? 'Annonce modifiée avec succès.'
+                : 'Annonce publiée avec succès.',
+          ),
         ),
       );
       context.pop();
@@ -389,7 +432,8 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
   /// on la supprime pour ne pas laisser un brouillon fantôme — jamais en
   /// mode modification, où la propriété existait déjà avant cet écran.
   Future<void> _cancel() async {
-    final hasData = _createdProperty != null ||
+    final hasData =
+        _createdProperty != null ||
         ref.read(publishFormProvider).title.trim().isNotEmpty;
     if (hasData) {
       final confirmed = await showDialog<bool>(
@@ -418,7 +462,9 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
 
     if (!_isEditing && _createdProperty != null) {
       try {
-        await ref.read(propertyRepositoryProvider).deleteProperty(_createdProperty!.id);
+        await ref
+            .read(propertyRepositoryProvider)
+            .deleteProperty(_createdProperty!.id);
       } catch (_) {
         // Best-effort : même si la suppression échoue, on ne bloque jamais
         // l'annulation — l'utilisateur ne doit pas rester coincé ici.
@@ -433,7 +479,9 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
     // (CanOwnProperties sur POST /api/properties/). Un client qui
     // atteindrait quand même cet écran (deep link, etc.) ne doit pas
     // pouvoir publier. Agent et bailleur sont tous deux habilités.
-    final canPublish = ref.watch(authControllerProvider).valueOrNull?.canOwnProperties ?? false;
+    final canPublish =
+        ref.watch(authControllerProvider).valueOrNull?.canOwnProperties ??
+        false;
     if (!canPublish) {
       return Scaffold(
         backgroundColor: AppColors.background,
@@ -442,7 +490,7 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
           child: Padding(
             padding: EdgeInsets.all(AppSpacing.screenPadding),
             child: Text(
-              'La publication d’annonces est réservée aux agents immobiliers.',
+              'La publication d’annonces est réservée aux agents et bailleurs.',
               textAlign: TextAlign.center,
               style: AppTextStyles.caption,
             ),
@@ -454,7 +502,11 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
     if (_loadingInitial) {
       return Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(title: Text(_isEditing ? "Modifier l'annonce" : 'Publier une propriété')),
+        appBar: AppBar(
+          title: Text(
+            _isEditing ? "Modifier l'annonce" : 'Publier une propriété',
+          ),
+        ),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
@@ -476,8 +528,13 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
       child: Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(
-          title: Text(_isEditing ? "Modifier l'annonce" : 'Publier une propriété'),
-          leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: _back),
+          title: Text(
+            _isEditing ? "Modifier l'annonce" : 'Publier une propriété',
+          ),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: _back,
+          ),
         ),
         body: Column(
           children: [
@@ -507,7 +564,11 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: const [
-                            Icon(Icons.event_available, size: 15, color: AppColors.primary),
+                            Icon(
+                              Icons.event_available,
+                              size: 15,
+                              color: AppColors.primary,
+                            ),
                             SizedBox(width: 6),
                             Text(
                               'Validité de l\'annonce : 30 jours (1 mois)',
@@ -565,7 +626,8 @@ class _StepTransactionAndType extends ConsumerWidget {
             value: form.transactionType,
             items: TransactionType.values,
             itemLabel: (v) => v.label,
-            onChanged: (v) => notifier.state = form.copyWith(transactionType: v),
+            onChanged: (v) =>
+                notifier.state = form.copyWith(transactionType: v),
           ),
           const SizedBox(height: AppSpacing.md),
           PublishDropdownField<PropertyType>(
@@ -588,10 +650,10 @@ class _StepTransactionAndType extends ConsumerWidget {
 }
 
 List<String> _categoriesFor(PropertyType type) => switch (type) {
-      PropertyType.logement => AppConstants.logementCategories,
-      PropertyType.terrain => AppConstants.terrainCategories,
-      PropertyType.magasin => AppConstants.magasinCategories,
-    };
+  PropertyType.logement => AppConstants.logementCategories,
+  PropertyType.terrain => AppConstants.terrainCategories,
+  PropertyType.magasin => AppConstants.magasinCategories,
+};
 
 class _StepGeneralInfo extends ConsumerStatefulWidget {
   const _StepGeneralInfo();
@@ -651,7 +713,9 @@ class _StepGeneralInfoState extends ConsumerState<_StepGeneralInfo> {
           const SizedBox(height: AppSpacing.md),
           PublishDropdownField<String>(
             label: 'Catégorie',
-            value: categories.contains(form.category) ? form.category : categories.first,
+            value: categories.contains(form.category)
+                ? form.category
+                : categories.first,
             items: categories,
             itemLabel: (v) => v,
             onChanged: (v) => notifier.state = form.copyWith(category: v),
@@ -662,10 +726,9 @@ class _StepGeneralInfoState extends ConsumerState<_StepGeneralInfo> {
             hint: 'Décrivez le bien en quelques phrases (chiffres interdits)',
             maxLines: 5,
             controller: _descCtrl,
-            inputFormatters: [
-              FilteringTextInputFormatter.deny(RegExp(r'\d')),
-            ],
-            helperText: 'Chiffres interdits pour éviter la divulgation de numéros.',
+            inputFormatters: [FilteringTextInputFormatter.deny(RegExp(r'\d'))],
+            helperText:
+                'Chiffres interdits pour éviter la divulgation de numéros.',
             onChanged: (v) => notifier.state = form.copyWith(description: v),
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -712,7 +775,8 @@ class _StepCharacteristics extends ConsumerStatefulWidget {
   const _StepCharacteristics();
 
   @override
-  ConsumerState<_StepCharacteristics> createState() => _StepCharacteristicsState();
+  ConsumerState<_StepCharacteristics> createState() =>
+      _StepCharacteristicsState();
 }
 
 class _StepCharacteristicsState extends ConsumerState<_StepCharacteristics> {
@@ -760,7 +824,8 @@ class _StepCharacteristicsState extends ConsumerState<_StepCharacteristics> {
                     hint: 'Nombre de chambres',
                     keyboardType: TextInputType.number,
                     controller: _chambresCtrl,
-                    onChanged: (v) => notifier.state = form.copyWith(chambres: v),
+                    onChanged: (v) =>
+                        notifier.state = form.copyWith(chambres: v),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.md),
@@ -770,7 +835,8 @@ class _StepCharacteristicsState extends ConsumerState<_StepCharacteristics> {
                     hint: 'Nombre',
                     keyboardType: TextInputType.number,
                     controller: _sallesCtrl,
-                    onChanged: (v) => notifier.state = form.copyWith(sallesDeBain: v),
+                    onChanged: (v) =>
+                        notifier.state = form.copyWith(sallesDeBain: v),
                   ),
                 ),
               ],
@@ -873,9 +939,14 @@ class _StepLocalisationState extends ConsumerState<_StepLocalisation> {
 
   void _setPosition(double latitude, double longitude) {
     final form = ref.read(publishFormProvider);
-    ref.read(publishFormProvider.notifier).state =
-        form.copyWith(latitude: latitude, longitude: longitude);
-    _mapController.move(LatLng(latitude, longitude), _mapController.camera.zoom);
+    ref.read(publishFormProvider.notifier).state = form.copyWith(
+      latitude: latitude,
+      longitude: longitude,
+    );
+    _mapController.move(
+      LatLng(latitude, longitude),
+      _mapController.camera.zoom,
+    );
   }
 
   Future<void> _useMyPosition() async {
@@ -896,7 +967,9 @@ class _StepLocalisationState extends ConsumerState<_StepLocalisation> {
   Widget build(BuildContext context) {
     final form = ref.watch(publishFormProvider);
     final notifier = ref.read(publishFormProvider.notifier);
-    final center = form.hasLocation ? LatLng(form.latitude!, form.longitude!) : _defaultCenter;
+    final center = form.hasLocation
+        ? LatLng(form.latitude!, form.longitude!)
+        : _defaultCenter;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.screenPadding),
@@ -913,7 +986,10 @@ class _StepLocalisationState extends ConsumerState<_StepLocalisation> {
           AppTextField(
             label: 'Commune',
             hint: 'Commune',
-            suffixIcon: const Icon(Icons.my_location, color: AppColors.textHint),
+            suffixIcon: const Icon(
+              Icons.my_location,
+              color: AppColors.textHint,
+            ),
             controller: _communeCtrl,
             onChanged: (v) => notifier.state = form.copyWith(commune: v),
           ),
@@ -921,7 +997,10 @@ class _StepLocalisationState extends ConsumerState<_StepLocalisation> {
           AppTextField(
             label: 'Quartier',
             hint: 'Quartier',
-            suffixIcon: const Icon(Icons.my_location, color: AppColors.textHint),
+            suffixIcon: const Icon(
+              Icons.my_location,
+              color: AppColors.textHint,
+            ),
             controller: _districtCtrl,
             onChanged: (v) => notifier.state = form.copyWith(district: v),
           ),
@@ -933,7 +1012,10 @@ class _StepLocalisationState extends ConsumerState<_StepLocalisation> {
             onChanged: (v) => notifier.state = form.copyWith(address: v),
           ),
           const SizedBox(height: AppSpacing.lg),
-          const Text('Position sur la carte (optionnel)', style: AppTextStyles.label),
+          const Text(
+            'Position sur la carte (optionnel)',
+            style: AppTextStyles.label,
+          ),
           const SizedBox(height: AppSpacing.xs),
           const Text(
             'Utilisez votre position actuelle ou touchez la carte pour placer le repère.',
@@ -999,16 +1081,25 @@ class _StepPhotos extends ConsumerWidget {
 
   final String? editPropertyId;
 
-  Future<void> _pickCoverPhoto(BuildContext context, WidgetRef ref, PublishFormState form) async {
+  Future<void> _pickCoverPhoto(
+    BuildContext context,
+    WidgetRef ref,
+    PublishFormState form,
+  ) async {
     try {
-      final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85);
+      final picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
       if (picked == null) return;
       final notifier = ref.read(publishFormProvider.notifier);
       notifier.state = form.copyWith(coverImageFile: picked);
     } catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Impossible d'ouvrir la galerie de photos.")),
+          const SnackBar(
+            content: Text("Impossible d'ouvrir la galerie de photos."),
+          ),
         );
       }
     }
@@ -1028,7 +1119,9 @@ class _StepPhotos extends ConsumerWidget {
     } catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Impossible d'ouvrir la galerie de photos.")),
+          const SnackBar(
+            content: Text("Impossible d'ouvrir la galerie de photos."),
+          ),
         );
       }
     }
@@ -1075,12 +1168,16 @@ class _StepPhotos extends ConsumerWidget {
           // 1. Photo de couverture (obligatoire)
           _PhotoCategorySection(
             title: '1. Photo de couverture',
-            subtitle: 'Obligatoire — Image principale qui apparaîtra en premier sur votre annonce.',
+            subtitle:
+                'Obligatoire — Image principale qui apparaîtra en premier sur votre annonce.',
             isRequired: form.existingImages.isEmpty,
-            images: form.coverImageFile != null ? [form.coverImageFile!] : const [],
+            images: form.coverImageFile != null
+                ? [form.coverImageFile!]
+                : const [],
             allowMultiple: false,
             onPick: () => _pickCoverPhoto(context, ref, form),
-            onRemove: (_) => notifier.state = form.copyWith(clearCoverImage: true),
+            onRemove: (_) =>
+                notifier.state = form.copyWith(clearCoverImage: true),
           ),
           const SizedBox(height: AppSpacing.lg),
 
@@ -1097,10 +1194,13 @@ class _StepPhotos extends ConsumerWidget {
               ref: ref,
               form: form,
               currentList: form.chambreImages,
-              onUpdated: (list) => notifier.state = form.copyWith(chambreImages: list),
+              onUpdated: (list) =>
+                  notifier.state = form.copyWith(chambreImages: list),
             ),
             onRemove: (f) => notifier.state = form.copyWith(
-              chambreImages: form.chambreImages.where((img) => img.path != f.path).toList(),
+              chambreImages: form.chambreImages
+                  .where((img) => img.path != f.path)
+                  .toList(),
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -1108,7 +1208,8 @@ class _StepPhotos extends ConsumerWidget {
           // 3. Salon et terrasse (facultative)
           _PhotoCategorySection(
             title: '3. Salon et terrasse',
-            subtitle: 'Facultative — Vous pouvez sélectionner plusieurs photos.',
+            subtitle:
+                'Facultative — Vous pouvez sélectionner plusieurs photos.',
             isRequired: false,
             images: form.salonImages,
             onPick: () => _pickMultiCategoryPhotos(
@@ -1116,10 +1217,13 @@ class _StepPhotos extends ConsumerWidget {
               ref: ref,
               form: form,
               currentList: form.salonImages,
-              onUpdated: (list) => notifier.state = form.copyWith(salonImages: list),
+              onUpdated: (list) =>
+                  notifier.state = form.copyWith(salonImages: list),
             ),
             onRemove: (f) => notifier.state = form.copyWith(
-              salonImages: form.salonImages.where((img) => img.path != f.path).toList(),
+              salonImages: form.salonImages
+                  .where((img) => img.path != f.path)
+                  .toList(),
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -1127,7 +1231,8 @@ class _StepPhotos extends ConsumerWidget {
           // 4. Cuisine (facultative)
           _PhotoCategorySection(
             title: '4. Cuisine',
-            subtitle: 'Facultative — Vous pouvez sélectionner plusieurs photos.',
+            subtitle:
+                'Facultative — Vous pouvez sélectionner plusieurs photos.',
             isRequired: false,
             images: form.cuisineImages,
             onPick: () => _pickMultiCategoryPhotos(
@@ -1135,10 +1240,13 @@ class _StepPhotos extends ConsumerWidget {
               ref: ref,
               form: form,
               currentList: form.cuisineImages,
-              onUpdated: (list) => notifier.state = form.copyWith(cuisineImages: list),
+              onUpdated: (list) =>
+                  notifier.state = form.copyWith(cuisineImages: list),
             ),
             onRemove: (f) => notifier.state = form.copyWith(
-              cuisineImages: form.cuisineImages.where((img) => img.path != f.path).toList(),
+              cuisineImages: form.cuisineImages
+                  .where((img) => img.path != f.path)
+                  .toList(),
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -1146,7 +1254,8 @@ class _StepPhotos extends ConsumerWidget {
           // 5. Salle(s) de bain (facultative)
           _PhotoCategorySection(
             title: '5. Salle(s) de bain',
-            subtitle: 'Facultative — Vous pouvez sélectionner plusieurs photos.',
+            subtitle:
+                'Facultative — Vous pouvez sélectionner plusieurs photos.',
             isRequired: false,
             images: form.salleDeBainImages,
             onPick: () => _pickMultiCategoryPhotos(
@@ -1154,17 +1263,23 @@ class _StepPhotos extends ConsumerWidget {
               ref: ref,
               form: form,
               currentList: form.salleDeBainImages,
-              onUpdated: (list) => notifier.state = form.copyWith(salleDeBainImages: list),
+              onUpdated: (list) =>
+                  notifier.state = form.copyWith(salleDeBainImages: list),
             ),
             onRemove: (f) => notifier.state = form.copyWith(
-              salleDeBainImages: form.salleDeBainImages.where((img) => img.path != f.path).toList(),
+              salleDeBainImages: form.salleDeBainImages
+                  .where((img) => img.path != f.path)
+                  .toList(),
             ),
           ),
 
           // Photos déjà existantes (édition)
           if (form.existingImages.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.lg),
-            const Text('Photos existantes enregistrées', style: AppTextStyles.label),
+            const Text(
+              'Photos existantes enregistrées',
+              style: AppTextStyles.label,
+            ),
             const SizedBox(height: AppSpacing.sm),
             Wrap(
               spacing: AppSpacing.sm,
@@ -1173,7 +1288,8 @@ class _StepPhotos extends ConsumerWidget {
                 for (final url in form.existingImages)
                   _PhotoThumb(
                     child: PropertyImage(url, fit: BoxFit.cover),
-                    onRemove: () => _removeExistingImage(context, ref, form, url),
+                    onRemove: () =>
+                        _removeExistingImage(context, ref, form, url),
                   ),
               ],
             ),
@@ -1220,23 +1336,37 @@ class _PhotoCategorySection extends StatelessWidget {
                   Flexible(
                     child: Text(
                       title,
-                      style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   if (isRequired) ...[
                     const SizedBox(width: 4),
-                    const Text('*', style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.bold)),
+                    const Text(
+                      '*',
+                      style: TextStyle(
+                        color: AppColors.danger,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ],
                 ],
               ),
             ),
             const SizedBox(width: AppSpacing.xs),
             Text(
-              images.isNotEmpty ? '${images.length} photo(s)' : (isRequired ? 'Requis' : 'Optionnel'),
+              images.isNotEmpty
+                  ? '${images.length} photo(s)'
+                  : (isRequired ? 'Requis' : 'Optionnel'),
               style: AppTextStyles.caption.copyWith(
-                color: isRequired && images.isEmpty ? AppColors.danger : AppColors.textSecondary,
-                fontWeight: isRequired && images.isEmpty ? FontWeight.w600 : FontWeight.normal,
+                color: isRequired && images.isEmpty
+                    ? AppColors.danger
+                    : AppColors.textSecondary,
+                fontWeight: isRequired && images.isEmpty
+                    ? FontWeight.w600
+                    : FontWeight.normal,
               ),
             ),
           ],
@@ -1263,24 +1393,34 @@ class _PhotoCategorySection extends StatelessWidget {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(AppRadius.md),
                     border: Border.all(
-                      color: isRequired && images.isEmpty ? AppColors.primary : AppColors.border,
+                      color: isRequired && images.isEmpty
+                          ? AppColors.primary
+                          : AppColors.border,
                     ),
-                    color: isRequired && images.isEmpty ? AppColors.primaryLight.withValues(alpha: 0.15) : AppColors.surfaceMuted,
+                    color: isRequired && images.isEmpty
+                        ? AppColors.primaryLight.withValues(alpha: 0.15)
+                        : AppColors.surfaceMuted,
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
                         Icons.add_photo_alternate_outlined,
-                        color: isRequired && images.isEmpty ? AppColors.primary : AppColors.textHint,
+                        color: isRequired && images.isEmpty
+                            ? AppColors.primary
+                            : AppColors.textHint,
                         size: 26,
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        allowMultiple && images.isNotEmpty ? 'Ajouter' : 'Choisir',
+                        allowMultiple && images.isNotEmpty
+                            ? 'Ajouter'
+                            : 'Choisir',
                         style: TextStyle(
                           fontSize: 11,
-                          color: isRequired && images.isEmpty ? AppColors.primary : AppColors.textHint,
+                          color: isRequired && images.isEmpty
+                              ? AppColors.primary
+                              : AppColors.textHint,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -1305,7 +1445,8 @@ class _VideoPickerSection extends ConsumerStatefulWidget {
   final String? editPropertyId;
 
   @override
-  ConsumerState<_VideoPickerSection> createState() => _VideoPickerSectionState();
+  ConsumerState<_VideoPickerSection> createState() =>
+      _VideoPickerSectionState();
 }
 
 class _VideoPickerSectionState extends ConsumerState<_VideoPickerSection> {
@@ -1364,7 +1505,10 @@ class _VideoPickerSectionState extends ConsumerState<_VideoPickerSection> {
       }
 
       final notifier = ref.read(publishFormProvider.notifier);
-      notifier.state = form.copyWith(newVideo: picked, clearExistingVideoUrl: true);
+      notifier.state = form.copyWith(
+        newVideo: picked,
+        clearExistingVideoUrl: true,
+      );
       if (mounted) setState(() => _processing = false);
     } catch (_) {
       if (mounted) {
@@ -1376,14 +1520,19 @@ class _VideoPickerSectionState extends ConsumerState<_VideoPickerSection> {
     }
   }
 
-  Future<void> _removeExistingVideo(BuildContext context, PublishFormState form) async {
+  Future<void> _removeExistingVideo(
+    BuildContext context,
+    PublishFormState form,
+  ) async {
     if (widget.editPropertyId == null) return;
     setState(() {
       _processing = true;
       _error = null;
     });
     try {
-      await ref.read(propertyRepositoryProvider).deleteVideo(widget.editPropertyId!);
+      await ref
+          .read(propertyRepositoryProvider)
+          .deleteVideo(widget.editPropertyId!);
       final notifier = ref.read(publishFormProvider.notifier);
       notifier.state = form.copyWith(clearExistingVideoUrl: true);
     } catch (e) {
@@ -1429,7 +1578,10 @@ class _VideoPickerSectionState extends ConsumerState<_VideoPickerSection> {
                 child: TextButton.icon(
                   onPressed: () => _pickVideo(form),
                   icon: const Icon(Icons.swap_horiz, size: 16),
-                  label: const Text('Remplacer', overflow: TextOverflow.ellipsis),
+                  label: const Text(
+                    'Remplacer',
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ),
               const SizedBox(width: AppSpacing.xs),
@@ -1438,7 +1590,11 @@ class _VideoPickerSectionState extends ConsumerState<_VideoPickerSection> {
                   onPressed: () => form.newVideo != null
                       ? _removeNewVideo(form)
                       : _removeExistingVideo(context, form),
-                  icon: const Icon(Icons.delete_outline, size: 16, color: AppColors.danger),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    size: 16,
+                    color: AppColors.danger,
+                  ),
                   label: const Text(
                     'Supprimer',
                     overflow: TextOverflow.ellipsis,
@@ -1458,12 +1614,17 @@ class _VideoPickerSectionState extends ConsumerState<_VideoPickerSection> {
               side: const BorderSide(color: AppColors.primary),
               padding: const EdgeInsets.symmetric(vertical: 12),
               minimumSize: const Size.fromHeight(0),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.pill)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+              ),
             ),
           ),
         if (_error != null) ...[
           const SizedBox(height: AppSpacing.xs),
-          Text(_error!, style: const TextStyle(color: AppColors.danger, fontSize: 12)),
+          Text(
+            _error!,
+            style: const TextStyle(color: AppColors.danger, fontSize: 12),
+          ),
         ],
       ],
     );
@@ -1500,7 +1661,11 @@ class _PhotoThumb extends StatelessWidget {
                   color: AppColors.overlayDark,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.close, size: 16, color: AppColors.white),
+                child: const Icon(
+                  Icons.close,
+                  size: 16,
+                  color: AppColors.white,
+                ),
               ),
             ),
           ),
@@ -1516,8 +1681,11 @@ class _StepPreview extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final form = ref.watch(publishFormProvider);
-    final priceValue = double.tryParse(
-          form.transactionType == TransactionType.vente ? form.price : form.rent,
+    final priceValue =
+        double.tryParse(
+          form.transactionType == TransactionType.vente
+              ? form.price
+              : form.rent,
         ) ??
         0;
 
@@ -1533,12 +1701,18 @@ class _StepPreview extends ConsumerWidget {
             decoration: BoxDecoration(
               color: AppColors.primaryLight.withValues(alpha: 0.45),
               borderRadius: BorderRadius.circular(AppRadius.md),
-              border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.25),
+              ),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.info_outline, color: AppColors.primary, size: 22),
+                const Icon(
+                  Icons.info_outline,
+                  color: AppColors.primary,
+                  size: 22,
+                ),
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Column(
@@ -1573,14 +1747,20 @@ class _StepPreview extends ConsumerWidget {
             child: AspectRatio(
               aspectRatio: 1.5,
               child: form.newImages.isNotEmpty
-                  ? Image.file(File(form.newImages.first.path), fit: BoxFit.cover)
+                  ? Image.file(
+                      File(form.newImages.first.path),
+                      fit: BoxFit.cover,
+                    )
                   : form.existingImages.isNotEmpty
-                      ? PropertyImage(form.existingImages.first, fit: BoxFit.cover)
-                      : Container(color: AppColors.surfaceMuted),
+                  ? PropertyImage(form.existingImages.first, fit: BoxFit.cover)
+                  : Container(color: AppColors.surfaceMuted),
             ),
           ),
           const SizedBox(height: AppSpacing.md),
-          Text(form.title.isEmpty ? '(Sans titre)' : form.title, style: AppTextStyles.h3),
+          Text(
+            form.title.isEmpty ? '(Sans titre)' : form.title,
+            style: AppTextStyles.h3,
+          ),
           const SizedBox(height: 4),
           Text(Formatters.price(priceValue), style: AppTextStyles.priceSm),
           const SizedBox(height: 4),
@@ -1591,7 +1771,10 @@ class _StepPreview extends ConsumerWidget {
               const Icon(Icons.location_on, size: 14, color: AppColors.primary),
               const SizedBox(width: 2),
               Expanded(
-                child: Text('${form.commune}, ${form.district}', style: AppTextStyles.small),
+                child: Text(
+                  '${form.commune}, ${form.district}',
+                  style: AppTextStyles.small,
+                ),
               ),
             ],
           ),
@@ -1605,11 +1788,13 @@ class _StepPreview extends ConsumerWidget {
               spacing: AppSpacing.sm,
               runSpacing: AppSpacing.sm,
               children: form.characteristics
-                  .map((c) => Chip(
-                        label: Text(c),
-                        backgroundColor: AppColors.primaryLight,
-                        labelStyle: const TextStyle(color: AppColors.primary),
-                      ))
+                  .map(
+                    (c) => Chip(
+                      label: Text(c),
+                      backgroundColor: AppColors.primaryLight,
+                      labelStyle: const TextStyle(color: AppColors.primary),
+                    ),
+                  )
                   .toList(),
             ),
           ],

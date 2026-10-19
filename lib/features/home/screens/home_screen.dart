@@ -26,6 +26,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final _scrollController = ScrollController();
+  final _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -37,6 +38,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void dispose() {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -59,8 +61,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       });
     });
 
+    ref.listen<String>(searchQueryProvider, (_, next) {
+      if (_searchController.text != next) {
+        _searchController.text = next;
+      }
+    });
+
     final transactionType = ref.watch(homeTransactionTypeProvider);
     final propertiesAsync = ref.watch(propertiesListProvider);
+    final appliedFilters = ref.watch(appliedFilterParamsProvider);
+    final searchQuery = ref.watch(searchQueryProvider);
     final unreadCount =
         ref.watch(unreadNotificationsCountProvider).valueOrNull ?? 0;
 
@@ -141,9 +151,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     child: _TransactionToggleButton(
                       label: 'Location',
                       isActive: transactionType == TransactionType.location,
-                      onTap: () =>
-                          ref.read(homeTransactionTypeProvider.notifier).state =
-                              TransactionType.location,
+                      onTap: () {
+                        ref.read(homeTransactionTypeProvider.notifier).state =
+                            TransactionType.location;
+                        final applied = ref.read(appliedFilterParamsProvider);
+                        if (applied != null && (applied.budgetMin != null || applied.budgetMax != null)) {
+                          ref.read(appliedFilterParamsProvider.notifier).state =
+                              applied.copyWith(clearBudgetMin: true, clearBudgetMax: true);
+                        }
+                      },
                     ),
                   ),
                   const SizedBox(width: AppSpacing.md),
@@ -151,9 +167,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     child: _TransactionToggleButton(
                       label: 'Vente',
                       isActive: transactionType == TransactionType.vente,
-                      onTap: () =>
-                          ref.read(homeTransactionTypeProvider.notifier).state =
-                              TransactionType.vente,
+                      onTap: () {
+                        ref.read(homeTransactionTypeProvider.notifier).state =
+                            TransactionType.vente;
+                        final applied = ref.read(appliedFilterParamsProvider);
+                        if (applied != null && (applied.budgetMin != null || applied.budgetMax != null)) {
+                          ref.read(appliedFilterParamsProvider.notifier).state =
+                              applied.copyWith(clearBudgetMin: true, clearBudgetMax: true);
+                        }
+                      },
                     ),
                   ),
                 ],
@@ -187,6 +209,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: TextField(
+                              controller: _searchController,
                               onChanged: (v) =>
                                   ref.read(searchQueryProvider.notifier).state =
                                       v,
@@ -202,6 +225,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               ),
                             ),
                           ),
+                          if (searchQuery.isNotEmpty)
+                            InkWell(
+                              onTap: () {
+                                _searchController.clear();
+                                ref.read(searchQueryProvider.notifier).state = '';
+                              },
+                              child: const Padding(
+                                padding: EdgeInsets.all(4),
+                                child: Icon(
+                                  Icons.close,
+                                  size: 18,
+                                  color: AppColors.textHint,
+                                ),
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -215,12 +253,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       decoration: BoxDecoration(
                         color: AppColors.surfaceMuted,
                         borderRadius: BorderRadius.circular(AppRadius.pill),
-                        border: Border.all(color: AppColors.border),
+                        border: Border.all(
+                          color: appliedFilters != null ? AppColors.primary : AppColors.border,
+                          width: appliedFilters != null ? 1.5 : 1.0,
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.tune,
-                        size: 20,
-                        color: AppColors.textPrimary,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Icon(
+                            Icons.tune,
+                            size: 20,
+                            color: appliedFilters != null ? AppColors.primary : AppColors.textPrimary,
+                          ),
+                          if (appliedFilters != null)
+                            Positioned(
+                              top: 10,
+                              right: 10,
+                              child: Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: AppColors.primary,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   ),
@@ -261,12 +320,55 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     if (properties.isEmpty) {
                       return ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        children: const [
-                          SizedBox(height: 120),
+                        children: [
+                          const SizedBox(height: 80),
                           Center(
-                            child: Text(
-                              'Aucune propriété trouvée',
-                              style: AppTextStyles.caption,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.search_off_outlined,
+                                    size: 56,
+                                    color: AppColors.textHint,
+                                  ),
+                                  const SizedBox(height: AppSpacing.md),
+                                  const Text(
+                                    'Aucune propriété trouvée',
+                                    style: AppTextStyles.h3,
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: AppSpacing.xs),
+                                  const Text(
+                                    'Modifiez vos critères ou appuyez sur Menu ci-dessous pour tout réinitialiser.',
+                                    style: AppTextStyles.caption,
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: AppSpacing.lg),
+                                  ElevatedButton.icon(
+                                    onPressed: () {
+                                      ref.read(appliedFilterParamsProvider.notifier).state = null;
+                                      ref.read(searchQueryProvider.notifier).state = '';
+                                      _searchController.clear();
+                                      ref.read(propertiesControllerProvider.notifier).refresh();
+                                    },
+                                    icon: const Icon(Icons.refresh, size: 18),
+                                    label: const Text('Réinitialiser les filtres'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primary,
+                                      foregroundColor: AppColors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 20,
+                                        vertical: 12,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(AppRadius.pill),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ],

@@ -18,6 +18,7 @@ class AgentSerializer(serializers.Serializer):
     phone = serializers.CharField()
     whatsapp = serializers.SerializerMethodField()
     photo = serializers.CharField(allow_null=True)
+    role = serializers.CharField()
     is_verified = serializers.SerializerMethodField()
     rating = serializers.SerializerMethodField()
     has_active_subscription = serializers.SerializerMethodField()
@@ -30,12 +31,16 @@ class AgentSerializer(serializers.Serializer):
         return (profile.whatsapp if profile and profile.whatsapp else user.whatsapp)
 
     def get_is_verified(self, user):
-        if getattr(user, "role", "") == "agent":
-            profile = self._profile(user)
-            return bool(profile and profile.is_verified)
-        if getattr(user, "role", "") == "bailleur":
-            return bool(getattr(user, "is_verified", False))
-        return False
+        if getattr(user, "role", "") not in ("agent", "bailleur"):
+            return False
+        # Badge manuel admin
+        if getattr(user, "is_verified", False):
+            return True
+        profile = self._profile(user)
+        if profile and profile.is_verified:
+            return True
+        # Badge automatique accordé lors d'un abonnement actif
+        return self.get_has_active_subscription(user)
 
     def get_rating(self, user):
         profile = self._profile(user)

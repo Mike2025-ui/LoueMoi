@@ -82,6 +82,9 @@ class Property extends Equatable {
   bool get isAccomplie => status == PropertyStatus.accomplie;
   bool get isAnnulee => status == PropertyStatus.annulee;
 
+  /// Annonce dont la durée de publication (30 jours) est dépassée.
+  bool get isExpired => DateTime.now().difference(createdAt).inDays >= 30;
+
   /// Bien non réservable, quelle qu'en soit la raison (loué, vendu, accompli ou annulé).
   bool get isUnavailable => isOccupee || isVendue || isAccomplie || isAnnulee;
 

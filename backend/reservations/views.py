@@ -210,6 +210,9 @@ class ReservationViewSet(viewsets.ModelViewSet):
         if property_obj.agent_id != request.user.id:
             raise PermissionDenied("Seul le propriétaire du bien peut contacter ce client.")
 
+        if request.user.role in ("agent", "bailleur") and not request.user.has_active_subscription:
+            raise PermissionDenied("Un abonnement actif est requis pour contacter ou discuter avec un client.")
+
         conversation = Conversation.objects.filter(
             Q(client=reservation.user, agent=property_obj.agent) |
             Q(client=property_obj.agent, agent=reservation.user)

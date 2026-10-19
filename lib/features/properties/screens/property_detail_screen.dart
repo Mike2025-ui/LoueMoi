@@ -41,7 +41,8 @@ class PropertyDetailScreen extends ConsumerStatefulWidget {
   final String propertyId;
 
   @override
-  ConsumerState<PropertyDetailScreen> createState() => _PropertyDetailScreenState();
+  ConsumerState<PropertyDetailScreen> createState() =>
+      _PropertyDetailScreenState();
 }
 
 class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
@@ -57,7 +58,9 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
   /// s'affiche même si cet appel échoue (déjà vue, hors-ligne...).
   Future<void> _registerView() async {
     try {
-      await ref.read(propertyRepositoryProvider).incrementView(widget.propertyId);
+      await ref
+          .read(propertyRepositoryProvider)
+          .incrementView(widget.propertyId);
     } catch (_) {}
   }
 
@@ -79,14 +82,18 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => const Center(
-          child: Text('Impossible de charger l’annonce.', style: AppTextStyles.caption),
+          child: Text(
+            'Impossible de charger l’annonce.',
+            style: AppTextStyles.caption,
+          ),
         ),
       ),
       bottomNavigationBar: propertyAsync.maybeWhen(
         skipLoadingOnReload: true,
         data: (property) {
           final currentUser = ref.watch(authControllerProvider).valueOrNull;
-          final isOwner = currentUser != null && currentUser.id == property.agent.id;
+          final isOwner =
+              currentUser != null && currentUser.id == property.agent.id;
           if (isOwner) {
             return SafeArea(
               child: Padding(
@@ -105,7 +112,9 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                 ? '/ mois'
                 : '',
             isAvailable: !property.isUnavailable,
-            unavailableLabel: property.isVendue ? 'Propriété vendue' : 'Propriété occupée',
+            unavailableLabel: property.isVendue
+                ? 'Propriété vendue'
+                : 'Propriété occupée',
             onReserve: () {
               final currentUser = ref.read(authControllerProvider).valueOrNull;
               if (currentUser == null) {
@@ -124,7 +133,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                 );
                 return;
               }
-              final reservations = ref.read(reservationsListProvider).valueOrNull ?? [];
+              final reservations =
+                  ref.read(reservationsListProvider).valueOrNull ?? [];
               final alreadyReserved = reservations.any(
                 (r) =>
                     r.propertyId == property.id &&
@@ -153,7 +163,11 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
 }
 
 class _Content extends ConsumerWidget {
-  const _Content({required this.property, required this.tab, required this.onTabChanged});
+  const _Content({
+    required this.property,
+    required this.tab,
+    required this.onTabChanged,
+  });
 
   final Property property;
   final _DetailTab tab;
@@ -179,7 +193,9 @@ class _Content extends ConsumerWidget {
                 context.push(AppRoutes.propertyGalleryPath(property.id)),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.screenPadding,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -199,8 +215,10 @@ class _Content extends ConsumerWidget {
                   children: [
                     StatusBadge.category(property.type.label),
                     Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.sm,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.textSecondary.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(AppRadius.badge),
@@ -208,8 +226,11 @@ class _Content extends ConsumerWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.access_time,
-                              size: 12, color: AppColors.textSecondary),
+                          const Icon(
+                            Icons.access_time,
+                            size: 12,
+                            color: AppColors.textSecondary,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             'il y a ${Formatters.relativeTime(property.createdAt)}',
@@ -244,7 +265,11 @@ class _Content extends ConsumerWidget {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    const Icon(Icons.location_on, size: 16, color: AppColors.primary),
+                    const Icon(
+                      Icons.location_on,
+                      size: 16,
+                      color: AppColors.primary,
+                    ),
                     const SizedBox(width: 4),
                     Text(property.locationLabel, style: AppTextStyles.caption),
                   ],
@@ -289,7 +314,9 @@ class _Content extends ConsumerWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.screenPadding,
+            ),
             child: switch (tab) {
               _DetailTab.apropos => _AProposTab(property: property),
               _DetailTab.gallerie => _GallerieTab(property: property),
@@ -304,7 +331,11 @@ class _Content extends ConsumerWidget {
 }
 
 class _TabButton extends StatelessWidget {
-  const _TabButton({required this.label, required this.isActive, required this.onTap});
+  const _TabButton({
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+  });
 
   final String label;
   final bool isActive;
@@ -316,10 +347,15 @@ class _TabButton extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppRadius.pill),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 10),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: 10,
+        ),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppRadius.pill),
-          border: Border.all(color: isActive ? AppColors.primary : AppColors.border),
+          border: Border.all(
+            color: isActive ? AppColors.primary : AppColors.border,
+          ),
         ),
         // Centré + ellipsis en filet de sécurité : maintenant que le bouton
         // occupe une largeur partagée (Expanded) plutôt que sa largeur
@@ -351,7 +387,9 @@ class _AProposTab extends ConsumerWidget {
     if (currentUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Veuillez vous connecter pour contacter le propriétaire.'),
+          content: const Text(
+            'Veuillez vous connecter pour contacter le propriétaire.',
+          ),
           backgroundColor: AppColors.primary,
           action: SnackBarAction(
             label: 'Se connecter',
@@ -364,7 +402,8 @@ class _AProposTab extends ConsumerWidget {
     }
 
     // 1. Si le propriétaire (agent ou bailleur) possède un abonnement : gratuit pour les clients !
-    if (property.ownerHasActiveSubscription || property.agent.hasActiveSubscription) {
+    if (property.ownerHasActiveSubscription ||
+        property.agent.hasActiveSubscription) {
       return true;
     }
 
@@ -413,7 +452,11 @@ class _AProposTab extends ConsumerWidget {
     }
   }
 
-  Future<void> _callAgent(BuildContext context, WidgetRef ref, String rawPhone) async {
+  Future<void> _callAgent(
+    BuildContext context,
+    WidgetRef ref,
+    String rawPhone,
+  ) async {
     final canProceed = await _ensureCanContact(context, ref);
     if (!canProceed) return;
 
@@ -429,7 +472,10 @@ class _AProposTab extends ConsumerWidget {
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri);
       } else if (context.mounted) {
-        showErrorSnackbar(context, "Impossible de lancer l'appel téléphonique.");
+        showErrorSnackbar(
+          context,
+          "Impossible de lancer l'appel téléphonique.",
+        );
       }
     } catch (e) {
       if (context.mounted) showErrorSnackbar(context, e);
@@ -477,7 +523,10 @@ class _AProposTab extends ConsumerWidget {
     }
   }
 
-  Future<void> _showVisitRequestSheet(BuildContext context, WidgetRef ref) async {
+  Future<void> _showVisitRequestSheet(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
     final canProceed = await _ensureCanContact(context, ref);
     if (!canProceed) return;
 
@@ -501,7 +550,8 @@ class _AProposTab extends ConsumerWidget {
               agentId: property.agent.id,
               propertyId: property.id,
             );
-            final visitMessage = '📅 Demande de visite — ${property.title}\n'
+            final visitMessage =
+                '📅 Demande de visite — ${property.title}\n'
                 '🗓 Date souhaitée : $dateStr\n'
                 '⏰ Créneau : $slot'
                 '${note.isNotEmpty ? '\n💬 Note : $note' : ''}';
@@ -513,7 +563,9 @@ class _AProposTab extends ConsumerWidget {
             if (!context.mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Votre demande de visite a été envoyée avec succès.'),
+                content: Text(
+                  'Votre demande de visite a été envoyée avec succès.',
+                ),
                 backgroundColor: AppColors.success,
               ),
             );
@@ -548,33 +600,44 @@ class _AProposTab extends ConsumerWidget {
       children: [
         AgentCard(
           agent: property.agent,
-          onMessageTap: isOwner ? showOwnerNotice : () => _contactAgent(context, ref),
+          onMessageTap: isOwner
+              ? showOwnerNotice
+              : () => _contactAgent(context, ref),
           onCallTap: isOwner
               ? showOwnerNotice
               : () => _callAgent(context, ref, property.agent.phone),
           onWhatsAppTap: isOwner
               ? showOwnerNotice
               : () => _whatsappAgent(
-                    context,
-                    ref,
-                    property.agent.whatsapp.isNotEmpty
-                        ? property.agent.whatsapp
-                        : property.agent.phone,
-                    property.title,
-                  ),
+                  context,
+                  ref,
+                  property.agent.whatsapp.isNotEmpty
+                      ? property.agent.whatsapp
+                      : property.agent.phone,
+                  property.title,
+                ),
         ),
         const SizedBox(height: AppSpacing.md),
         LayoutBuilder(
           builder: (context, constraints) {
             final isCompact = constraints.maxWidth < 340;
             final visitBtn = ElevatedButton.icon(
-              onPressed: isOwner ? showOwnerNotice : () => _showVisitRequestSheet(context, ref),
+              onPressed: isOwner
+                  ? showOwnerNotice
+                  : () => _showVisitRequestSheet(context, ref),
               icon: const Icon(Icons.calendar_month_outlined, size: 18),
-              label: const Text('Visiter ce bien', maxLines: 1, overflow: TextOverflow.ellipsis),
+              label: const Text(
+                'Visiter ce bien',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: AppColors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 8,
+                ),
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -583,13 +646,22 @@ class _AProposTab extends ConsumerWidget {
             );
 
             final discussBtn = OutlinedButton.icon(
-              onPressed: isOwner ? showOwnerNotice : () => _contactAgent(context, ref),
+              onPressed: isOwner
+                  ? showOwnerNotice
+                  : () => _contactAgent(context, ref),
               icon: const Icon(Icons.chat_bubble_outline, size: 18),
-              label: const Text('Discuter', maxLines: 1, overflow: TextOverflow.ellipsis),
+              label: const Text(
+                'Discuter',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.primary,
                 side: const BorderSide(color: AppColors.primary),
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 8,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppRadius.pill),
                 ),
@@ -623,7 +695,9 @@ class _AProposTab extends ConsumerWidget {
             decoration: BoxDecoration(
               color: AppColors.primaryLight.withValues(alpha: 0.4),
               borderRadius: BorderRadius.circular(AppRadius.md),
-              border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.3),
+              ),
             ),
             child: const Row(
               children: [
@@ -765,18 +839,30 @@ class _AvisTab extends ConsumerWidget {
                   const Icon(Icons.star, size: 16, color: Colors.amber),
                   const SizedBox(width: 2),
                   Text(
-                    (reviewsAsync.value!.fold<double>(0.0, (s, r) => s + r.rating) /
+                    (reviewsAsync.value!.fold<double>(
+                              0.0,
+                              (s, r) => s + r.rating,
+                            ) /
                             reviewsAsync.value!.length)
                         .toStringAsFixed(1),
-                    style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold),
+                    style: AppTextStyles.caption.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  Text(' (${reviewsAsync.value!.length})', style: AppTextStyles.caption),
+                  Text(
+                    ' (${reviewsAsync.value!.length})',
+                    style: AppTextStyles.caption,
+                  ),
                 ],
               ],
             ),
             TextButton.icon(
               onPressed: () => _showAddReviewSheet(context, ref, property),
-              icon: const Icon(Icons.star_outline, size: 16, color: AppColors.primary),
+              icon: const Icon(
+                Icons.star_outline,
+                size: 16,
+                color: AppColors.primary,
+              ),
               label: const Text('Donner mon avis', style: AppTextStyles.link),
             ),
           ],
@@ -789,16 +875,23 @@ class _AvisTab extends ConsumerWidget {
               return const Padding(
                 padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
                 child: Center(
-                  child: Text('Aucun avis pour le moment. Soyez le premier à donner votre avis !',
-                      style: AppTextStyles.caption),
+                  child: Text(
+                    'Aucun avis pour le moment. Soyez le premier à donner votre avis !',
+                    style: AppTextStyles.caption,
+                  ),
                 ),
               );
             }
             return Column(
               children: reviews
-                  .map((r) => Column(
-                        children: [ReviewCard(review: r), const Divider()],
-                      ))
+                  .map(
+                    (r) => Column(
+                      children: [
+                        ReviewCard(review: r),
+                        const Divider(),
+                      ],
+                    ),
+                  )
                   .toList(),
             );
           },
@@ -808,25 +901,38 @@ class _AvisTab extends ConsumerWidget {
           ),
           error: (e, _) => const Padding(
             padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
-            child: Text('Impossible de charger les avis.', style: AppTextStyles.caption),
+            child: Text(
+              'Impossible de charger les avis.',
+              style: AppTextStyles.caption,
+            ),
           ),
         ),
       ],
     );
   }
 
-  void _showAddReviewSheet(BuildContext context, WidgetRef ref, Property property) {
+  void _showAddReviewSheet(
+    BuildContext context,
+    WidgetRef ref,
+    Property property,
+  ) {
     final currentUser = ref.read(authControllerProvider).valueOrNull;
     if (currentUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez vous connecter pour laisser un avis.')),
+        const SnackBar(
+          content: Text('Veuillez vous connecter pour laisser un avis.'),
+        ),
       );
       return;
     }
 
     if (currentUser.id == property.agent.id) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vous ne pouvez pas laisser d\'avis sur votre propre annonce.')),
+        const SnackBar(
+          content: Text(
+            'Vous ne pouvez pas laisser d\'avis sur votre propre annonce.',
+          ),
+        ),
       );
       return;
     }
@@ -850,7 +956,9 @@ class _AvisTab extends ConsumerWidget {
                 left: AppSpacing.screenPadding,
                 right: AppSpacing.screenPadding,
                 top: AppSpacing.lg,
-                bottom: MediaQuery.of(sheetContext).viewInsets.bottom + AppSpacing.lg,
+                bottom:
+                    MediaQuery.of(sheetContext).viewInsets.bottom +
+                    AppSpacing.lg,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -873,10 +981,14 @@ class _AvisTab extends ConsumerWidget {
                             final starNum = index + 1;
                             return IconButton(
                               iconSize: 36,
-                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
                               constraints: const BoxConstraints(),
                               icon: Icon(
-                                starNum <= selectedRating ? Icons.star : Icons.star_border,
+                                starNum <= selectedRating
+                                    ? Icons.star
+                                    : Icons.star_border,
                                 color: Colors.amber,
                               ),
                               onPressed: () {
@@ -894,7 +1006,9 @@ class _AvisTab extends ConsumerWidget {
                             2 => '⭐⭐ 2/5 - Passable',
                             _ => '⭐ 1/5 - Décevant',
                           },
-                          style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold),
+                          style: AppTextStyles.caption.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),
@@ -922,18 +1036,28 @@ class _AvisTab extends ConsumerWidget {
                         await addReview(
                           ref,
                           propertyId: property.id,
-                          comment: comment.isEmpty ? 'Avis laissé sans commentaire écrit' : comment,
+                          comment: comment.isEmpty
+                              ? 'Avis laissé sans commentaire écrit'
+                              : comment,
                           rating: selectedRating.toDouble(),
                         );
-                        if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+                        if (sheetContext.mounted) {
+                          Navigator.of(sheetContext).pop();
+                        }
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Merci ! Votre avis a bien été publié.')),
+                            const SnackBar(
+                              content: Text(
+                                'Merci ! Votre avis a bien été publié.',
+                              ),
+                            ),
                           );
                         }
                       } catch (e) {
                         setSheetState(() => isSubmitting = false);
-                        if (statefulContext.mounted) showErrorSnackbar(statefulContext, e);
+                        if (statefulContext.mounted) {
+                          showErrorSnackbar(statefulContext, e);
+                        }
                       }
                     },
                   ),
@@ -999,10 +1123,12 @@ class _VisitRequestSheetState extends State<_VisitRequestSheet> {
     final tomorrow = now.add(const Duration(days: 1));
     final afterTomorrow = now.add(const Duration(days: 2));
 
-    final isTomorrow = _selectedDate.year == tomorrow.year &&
+    final isTomorrow =
+        _selectedDate.year == tomorrow.year &&
         _selectedDate.month == tomorrow.month &&
         _selectedDate.day == tomorrow.day;
-    final isAfterTomorrow = _selectedDate.year == afterTomorrow.year &&
+    final isAfterTomorrow =
+        _selectedDate.year == afterTomorrow.year &&
         _selectedDate.month == afterTomorrow.month &&
         _selectedDate.day == afterTomorrow.day;
     final isCustom = !isTomorrow && !isAfterTomorrow;
@@ -1082,8 +1208,12 @@ class _VisitRequestSheetState extends State<_VisitRequestSheet> {
                   selectedColor: AppColors.primaryLight,
                   labelStyle: TextStyle(
                     fontSize: 13,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                    color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                    fontWeight: isSelected
+                        ? FontWeight.w600
+                        : FontWeight.normal,
+                    color: isSelected
+                        ? AppColors.primary
+                        : AppColors.textPrimary,
                   ),
                   onSelected: (selected) {
                     if (selected) setState(() => _selectedSlot = slot);
@@ -1092,7 +1222,10 @@ class _VisitRequestSheetState extends State<_VisitRequestSheet> {
               }).toList(),
             ),
             const SizedBox(height: AppSpacing.sm),
-            const Text('Message ou question (facultatif)', style: AppTextStyles.bodyMedium),
+            const Text(
+              'Message ou question (facultatif)',
+              style: AppTextStyles.bodyMedium,
+            ),
             const SizedBox(height: AppSpacing.xs),
             TextField(
               controller: _noteController,
@@ -1191,26 +1324,41 @@ class _InstallationBudgetCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.account_balance_wallet_outlined, size: 20, color: AppColors.primary),
+              const Icon(
+                Icons.account_balance_wallet_outlined,
+                size: 20,
+                color: AppColors.primary,
+              ),
               const SizedBox(width: AppSpacing.xs),
               Expanded(
                 child: Text(
                   isLocation ? 'À prévoir pour entrer' : 'Détails financiers',
-                  style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold),
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: AppSpacing.md),
           if (isLocation) ...[
-            _BudgetRow(label: '1er mois de loyer', amount: Formatters.price(property.price)),
+            _BudgetRow(
+              label: '1er mois de loyer',
+              amount: Formatters.price(property.price),
+            ),
             if (property.deposit != null && property.deposit! > 0) ...[
               const SizedBox(height: AppSpacing.xs),
-              _BudgetRow(label: 'Caution', amount: Formatters.price(property.deposit!)),
+              _BudgetRow(
+                label: 'Caution',
+                amount: Formatters.price(property.deposit!),
+              ),
             ],
             if (property.advance != null && property.advance! > 0) ...[
               const SizedBox(height: AppSpacing.xs),
-              _BudgetRow(label: 'Avance sur loyer', amount: Formatters.price(property.advance!)),
+              _BudgetRow(
+                label: 'Avance sur loyer',
+                amount: Formatters.price(property.advance!),
+              ),
             ],
             const Divider(height: AppSpacing.lg),
             _BudgetRow(
@@ -1272,13 +1420,19 @@ class _SimilarPropertiesSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final all = ref.watch(homePropertiesCacheProvider);
+    final cached = ref.watch(homePropertiesCacheProvider);
+    final all = cached.isNotEmpty
+        ? cached
+        : (ref.watch(propertiesListProvider).valueOrNull ?? const []);
     final similar = all
-        .where((p) =>
-            p.id != currentProperty.id &&
-            !p.isUnavailable &&
-            (p.commune.toLowerCase() == currentProperty.commune.toLowerCase() ||
-                p.category == currentProperty.category))
+        .where(
+          (p) =>
+              p.id != currentProperty.id &&
+              !p.isUnavailable &&
+              (p.commune.toLowerCase() ==
+                      currentProperty.commune.toLowerCase() ||
+                  p.category == currentProperty.category),
+        )
         .take(5)
         .toList();
 
@@ -1295,11 +1449,13 @@ class _SimilarPropertiesSection extends ConsumerWidget {
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: similar.length,
-            separatorBuilder: (context, index) => const SizedBox(width: AppSpacing.sm),
+            separatorBuilder: (context, index) =>
+                const SizedBox(width: AppSpacing.sm),
             itemBuilder: (context, index) {
               final item = similar[index];
               return InkWell(
-                onTap: () => context.push(AppRoutes.propertyDetailPath(item.id)),
+                onTap: () =>
+                    context.push(AppRoutes.propertyDetailPath(item.id)),
                 borderRadius: BorderRadius.circular(AppRadius.md),
                 child: Container(
                   width: 170,
@@ -1312,12 +1468,16 @@ class _SimilarPropertiesSection extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       ClipRRect(
-                        borderRadius:
-                            const BorderRadius.vertical(top: Radius.circular(AppRadius.md)),
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(AppRadius.md),
+                        ),
                         child: SizedBox(
                           height: 100,
                           width: double.infinity,
-                          child: PropertyImage(item.coverImage, fit: BoxFit.cover),
+                          child: PropertyImage(
+                            item.coverImage,
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
                       Padding(
@@ -1337,7 +1497,9 @@ class _SimilarPropertiesSection extends ConsumerWidget {
                             const SizedBox(height: 2),
                             Text(
                               item.title,
-                              style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.w600),
+                              style: AppTextStyles.caption.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -1361,4 +1523,3 @@ class _SimilarPropertiesSection extends ConsumerWidget {
     );
   }
 }
-
