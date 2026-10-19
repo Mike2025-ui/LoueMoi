@@ -102,7 +102,7 @@ class User(AbstractBaseUser, PermissionsMixin):
                 if orig["role"] in (self.ROLE_CLIENT, self.ROLE_AGENT, self.ROLE_BAILLEUR):
                     self.role = orig["role"]
                 self.phone = orig["phone"]
-        # Seuls les agents et bailleurs peuvent avoir un badge de certification
+        # Seuls les agents et bailleurs peuvent avoir un badge de certification manuel
         if self.role == self.ROLE_CLIENT:
             self.is_verified = False
         super().save(*args, **kwargs)
@@ -133,6 +133,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def has_active_subscription(self):
         """Indique si l'utilisateur possède un abonnement actif non expiré."""
+        if not self.pk:
+            return False
         from django.utils import timezone
         return self.subscriptions.filter(
             status="active",

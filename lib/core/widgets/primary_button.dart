@@ -12,39 +12,45 @@ class PrimaryButton extends StatelessWidget {
     required this.onPressed,
     this.isLoading = false,
     this.enabled = true,
+    this.backgroundColor,
+    this.textColor,
   });
 
   final String label;
   final VoidCallback? onPressed;
   final bool isLoading;
   final bool enabled;
+  final Color? backgroundColor;
+  final Color? textColor;
 
   @override
   Widget build(BuildContext context) {
     final disabled = !enabled || isLoading;
+    final bg = backgroundColor ?? AppColors.primary;
+    final fg = textColor ?? AppColors.textOnPrimary;
+
     return SizedBox(
       width: double.infinity,
       height: AppSizes.buttonHeight,
       child: ElevatedButton(
         onPressed: disabled ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
+          backgroundColor: bg,
+          foregroundColor: fg,
+          disabledBackgroundColor: bg.withValues(alpha: 0.5),
+          disabledForegroundColor: fg.withValues(alpha: 0.7),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.pill),
           ),
           elevation: 0,
         ),
         child: isLoading
-            ? const SizedBox(
+            ? SizedBox(
                 width: 22,
                 height: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  color: AppColors.textOnPrimary,
-                ),
+                child: CircularProgressIndicator(strokeWidth: 2.5, color: fg),
               )
-            : Text(label, style: AppTextStyles.button),
+            : Text(label, style: AppTextStyles.button.copyWith(color: fg)),
       ),
     );
   }

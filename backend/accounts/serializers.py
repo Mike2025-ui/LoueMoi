@@ -44,16 +44,22 @@ class UserSerializer(serializers.ModelSerializer):
         ]
 
     def get_is_verified(self, user):
-        if user.role not in (User.ROLE_AGENT, User.ROLE_BAILLEUR):
+        from django.utils import timezone
+        now = timezone.now()
+        # 1. Tout utilisateur avec un abonnement actif bénéficie du badge certifié
+        if hasattr(user, "subscriptions") and user.subscriptions.filter(status="active", expires_at__gt=now).exists():
+            return True
+        # 2. Après expiration d'un abonnement, le badge est révoqué
+        if hasattr(user, "subscriptions") and user.subscriptions.filter(status__in=["active", "expired"]).exists():
             return False
-        # Badge manuel accordé par l'administrateur
-        if user.is_verified:
-            return True
-        profile = getattr(user, "agent_profile", None)
-        if profile and profile.is_verified:
-            return True
-        # Badge automatique accordé lors d'un abonnement actif
-        return user.has_active_subscription
+        # 3. Badge accordé manuellement par l'administration (agents et bailleurs)
+        if user.role in (User.ROLE_AGENT, User.ROLE_BAILLEUR):
+            if user.is_verified:
+                return True
+            profile = getattr(user, "agent_profile", None)
+            if profile and profile.is_verified:
+                return True
+        return False
 
     def update(self, instance, validated_data):
         # Défense en profondeur : rôle et numéro de téléphone strictement immuables

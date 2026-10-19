@@ -74,6 +74,10 @@ class Subscription(models.Model):
     )
     started_at = models.DateTimeField(null=True, blank=True)
     expires_at = models.DateTimeField(null=True, blank=True)
+    expiry_warning_sent = models.BooleanField(
+        default=False,
+        help_text="Alerte envoyée 5 jours avant expiration",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -103,7 +107,7 @@ class Subscription(models.Model):
 
     def activate_for_30_days(self):
         """Active ou renouvelle l'abonnement pour une période de 30 jours,
-        et attribue automatiquement le badge de vérification."""
+        et attribue automatiquement le badge de vérification à l'utilisateur."""
         now = timezone.now()
         if self.expires_at and self.expires_at > now:
             self.expires_at = self.expires_at + timedelta(days=30)
@@ -112,9 +116,10 @@ class Subscription(models.Model):
             self.expires_at = now + timedelta(days=30)
 
         self.status = self.STATUS_ACTIVE
-        self.save(update_fields=["status", "started_at", "expires_at", "updated_at"])
+        self.expiry_warning_sent = False
+        self.save(update_fields=["status", "started_at", "expires_at", "expiry_warning_sent", "updated_at"])
 
-        # Attribution automatique du badge de vérification (agents et bailleurs abonnés)
+        # Attribution automatique du badge de vérification (agents et bailleurs abonnés en base)
         user = self.user
         if user.role in (user.ROLE_AGENT, user.ROLE_BAILLEUR):
             user.is_verified = True
@@ -123,4 +128,23 @@ class Subscription(models.Model):
             if hasattr(user, "agent_profile"):
                 profile = user.agent_profile
                 profile.is_verified = True
+                profile.save(update_fields=["is_verified"])
+
+    def expire_and_revoke(self):
+        """Marque l'abonnement comme expiré et retire le badge si aucun autre abonnement actif."""
+        self.status = self.STATUS_EXPIRED
+        self.save(update_fields=["status", "updated_at"])
+
+        user = self.user
+        has_other_active = user.subscriptions.filter(
+            status=self.STATUS_ACTIVE,
+            expires_at__gt=timezone.now(),
+        ).exclude(pk=self.pk).exists()
+
+        if not has_other_active and user.role in (user.ROLE_AGENT, user.ROLE_BAILLEUR):
+            user.is_verified = False
+            user.save(update_fields=["is_verified"])
+            if hasattr(user, "agent_profile"):
+                profile = user.agent_profile
+                profile.is_verified = False
                 profile.save(update_fields=["is_verified"])

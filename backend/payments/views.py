@@ -3,7 +3,7 @@ import logging
 import uuid
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import permissions, status
@@ -47,8 +47,10 @@ class CreateSubscriptionView(APIView):
         reference = f"SUB-{uuid.uuid4().hex[:10].upper()}"
 
         base_url = request.build_absolute_uri("/").rstrip("/")
-        success_url = f"{base_url}/api/payments/redirect/success/?ref={reference}"
-        error_url = f"{base_url}/api/payments/redirect/error/?ref={reference}"
+        web_app_url = getattr(settings, "WEB_APP_URL", "https://transfert-online.site").rstrip("/")
+        success_url = f"{web_app_url}/?payment=success&ref={reference}"
+        error_url = f"{web_app_url}/?payment=error&ref={reference}"
+        checkout_url = f"{base_url}/api/payments/checkout/simulate/?ref={reference}"
 
         try:
             jeko_res = create_payment_request(
@@ -58,6 +60,7 @@ class CreateSubscriptionView(APIView):
                 success_url=success_url,
                 error_url=error_url,
                 payer_phone=payer_phone,
+                checkout_url=checkout_url,
             )
         except JekoClientError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -254,14 +257,41 @@ def jeko_webhook(request):
     return JsonResponse({"received": True}, status=200)
 
 
-def redirect_success(request):
-    """Page de retour de succès après paiement Jèko."""
+def simulate_checkout(request):
+    """Portail de simulation de paiement Mobile Money.
+
+    Ne valide JAMAIS un paiement automatiquement : l'utilisateur doit
+    explicitement confirmer la transaction avant qu'elle ne soit validée.
+    Après confirmation ou annulation, l'utilisateur est redirigé vers l'application web.
+    """
     ref = request.GET.get("ref", "")
-    # Mode simulation locale : activation automatique si préfixe sim_ ou simulent
-    if ref:
-        sub = Subscription.objects.filter(reference=ref).first()
-        if sub and getattr(settings, "DEBUG", False):
-            sub.activate_for_30_days()
+    sub = Subscription.objects.filter(reference=ref).first()
+    web_app_url = getattr(settings, "WEB_APP_URL", "https://transfert-online.site").rstrip("/")
+
+    if not sub:
+        return HttpResponseRedirect(f"{web_app_url}/?payment=error&reason=not_found")
+
+    action = request.POST.get("action") or request.GET.get("action")
+    if action == "confirm":
+        sub.activate_for_30_days()
+        logger.info(f"[Simulation] Paiement confirmé pour {sub.reference}. Abonnement activé.")
+        return HttpResponseRedirect(f"{web_app_url}/?payment=success&ref={ref}")
+    elif action == "cancel":
+        sub.status = Subscription.STATUS_CANCELLED
+        sub.save(update_fields=["status", "updated_at"])
+        logger.info(f"[Simulation] Paiement annulé pour {sub.reference}.")
+        return HttpResponseRedirect(f"{web_app_url}/?payment=cancelled&ref={ref}")
+
+    method_labels = {
+        "wave": ("Wave", "#1BA4D9", "#FFFFFF"),
+        "orange": ("Orange Money", "#FF7900", "#FFFFFF"),
+        "mtn": ("MTN MoMo", "#FFCC00", "#000000"),
+        "moov": ("Moov Money", "#005CA9", "#FFFFFF"),
+    }
+    method_name, method_color, method_text_color = method_labels.get(
+        sub.payment_method, ("Mobile Money", "#007AFF", "#FFFFFF")
+    )
+    plan_name = "Bailleur / Agent" if sub.plan == Subscription.PLAN_PRO else "Client"
 
     html = f"""
     <!DOCTYPE html>
@@ -269,57 +299,53 @@ def redirect_success(request):
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Paiement Réussi · LoueMoi</title>
+        <title>Paiement {method_name} · LoueMoi</title>
         <style>
-            body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #F8FAFC; text-align: center; padding: 20px; }}
-            .card {{ background: white; border-radius: 16px; padding: 32px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); max-width: 400px; width: 100%; }}
-            .icon {{ width: 64px; height: 64px; background: #DCFCE7; color: #16A34A; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 32px; }}
-            h1 {{ font-size: 20px; color: #0F172A; margin: 0 0 8px; }}
-            p {{ color: #64748B; font-size: 14px; margin: 0 0 24px; }}
-            a.btn {{ display: inline-block; background: #16A34A; color: white; text-decoration: none; padding: 12px 24px; border-radius: 999px; font-weight: 600; font-size: 14px; }}
+            body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #F1F5F9; padding: 20px; box-sizing: border-box; }}
+            .card {{ background: white; border-radius: 20px; padding: 32px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); max-width: 420px; width: 100%; text-align: center; }}
+            .header-tag {{ display: inline-block; background: #EEF2F6; color: #475569; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 999px; margin-bottom: 16px; }}
+            .badge-op {{ width: 64px; height: 64px; border-radius: 16px; background: {method_color}; color: {method_text_color}; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; margin: 0 auto 16px; }}
+            h1 {{ font-size: 22px; color: #0F172A; margin: 0 0 6px; }}
+            .amount {{ font-size: 28px; font-weight: 800; color: #0F172A; margin: 12px 0 20px; }}
+            .details {{ background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 14px 18px; margin-bottom: 24px; text-align: left; font-size: 14px; }}
+            .details-row {{ display: flex; justify-content: space-between; margin-bottom: 8px; color: #64748B; }}
+            .details-row:last-child {{ margin-bottom: 0; }}
+            .details-val {{ font-weight: 600; color: #1E293B; }}
+            .btn-confirm {{ display: block; width: 100%; background: {method_color}; color: {method_text_color}; border: none; padding: 14px 20px; border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; text-decoration: none; box-sizing: border-box; margin-bottom: 10px; }}
+            .btn-cancel {{ display: block; width: 100%; background: #F1F5F9; color: #64748B; border: none; padding: 12px 20px; border-radius: 12px; font-weight: 600; font-size: 14px; cursor: pointer; text-decoration: none; box-sizing: border-box; }}
         </style>
     </head>
     <body>
         <div class="card">
-            <div class="icon">✓</div>
-            <h1>Paiement confirmé !</h1>
-            <p>Votre abonnement LoueMoi a été activé avec succès. Votre badge certifié est maintenant actif.</p>
-            <a href="louemoi://payment/success?reference={ref}" class="btn">Retourner à l'application</a>
+            <span class="header-tag">Portail de Paiement Mobile Money</span>
+            <div class="badge-op">{method_name[:2].upper()}</div>
+            <h1>Abonnement LoueMoi</h1>
+            <div class="amount">{sub.amount:,} FCFA</div>
+            <div class="details">
+                <div class="details-row"><span>Formule :</span><span class="details-val">{plan_name}</span></div>
+                <div class="details-row"><span>Moyen :</span><span class="details-val">{method_name}</span></div>
+                <div class="details-row"><span>Téléphone :</span><span class="details-val">{sub.user.phone}</span></div>
+                <div class="details-row"><span>Référence :</span><span class="details-val">{sub.reference}</span></div>
+            </div>
+            <a href="?ref={ref}&action=confirm" class="btn-confirm">Payer</a>
+            <a href="?ref={ref}&action=cancel" class="btn-cancel">Annuler la transaction</a>
         </div>
     </body>
     </html>
     """
     return HttpResponse(html)
+
+
+def redirect_success(request):
+    """Redirection après paiement validé vers l'application web."""
+    ref = request.GET.get("ref", "")
+    web_app_url = getattr(settings, "WEB_APP_URL", "https://transfert-online.site").rstrip("/")
+    return HttpResponseRedirect(f"{web_app_url}/?payment=success&ref={ref}")
 
 
 def redirect_error(request):
-    """Page de retour en cas d'erreur ou d'annulation après paiement Jèko."""
+    """Redirection en cas d'erreur ou d'annulation vers l'application web."""
     ref = request.GET.get("ref", "")
-    html = f"""
-    <!DOCTYPE html>
-    <html lang="fr">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Paiement Annulé · LoueMoi</title>
-        <style>
-            body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #F8FAFC; text-align: center; padding: 20px; }}
-            .card {{ background: white; border-radius: 16px; padding: 32px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); max-width: 400px; width: 100%; }}
-            .icon {{ width: 64px; height: 64px; background: #FEE2E2; color: #DC2626; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 32px; }}
-            h1 {{ font-size: 20px; color: #0F172A; margin: 0 0 8px; }}
-            p {{ color: #64748B; font-size: 14px; margin: 0 0 24px; }}
-            a.btn {{ display: inline-block; background: #DC2626; color: white; text-decoration: none; padding: 12px 24px; border-radius: 999px; font-weight: 600; font-size: 14px; }}
-        </style>
-    </head>
-    <body>
-        <div class="card">
-            <div class="icon">✕</div>
-            <h1>Paiement non finalisé</h1>
-            <p>La transaction n'a pas pu être complétée. Aucun débit n'a été effectué.</p>
-            <a href="louemoi://payment/error?reference={ref}" class="btn">Retourner à l'application</a>
-        </div>
-    </body>
-    </html>
-    """
-    return HttpResponse(html)
+    web_app_url = getattr(settings, "WEB_APP_URL", "https://transfert-online.site").rstrip("/")
+    return HttpResponseRedirect(f"{web_app_url}/?payment=error&ref={ref}")
 

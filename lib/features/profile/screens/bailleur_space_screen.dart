@@ -91,33 +91,14 @@ class BailleurSpaceScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
-                TextButton.icon(
-                  onPressed: () => context.push(AppRoutes.editProfile),
-                  icon: const Icon(
-                    Icons.edit_outlined,
-                    size: 16,
-                    color: AppColors.primary,
-                  ),
-                  label: const Text('Modifier', style: AppTextStyles.link),
-                ),
               ],
             ),
             const SizedBox(height: AppSpacing.lg),
             const Divider(),
             ProfileMenuTile(
-              icon: Icons.person_outline,
-              label: 'Modifier mon profil',
-              onTap: () => context.push(AppRoutes.editProfile),
-            ),
-            ProfileMenuTile(
               icon: Icons.apartment_outlined,
               label: 'Mes biens',
               onTap: () => context.push(AppRoutes.bailleurProperties),
-            ),
-            ProfileMenuTile(
-              icon: Icons.add_circle_outline,
-              label: 'Publier un bien',
-              onTap: () => context.push(AppRoutes.publish),
             ),
             ProfileMenuTile(
               icon: Icons.dashboard_outlined,
@@ -130,11 +111,6 @@ class BailleurSpaceScreen extends ConsumerWidget {
               // Route d'un autre onglet du shell : go(), jamais push() (voir
               // profile_screen.dart pour l'explication du crash évité).
               onTap: () => context.go(AppRoutes.reservationsList),
-            ),
-            ProfileMenuTile(
-              icon: Icons.chat_bubble_outline,
-              label: 'Messages',
-              onTap: () => context.go(AppRoutes.messages),
             ),
             ProfileMenuTile(
               icon: Icons.search,

@@ -177,3 +177,114 @@ class PaymentAndContactRulesTestCase(TestCase):
         del_res_ok = self.client.delete(f"/api/properties/{self.prop.id}/")
         self.assertEqual(del_res_ok.status_code, 204)
         self.assertFalse(Property.objects.filter(id=self.prop.id).exists())
+
+    def test_client_badge_and_expiration_revocation(self):
+        from accounts.serializers import UserSerializer
+
+        # 1. Client non abonné : pas de badge
+        self.assertFalse(UserSerializer(self.client_user).data["is_verified"])
+        self.assertFalse(self.client_user.has_active_subscription)
+
+        # 2. Client s'abonne : badge activé
+        sub = Subscription.objects.create(
+            user=self.client_user,
+            plan=Subscription.PLAN_CLIENT,
+            amount=1000,
+            reference="SUB-CLI-REVOKE",
+            status=Subscription.STATUS_PENDING,
+        )
+        sub.activate_for_30_days()
+        self.client_user.refresh_from_db()
+        self.assertTrue(self.client_user.has_active_subscription)
+        self.assertTrue(UserSerializer(self.client_user).data["is_verified"])
+
+        # 3. Expiration : badge révoqué
+        sub.expire_and_revoke()
+        self.client_user.refresh_from_db()
+        self.assertFalse(self.client_user.has_active_subscription)
+        self.assertFalse(UserSerializer(self.client_user).data["is_verified"])
+
+    def test_check_expirations_management_command(self):
+        from django.core.management import call_command
+        from notifications.models import Notification
+
+        # Sub 1 : expire dans 3 jours (doit recevoir l'alerte 5 jours)
+        sub_warn = Subscription.objects.create(
+            user=self.bailleur,
+            plan=Subscription.PLAN_PRO,
+            amount=3000,
+            reference="SUB-WARN-5D",
+            status=Subscription.STATUS_ACTIVE,
+            started_at=timezone.now() - timedelta(days=25),
+            expires_at=timezone.now() + timedelta(days=3),
+            expiry_warning_sent=False,
+        )
+
+        # Sub 2 : déjà expiré
+        sub_exp = Subscription.objects.create(
+            user=self.agent,
+            plan=Subscription.PLAN_PRO,
+            amount=3000,
+            reference="SUB-ALREADY-EXP",
+            status=Subscription.STATUS_ACTIVE,
+            started_at=timezone.now() - timedelta(days=31),
+            expires_at=timezone.now() - timedelta(hours=2),
+        )
+        self.agent.is_verified = True
+        self.agent.save()
+
+        call_command("check_expirations")
+
+        sub_warn.refresh_from_db()
+        self.assertTrue(sub_warn.expiry_warning_sent)
+        self.assertTrue(
+            Notification.objects.filter(
+                recipient=self.bailleur,
+                type=Notification.TYPE_SUBSCRIPTION_EXPIRING,
+            ).exists()
+        )
+
+        sub_exp.refresh_from_db()
+        self.assertEqual(sub_exp.status, Subscription.STATUS_EXPIRED)
+        self.agent.refresh_from_db()
+        self.assertFalse(self.agent.is_verified)
+        self.assertTrue(
+            Notification.objects.filter(
+                recipient=self.agent,
+                type=Notification.TYPE_SUBSCRIPTION_EXPIRED,
+            ).exists()
+        )
+
+    def test_simulation_checkout_and_web_redirect(self):
+        sub = Subscription.objects.create(
+            user=self.agent,
+            plan=Subscription.PLAN_PRO,
+            amount=3000,
+            payment_method="wave",
+            reference="SUB-SIM-CHECKOUT",
+            status=Subscription.STATUS_PENDING,
+        )
+
+        # 1. Visite du portail de test : ne confirme pas automatiquement
+        res_portal = self.client.get(f"/api/payments/checkout/simulate/?ref={sub.reference}")
+        self.assertEqual(res_portal.status_code, 200)
+        self.assertIn("Abonnement LoueMoi", res_portal.content.decode("utf-8"))
+        sub.refresh_from_db()
+        self.assertEqual(sub.status, Subscription.STATUS_PENDING)
+
+        # 2. Confirmation explicite : active et redirige vers transfert-online.site
+        res_confirm = self.client.get(
+            f"/api/payments/checkout/simulate/?ref={sub.reference}&action=confirm"
+        )
+        self.assertEqual(res_confirm.status_code, 302)
+        self.assertIn("https://transfert-online.site/?payment=success", res_confirm.url)
+        sub.refresh_from_db()
+        self.assertEqual(sub.status, Subscription.STATUS_ACTIVE)
+        self.agent.refresh_from_db()
+        self.assertTrue(self.agent.is_verified)
+
+        # 3. Redirection direct success : redirige vers transfert-online.site
+        res_succ = self.client.get(f"/api/payments/redirect/success/?ref={sub.reference}")
+        self.assertEqual(res_succ.status_code, 302)
+        self.assertIn("https://transfert-online.site/?payment=success", res_succ.url)
+

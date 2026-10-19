@@ -250,30 +250,56 @@ class _SubscriptionSheetState extends ConsumerState<_SubscriptionSheet> {
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              childAspectRatio: 2.6,
               children: PaymentMethod.values.map((method) {
                 final isSelected = _selectedMethod == method;
-                return ChoiceChip(
-                  label: Text(method.label),
-                  selected: isSelected,
-                  selectedColor: AppColors.primaryLight,
-                  backgroundColor: AppColors.white,
-                  labelStyle: TextStyle(
-                    color: isSelected ? AppColors.primary : AppColors.textPrimary,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                    fontSize: 13,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.pill),
-                    side: BorderSide(
-                      color: isSelected ? AppColors.primary : AppColors.border,
+                return InkWell(
+                  onTap: () => setState(() => _selectedMethod = method),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isSelected ? method.brandColor.withValues(alpha: 0.08) : Colors.white,
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      border: Border.all(
+                        color: isSelected ? method.brandColor : AppColors.border,
+                        width: isSelected ? 2 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: Image.asset(
+                            method.assetPath,
+                            width: 28,
+                            height: 28,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            method.label,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                              color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (isSelected)
+                          Icon(Icons.check_circle, size: 16, color: method.brandColor),
+                      ],
                     ),
                   ),
-                  onSelected: (selected) {
-                    if (selected) setState(() => _selectedMethod = method);
-                  },
                 );
               }).toList(),
             ),
@@ -309,7 +335,9 @@ class _SubscriptionSheetState extends ConsumerState<_SubscriptionSheet> {
             const SizedBox(height: AppSpacing.xl),
             if (!_hasLaunchedPayment) ...[
               PrimaryButton(
-                label: 'Payer $price FCFA avec ${_selectedMethod.label}',
+                label: 'Payer',
+                backgroundColor: _selectedMethod.brandColor,
+                textColor: _selectedMethod.brandTextColor,
                 isLoading: _isLoading,
                 onPressed: _initiatePayment,
               ),

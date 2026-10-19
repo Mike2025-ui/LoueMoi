@@ -31,16 +31,21 @@ class AgentSerializer(serializers.Serializer):
         return (profile.whatsapp if profile and profile.whatsapp else user.whatsapp)
 
     def get_is_verified(self, user):
-        if getattr(user, "role", "") not in ("agent", "bailleur"):
+        from django.utils import timezone
+        now = timezone.now()
+        # 1. Tout abonnement actif confère le badge
+        if hasattr(user, "subscriptions") and user.subscriptions.filter(status="active", expires_at__gt=now).exists():
+            return True
+        # 2. Après expiration d'un abonnement, le badge est révoqué
+        if hasattr(user, "subscriptions") and user.subscriptions.filter(status__in=["active", "expired"]).exists():
             return False
-        # Badge manuel admin
+        # 3. Badge administratif
         if getattr(user, "is_verified", False):
             return True
         profile = self._profile(user)
         if profile and profile.is_verified:
             return True
-        # Badge automatique accordé lors d'un abonnement actif
-        return self.get_has_active_subscription(user)
+        return False
 
     def get_rating(self, user):
         profile = self._profile(user)

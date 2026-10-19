@@ -22,13 +22,14 @@ def create_payment_request(
     success_url: str = "",
     error_url: str = "",
     payer_phone: str = "",
+    checkout_url: str = "",
 ) -> dict:
     """Crée une demande de paiement Jèko Checkout (`POST /partner_api/payment_requests`).
 
     - `amountCents`: montant en centimes (multiple de 100, min 100).
     - `currency`: 'XOF'
     - `paymentDetails.type`: 'redirect'
-    - `paymentDetails.data.paymentMethod`: wave, orange, mtn, moov, djamo
+    - `paymentDetails.data.paymentMethod`: wave, orange, mtn, moov
     """
     api_key = getattr(settings, "JEKO_API_KEY", "")
     api_key_id = getattr(settings, "JEKO_API_KEY_ID", "")
@@ -38,8 +39,9 @@ def create_payment_request(
     if not (api_key and api_key_id and store_id):
         logger.warning(
             "Identifiants Jèko non configurés dans settings (JEKO_API_KEY/ID/STORE_ID). "
-            "Utilisation du mode simulation local."
+            "Utilisation du portail de test de paiement."
         )
+        sim_redirect = checkout_url or f"/api/payments/checkout/simulate/?ref={reference}"
         return {
             "id": f"sim_{reference}",
             "storeId": store_id or "00000000-0000-0000-0000-000000000000",
@@ -47,7 +49,7 @@ def create_payment_request(
             "status": "pending",
             "type": "redirect",
             "paymentMethod": payment_method,
-            "redirectUrl": success_url or f"/api/payments/redirect/success/?ref={reference}",
+            "redirectUrl": sim_redirect,
             "simulation": True,
         }
 

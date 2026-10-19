@@ -1,15 +1,49 @@
 import 'package:equatable/equatable.dart';
+import 'package:flutter/material.dart';
 
 enum PaymentMethod {
-  wave('wave', 'Wave Mobile Money'),
-  orange('orange', 'Orange Money'),
-  mtn('mtn', 'MTN Mobile Money'),
-  moov('moov', 'Moov Money'),
-  djamo('djamo', 'Djamo');
+  wave(
+    code: 'wave',
+    label: 'Wave',
+    assetPath: 'assets/icons/wave.png',
+    brandColor: Color(0xFF1BA4D9),
+    brandTextColor: Colors.white,
+  ),
+  orange(
+    code: 'orange',
+    label: 'Orange Money',
+    assetPath: 'assets/icons/orange_money.png',
+    brandColor: Color(0xFFFF7900),
+    brandTextColor: Colors.white,
+  ),
+  mtn(
+    code: 'mtn',
+    label: 'MTN MoMo',
+    assetPath: 'assets/icons/mtn_momo.png',
+    brandColor: Color(0xFFFFCC00),
+    brandTextColor: Color(0xFF000000),
+  ),
+  moov(
+    code: 'moov',
+    label: 'Moov Money',
+    assetPath: 'assets/icons/moov_money.png',
+    brandColor: Color(0xFF005CA9),
+    brandTextColor: Colors.white,
+  );
 
   final String code;
   final String label;
-  const PaymentMethod(this.code, this.label);
+  final String assetPath;
+  final Color brandColor;
+  final Color brandTextColor;
+
+  const PaymentMethod({
+    required this.code,
+    required this.label,
+    required this.assetPath,
+    required this.brandColor,
+    required this.brandTextColor,
+  });
 
   static PaymentMethod fromCode(String code) {
     return PaymentMethod.values.firstWhere(

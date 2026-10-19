@@ -59,5 +59,11 @@ class AgentSearchSerializer(serializers.Serializer):
         return float(profile.rating) if profile else 0.0
 
     def get_is_verified(self, user):
+        from django.utils import timezone
+        now = timezone.now()
+        if hasattr(user, "subscriptions") and user.subscriptions.filter(status="active", expires_at__gt=now).exists():
+            return True
+        if hasattr(user, "subscriptions") and user.subscriptions.filter(status__in=["active", "expired"]).exists():
+            return False
         profile = self._profile(user)
         return bool(profile and profile.is_verified)
