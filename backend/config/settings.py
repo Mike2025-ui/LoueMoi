@@ -228,11 +228,12 @@ IKODDI_API_URL = os.environ.get("IKODDI_API_URL") or os.environ.get("IKKODI_API_
 # Pour les abonnements mensuels :
 # - Bailleur / Agent : 3 000 FCFA / mois
 # - Client : 1 000 FCFA / mois (si bailleur non abonné)
-JEKO_API_KEY = os.environ.get("JEKO_API_KEY", "")
-JEKO_API_KEY_ID = os.environ.get("JEKO_API_KEY_ID", "")
-JEKO_STORE_ID = os.environ.get("JEKO_STORE_ID", "")
-JEKO_WEBHOOK_SECRET = os.environ.get("JEKO_WEBHOOK_SECRET", "")
-JEKO_API_URL = os.environ.get("JEKO_API_URL", "https://api.jeko.africa")
+JEKO_API_KEY = os.environ.get("JEKO_API_KEY", "").strip().strip('"').strip("'")
+JEKO_API_KEY_ID = os.environ.get("JEKO_API_KEY_ID", "").strip().strip('"').strip("'")
+JEKO_STORE_ID = os.environ.get("JEKO_STORE_ID", "").strip().strip('"').strip("'")
+JEKO_WEBHOOK_SECRET = os.environ.get("JEKO_WEBHOOK_SECRET", "").strip().strip('"').strip("'")
+JEKO_API_URL = os.environ.get("JEKO_API_URL", "https://api.jeko.africa").strip().rstrip("/")
+JEKO_SIMULATION_MODE = os.environ.get("JEKO_SIMULATION_MODE", "").strip().lower() in ("true", "1", "yes")
 
 
 # --- CORS --------------------------------------------------------------

@@ -31,14 +31,16 @@ def create_payment_request(
     - `paymentDetails.type`: 'redirect'
     - `paymentDetails.data.paymentMethod`: wave, orange, mtn, moov
     """
-    api_key = getattr(settings, "JEKO_API_KEY", "")
-    api_key_id = getattr(settings, "JEKO_API_KEY_ID", "")
-    store_id = getattr(settings, "JEKO_STORE_ID", "")
+    api_key = str(getattr(settings, "JEKO_API_KEY", "")).strip().strip('"').strip("'")
+    api_key_id = str(getattr(settings, "JEKO_API_KEY_ID", "")).strip().strip('"').strip("'")
+    store_id = str(getattr(settings, "JEKO_STORE_ID", "")).strip().strip('"').strip("'")
+    api_url = getattr(settings, "JEKO_API_URL", "https://api.jeko.africa").strip().rstrip("/")
+    force_simulation = getattr(settings, "JEKO_SIMULATION_MODE", False)
 
-    # Mode simulation si les clés Jèko ne sont pas encore configurées
-    if not (api_key and api_key_id and store_id):
+    # Mode simulation si les clés Jèko ne sont pas encore configurées ou si le mode simulation est forcé
+    if force_simulation or not (api_key and api_key_id and store_id):
         logger.warning(
-            "Identifiants Jèko non configurés dans settings (JEKO_API_KEY/ID/STORE_ID). "
+            "Identifiants Jèko non configurés ou JEKO_SIMULATION_MODE activé. "
             "Utilisation du portail de test de paiement."
         )
         sim_redirect = checkout_url or f"/api/payments/checkout/simulate/?ref={reference}"
@@ -53,7 +55,7 @@ def create_payment_request(
             "simulation": True,
         }
 
-    url = f"{JEKO_API_BASE_URL}/partner_api/payment_requests"
+    url = f"{api_url}/partner_api/payment_requests"
     headers = {
         "X-API-KEY": api_key,
         "X-API-KEY-ID": api_key_id,
@@ -92,6 +94,10 @@ def create_payment_request(
     except urllib.error.HTTPError as e:
         error_body = e.read().decode("utf-8")
         logger.error(f"Erreur API Jèko ({e.code}): {error_body}")
+        if e.code == 401 or "Invalid API key ID" in error_body:
+            raise JekoClientError(
+                "Erreur Jèko (401 : Invalid API key ID) : La valeur de JEKO_API_KEY_ID dans le fichier .env de votre serveur est incorrecte ou inversée avec JEKO_API_KEY. Vérifiez l'identifiant de clé sur https://jeko.africa."
+            )
         raise JekoClientError(f"Erreur Jèko ({e.code}): {error_body}")
     except Exception as e:
         logger.error(f"Erreur réseau Jèko: {e}")
@@ -101,7 +107,7 @@ def create_payment_request(
 def verify_webhook_signature(raw_body: bytes, received_signature: str) -> bool:
     """Vérifie l'authenticité d'un webhook Jèko via l'en-tête Jeko-Signature.
     HMAC-SHA256 du raw body avec JEKO_WEBHOOK_SECRET, comparé en temps constant."""
-    secret = getattr(settings, "JEKO_WEBHOOK_SECRET", "")
+    secret = str(getattr(settings, "JEKO_WEBHOOK_SECRET", "")).strip().strip('"').strip("'")
     if not secret:
         logger.error("JEKO_WEBHOOK_SECRET non configuré dans les settings.")
         return False
