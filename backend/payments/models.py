@@ -109,8 +109,21 @@ class Subscription(models.Model):
         """Active ou renouvelle l'abonnement pour une période de 30 jours,
         et attribue automatiquement le badge de vérification à l'utilisateur."""
         now = timezone.now()
-        if self.expires_at and self.expires_at > now:
-            self.expires_at = self.expires_at + timedelta(days=30)
+        # Cumul des jours : si l'utilisateur possède déjà un abonnement actif
+        # ou si cet abonnement avait déjà une date future, on prolonge à partir de cette date
+        latest_active = (
+            self.user.subscriptions.filter(
+                status=self.STATUS_ACTIVE,
+                expires_at__gt=now,
+            )
+            .exclude(pk=self.pk)
+            .order_by("-expires_at")
+            .first()
+        )
+        base_expiry = self.expires_at or (latest_active.expires_at if latest_active else None)
+        if base_expiry and base_expiry > now:
+            self.started_at = self.started_at or now
+            self.expires_at = base_expiry + timedelta(days=30)
         else:
             self.started_at = now
             self.expires_at = now + timedelta(days=30)

@@ -288,3 +288,64 @@ class PaymentAndContactRulesTestCase(TestCase):
         self.assertEqual(res_succ.status_code, 302)
         self.assertIn("https://transfert-online.site/?payment=success", res_succ.url)
 
+    def test_cumulative_renewal_does_not_lose_remaining_days(self):
+        # 1. Abonnement initial avec 10 jours restants
+        initial_sub = Subscription.objects.create(
+            user=self.agent,
+            plan=Subscription.PLAN_PRO,
+            amount=3000,
+            reference="SUB-INIT-10D",
+            status=Subscription.STATUS_ACTIVE,
+            started_at=timezone.now() - timedelta(days=20),
+            expires_at=timezone.now() + timedelta(days=10),
+        )
+
+        # 2. Renouvellement : nouvel abonnement souscrit
+        renewal_sub = Subscription.objects.create(
+            user=self.agent,
+            plan=Subscription.PLAN_PRO,
+            amount=3000,
+            reference="SUB-RENEW-30D",
+            status=Subscription.STATUS_PENDING,
+        )
+        renewal_sub.activate_for_30_days()
+
+        # Doit expirer dans ~40 jours (10 jours restants + 30 jours)
+        diff_days = (renewal_sub.expires_at - timezone.now()).days
+        self.assertGreaterEqual(diff_days, 39)
+        self.assertLessEqual(diff_days, 41)
+
+    def test_webhook_status_variants_and_request_id(self):
+        sub = Subscription.objects.create(
+            user=self.client_user,
+            plan=Subscription.PLAN_CLIENT,
+            amount=1000,
+            reference="SUB-WEBHOOK-VAR",
+            jeko_payment_request_id="jeko_req_999",
+            status=Subscription.STATUS_PENDING,
+        )
+
+        # Webhook utilisant payment_request_id et statut en majuscule "SUCCESS"
+        payload = {
+            "id": "jeko_req_999",
+            "status": "SUCCESS",
+            "paymentDetails": {
+                "reference": "SUB-WEBHOOK-VAR",
+            },
+        }
+        res = self.client.post(
+            "/api/payments/webhook/",
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+        self.assertEqual(res.status_code, 200)
+        sub.refresh_from_db()
+        self.assertEqual(sub.status, Subscription.STATUS_ACTIVE)
+
+    def test_can_contact_invalid_property_id_resilience(self):
+        # Ne doit pas lever de ValueError ou 500 sur un identifiant non numérique
+        res = self.client.get("/api/payments/can-contact/?property_id=invalid_id_not_int")
+        self.assertEqual(res.status_code, 200)
+        self.assertFalse(res.data["can_contact"])
+
+

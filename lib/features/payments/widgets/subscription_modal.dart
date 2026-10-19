@@ -109,6 +109,24 @@ class _SubscriptionSheetState extends ConsumerState<_SubscriptionSheet> {
   Future<void> _verifyAndClose() async {
     setState(() => _isLoading = true);
     try {
+      final repository = ref.read(paymentRepositoryProvider);
+      final status = await repository.getSubscriptionStatus();
+
+      if (!status.hasActiveSubscription) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Paiement non encore détecté. Si vous venez d\'effectuer le paiement, veuillez patienter quelques secondes puis réessayer.',
+              ),
+              backgroundColor: AppColors.warning,
+            ),
+          );
+        }
+        return;
+      }
+
       await ref.read(authControllerProvider.notifier).refreshProfile();
       ref.invalidate(userSubscriptionStatusProvider);
       if (widget.propertyId != null) {
@@ -119,7 +137,7 @@ class _SubscriptionSheetState extends ConsumerState<_SubscriptionSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Statut d\'abonnement mis à jour avec succès !'),
+            content: Text('Abonnement confirmé avec succès ! Vos accès et votre badge sont activés.'),
             backgroundColor: AppColors.success,
           ),
         );

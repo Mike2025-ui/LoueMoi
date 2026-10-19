@@ -75,7 +75,13 @@ class CreateSubscriptionView(APIView):
             status=Subscription.STATUS_PENDING,
         )
 
-        redirect_url = jeko_res.get("redirectUrl", success_url)
+        redirect_url = (
+            jeko_res.get("redirectUrl")
+            or jeko_res.get("paymentDetails", {}).get("data", {}).get("redirectUrl")
+            or jeko_res.get("paymentDetails", {}).get("data", {}).get("paymentUrl")
+            or jeko_res.get("url")
+            or success_url
+        )
 
         return Response(
             {
@@ -101,6 +107,16 @@ class SubscriptionStatusView(APIView):
     def get(self, request):
         user = request.user
         now = timezone.now()
+
+        # Nettoyage temps réel des abonnements actifs qui viennent d'expirer
+        expired_active_subs = Subscription.objects.filter(
+            user=user,
+            status=Subscription.STATUS_ACTIVE,
+            expires_at__lte=now,
+        )
+        for s in expired_active_subs:
+            s.expire_and_revoke()
+
         active_sub = (
             Subscription.objects.filter(
                 user=user,
@@ -110,6 +126,33 @@ class SubscriptionStatusView(APIView):
             .order_by("-expires_at")
             .first()
         )
+
+        days_remaining = active_sub.days_remaining if active_sub else 0
+        expiring_soon = False
+
+        if active_sub and days_remaining <= 5:
+            expiring_soon = True
+            if not active_sub.expiry_warning_sent:
+                from notifications.models import Notification
+                from notifications.services import NotificationService
+
+                expiry_str = active_sub.expires_at.strftime("%d/%m/%Y")
+                NotificationService.notify(
+                    recipient=user,
+                    notif_type=Notification.TYPE_SUBSCRIPTION_EXPIRING,
+                    title="Abonnement expirant bientôt",
+                    body=(
+                        f"Votre abonnement LoueMoi expire dans {days_remaining} jour(s) (le {expiry_str}). "
+                        "Renouvelez-le dès maintenant pour conserver vos accès et votre badge vérifié."
+                    ),
+                    data={
+                        "type": "subscription_expiring",
+                        "subscription_id": active_sub.id,
+                        "reference": active_sub.reference,
+                    },
+                )
+                active_sub.expiry_warning_sent = True
+                active_sub.save(update_fields=["expiry_warning_sent"])
 
         required_plan = (
             Subscription.PLAN_PRO
@@ -122,6 +165,8 @@ class SubscriptionStatusView(APIView):
             {
                 "has_active_subscription": active_sub is not None,
                 "subscription": SubscriptionSerializer(active_sub).data if active_sub else None,
+                "days_remaining": days_remaining,
+                "is_expiring_soon": expiring_soon,
                 "role": user.role,
                 "required_plan": required_plan,
                 "plan_price": plan_price,
@@ -151,11 +196,17 @@ class CanContactView(APIView):
 
         owner = None
         if property_id:
-            prop = Property.objects.filter(pk=property_id).select_related("agent").first()
-            if prop:
-                owner = prop.agent
+            try:
+                prop = Property.objects.filter(pk=property_id).select_related("agent").first()
+                if prop:
+                    owner = prop.agent
+            except Exception:
+                pass
         elif owner_id:
-            owner = User.objects.filter(pk=owner_id).first()
+            try:
+                owner = User.objects.filter(pk=owner_id).first()
+            except Exception:
+                pass
 
         now = timezone.now()
         owner_subscribed = False
@@ -212,7 +263,7 @@ def jeko_webhook(request):
     """POST /api/payments/webhook/
 
     Webhook Jèko sécurisé avec vérification de l'en-tête `Jeko-Signature` (HMAC-SHA256).
-    Idempotent sur `reference` / `id`.
+    Idempotent sur `reference` / `id`. Insensible à la casse sur les statuts.
     """
     if request.method != "POST":
         return HttpResponse(status=405)
@@ -233,23 +284,26 @@ def jeko_webhook(request):
         logger.error(f"Corps JSON webhook invalide: {e}")
         return JsonResponse({"error": "JSON invalide"}, status=400)
 
-    # Statut de la transaction Jèko
-    tx_status = data.get("status")
-    details = data.get("transactionDetails") or {}
-    reference = details.get("reference") or data.get("reference")
+    # Statut de la transaction Jèko (normalisation minuscule)
+    tx_status = (data.get("status") or "").strip().lower()
+    details = data.get("transactionDetails") or data.get("paymentDetails") or {}
+    reference = details.get("reference") or data.get("reference") or data.get("orderId")
+    payment_request_id = data.get("id") or details.get("id")
 
-    if not reference:
-        return JsonResponse({"received": True, "warning": "Aucune référence"}, status=200)
+    sub = None
+    if reference:
+        sub = Subscription.objects.filter(reference=reference).first()
+    if not sub and payment_request_id:
+        sub = Subscription.objects.filter(jeko_payment_request_id=payment_request_id).first()
 
-    sub = Subscription.objects.filter(reference=reference).first()
     if not sub:
-        logger.warning(f"Abonnement introuvable pour la référence {reference}")
+        logger.warning(f"Abonnement introuvable pour la référence {reference} / id {payment_request_id}")
         return JsonResponse({"received": True, "warning": "Référence inconnue"}, status=200)
 
-    if tx_status == "success":
+    if tx_status in ("success", "successful", "completed", "paid"):
         sub.activate_for_30_days()
         logger.info(f"Abonnement {sub.reference} activé pour 30 jours pour {sub.user}.")
-    elif tx_status == "error":
+    elif tx_status in ("error", "failed", "cancelled", "canceled"):
         sub.status = Subscription.STATUS_CANCELLED
         sub.save(update_fields=["status", "updated_at"])
         logger.info(f"Abonnement {sub.reference} marqué en échec.")
