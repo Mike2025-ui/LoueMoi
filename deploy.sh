@@ -641,8 +641,9 @@ main() {
             setup_expirations_cron
             ;;
         --restart)
-            log_info "Redémarrage de la stack Docker..."
-            $DOCKER_COMPOSE restart
+            log_info "Redémarrage et rechargement de la stack Docker (recréation pour prise en compte du .env)..."
+            $DOCKER_COMPOSE up -d --force-recreate web
+            $DOCKER_COMPOSE restart nginx
             ;;
         --stop)
             log_info "Arrêt des conteneurs..."
