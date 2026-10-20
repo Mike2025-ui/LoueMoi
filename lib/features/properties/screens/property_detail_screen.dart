@@ -421,11 +421,13 @@ class _AProposTab extends ConsumerWidget {
       }
     } catch (_) {}
 
-    // 4. L'agent/bailleur n'a pas d'abonnement ET le client non plus -> ouvrir modal abonnement client (1 000 FCFA/mois)
+    // 4. Ni le propriétaire ni l'utilisateur n'ont d'abonnement actif -> ouvrir le modal adapté au rôle
     if (!context.mounted) return false;
+    final isPro = currentUser.isAgent || currentUser.isBailleur;
     final subscribed = await showSubscriptionModal(
       context,
-      isPro: false,
+      isPro: isPro,
+      role: currentUser.role,
       propertyId: property.id,
       reason: 'subscription_required',
     );

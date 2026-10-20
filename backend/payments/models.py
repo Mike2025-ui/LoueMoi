@@ -132,16 +132,15 @@ class Subscription(models.Model):
         self.expiry_warning_sent = False
         self.save(update_fields=["status", "started_at", "expires_at", "expiry_warning_sent", "updated_at"])
 
-        # Attribution automatique du badge de vérification (agents et bailleurs abonnés en base)
+        # Attribution automatique du badge de vérification à tout utilisateur abonné (client, bailleur, agent)
         user = self.user
-        if user.role in (user.ROLE_AGENT, user.ROLE_BAILLEUR):
-            user.is_verified = True
-            user.save(update_fields=["is_verified"])
+        user.is_verified = True
+        user.save(update_fields=["is_verified"])
 
-            if hasattr(user, "agent_profile"):
-                profile = user.agent_profile
-                profile.is_verified = True
-                profile.save(update_fields=["is_verified"])
+        if hasattr(user, "agent_profile"):
+            profile = user.agent_profile
+            profile.is_verified = True
+            profile.save(update_fields=["is_verified"])
 
     def expire_and_revoke(self):
         """Marque l'abonnement comme expiré et retire le badge si aucun autre abonnement actif."""
@@ -154,7 +153,7 @@ class Subscription(models.Model):
             expires_at__gt=timezone.now(),
         ).exclude(pk=self.pk).exists()
 
-        if not has_other_active and user.role in (user.ROLE_AGENT, user.ROLE_BAILLEUR):
+        if not has_other_active:
             user.is_verified = False
             user.save(update_fields=["is_verified"])
             if hasattr(user, "agent_profile"):

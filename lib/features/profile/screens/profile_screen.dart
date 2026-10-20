@@ -174,6 +174,7 @@ class ProfileScreen extends ConsumerWidget {
                   showSubscriptionModal(
                     context,
                     isPro: user?.canOwnProperties ?? false,
+                    role: user?.role,
                   );
                 },
               ),

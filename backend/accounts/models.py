@@ -102,8 +102,8 @@ class User(AbstractBaseUser, PermissionsMixin):
                 if orig["role"] in (self.ROLE_CLIENT, self.ROLE_AGENT, self.ROLE_BAILLEUR):
                     self.role = orig["role"]
                 self.phone = orig["phone"]
-        # Seuls les agents et bailleurs peuvent avoir un badge de certification manuel
-        if self.role == self.ROLE_CLIENT:
+        # Les clients non abonnés ne peuvent pas avoir de badge
+        if self.role == self.ROLE_CLIENT and not self.has_active_subscription:
             self.is_verified = False
         super().save(*args, **kwargs)
         if self.role == self.ROLE_AGENT:

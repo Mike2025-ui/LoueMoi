@@ -116,7 +116,11 @@ class BailleurSearchScreen extends ConsumerWidget {
           buttonLabel: 'S\'abonner maintenant',
           onPressed: () async {
             final isPro = currentUser.isAgent || currentUser.isBailleur;
-            final subscribed = await showSubscriptionModal(context, isPro: isPro);
+            final subscribed = await showSubscriptionModal(
+              context,
+              isPro: isPro,
+              role: currentUser.role,
+            );
             if (subscribed == true) {
               ref.invalidate(authControllerProvider);
               ref.invalidate(userSubscriptionStatusProvider);

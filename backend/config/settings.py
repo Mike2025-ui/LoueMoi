@@ -6,6 +6,7 @@ et lib/core/network/api_endpoints.dart (mêmes chemins /api/... des deux côtés
 """
 
 import os
+import sys
 from datetime import timedelta
 from pathlib import Path
 
@@ -115,7 +116,9 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 
 # Base de données : bascule automatique sur PostgreSQL si configuré, sinon SQLite
-if os.environ.get("POSTGRES_DB"):
+# Pour les tests automatisés locaux, SQLite mémoire évite l'échec d'hôte 'db'
+is_testing = "test" in sys.argv
+if os.environ.get("POSTGRES_DB") and not is_testing:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",

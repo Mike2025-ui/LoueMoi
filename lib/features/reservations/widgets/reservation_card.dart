@@ -501,6 +501,7 @@ class _OwnerActionsRowState extends ConsumerState<_OwnerActionsRow> {
         final subscribed = await showSubscriptionModal(
           context,
           isPro: true,
+          role: currentUser?.role,
           propertyId: widget.property.id,
           reason: 'pro_subscription_required',
         );

@@ -24,7 +24,7 @@ class AgentSpaceScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authControllerProvider).valueOrNull;
     final profile = user?.agentProfile;
-    final isVerified = profile?.isVerified ?? false;
+    final isVerified = (profile?.isVerified ?? false) || (user?.isVerifiedUser ?? false);
     final certificationStatus =
         profile?.certificationStatus ?? CertificationStatus.nonDemandee;
 

@@ -39,9 +39,9 @@ def create_payment_request(
 
     # Détection et inversion automatique si JEKO_API_KEY et JEKO_API_KEY_ID ont été intervertis
     # (Ex: la clé secrète commence par 'jeko_' et l'ID est un UUID ou ne commence pas par 'jeko_')
-    if api_key_id.startswith("jeko_") and not api_key.startswith("jeko_"):
+    if api_key.startswith("jeko_") and not api_key_id.startswith("jeko_"):
         logger.warning(
-            "JEKO_API_KEY et JEKO_API_KEY_ID semblent inversés dans le fichier .env. "
+            "JEKO_API_KEY et JEKO_API_KEY_ID étaient inversés dans le fichier .env. "
             "Inversion automatique appliquée pour l'authentification Jèko."
         )
         api_key, api_key_id = api_key_id, api_key
@@ -131,4 +131,37 @@ def verify_webhook_signature(raw_body: bytes, received_signature: str) -> bool:
     ).hexdigest()
 
     return hmac.compare_digest(expected_signature.lower(), received_signature.lower())
+
+
+def get_payment_request_status(payment_request_id: str) -> dict | None:
+    """Interroge l'API Jèko pour obtenir le statut temps réel d'une demande de paiement :
+    GET https://api.jeko.africa/partner_api/payment_requests/{id}
+    """
+    if not payment_request_id or payment_request_id.startswith("sim_"):
+        return None
+
+    api_key = str(getattr(settings, "JEKO_API_KEY", "")).strip().strip('"').strip("'")
+    api_key_id = str(getattr(settings, "JEKO_API_KEY_ID", "")).strip().strip('"').strip("'")
+    api_url = getattr(settings, "JEKO_API_URL", "https://api.jeko.africa").strip().rstrip("/")
+
+    if api_key.startswith("jeko_") and not api_key_id.startswith("jeko_"):
+        api_key, api_key_id = api_key_id, api_key
+
+    if not (api_key and api_key_id):
+        return None
+
+    url = f"{api_url}/partner_api/payment_requests/{payment_request_id}"
+    headers = {
+        "X-API-KEY": api_key,
+        "X-API-KEY-ID": api_key_id,
+        "Accept": "application/json",
+    }
+    req = urllib.request.Request(url, headers=headers, method="GET")
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            return data
+    except Exception as e:
+        logger.warning(f"Échec de vérification du paiement Jèko ({payment_request_id}): {e}")
+        return None
 

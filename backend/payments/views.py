@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from properties.models import Property
-from .jeko import create_payment_request, verify_webhook_signature, JekoClientError
+from .jeko import create_payment_request, verify_webhook_signature, get_payment_request_status, JekoClientError
 from .models import Subscription
 from .serializers import CreateSubscriptionSerializer, SubscriptionSerializer
 
@@ -126,6 +126,35 @@ class SubscriptionStatusView(APIView):
             .order_by("-expires_at")
             .first()
         )
+
+        # Si aucun abonnement actif n'est trouvé, vérifier si un paiement Jèko récent est en attente
+        if not active_sub:
+            recent_pending = (
+                Subscription.objects.filter(
+                    user=user,
+                    status=Subscription.STATUS_PENDING,
+                )
+                .order_by("-created_at")
+                .first()
+            )
+            if recent_pending and recent_pending.jeko_payment_request_id:
+                jeko_data = get_payment_request_status(recent_pending.jeko_payment_request_id)
+                if jeko_data:
+                    tx_status = (jeko_data.get("status") or "").strip().lower()
+                    if tx_status in ("success", "successful", "completed", "paid"):
+                        recent_pending.activate_for_30_days()
+                        active_sub = recent_pending
+                        logger.info(
+                            f"Abonnement {recent_pending.reference} validé via vérification directe Jèko."
+                        )
+
+        # Si l'utilisateur possède un abonnement actif, s'assurer que le badge est présent en base
+        if active_sub and not user.is_verified:
+            user.is_verified = True
+            user.save(update_fields=["is_verified"])
+            if hasattr(user, "agent_profile"):
+                user.agent_profile.is_verified = True
+                user.agent_profile.save(update_fields=["is_verified"])
 
         days_remaining = active_sub.days_remaining if active_sub else 0
         expiring_soon = False
@@ -345,7 +374,12 @@ def simulate_checkout(request):
     method_name, method_color, method_text_color = method_labels.get(
         sub.payment_method, ("Mobile Money", "#007AFF", "#FFFFFF")
     )
-    plan_name = "Bailleur / Agent" if sub.plan == Subscription.PLAN_PRO else "Client"
+    if sub.user.role == User.ROLE_BAILLEUR:
+        plan_name = "Bailleur (3 000 FCFA / mois)"
+    elif sub.user.role == User.ROLE_AGENT:
+        plan_name = "Agent immobilier (3 000 FCFA / mois)"
+    else:
+        plan_name = "Client (1 000 FCFA / mois)"
 
     html = f"""
     <!DOCTYPE html>
@@ -402,4 +436,41 @@ def redirect_error(request):
     ref = request.GET.get("ref", "")
     web_app_url = getattr(settings, "WEB_APP_URL", "https://transfert-online.site").rstrip("/")
     return HttpResponseRedirect(f"{web_app_url}/?payment=error&ref={ref}")
+
+
+def jeko_return(request):
+    """GET /api/payments/jeko/return/
+
+    Point de retour configurable pour le Checkout Jèko.
+    Vérifie le paiement auprès de Jèko, active l'abonnement si validé,
+    puis redirige l'utilisateur vers l'application web avec statut.
+    """
+    web_app_url = getattr(settings, "WEB_APP_URL", "https://transfert-online.site").rstrip("/")
+    ref = request.GET.get("ref") or request.GET.get("reference") or request.GET.get("orderId") or ""
+    payment_request_id = request.GET.get("id") or request.GET.get("payment_request_id") or ""
+
+    sub = None
+    if ref:
+        sub = Subscription.objects.filter(reference=ref).first()
+    if not sub and payment_request_id:
+        sub = Subscription.objects.filter(jeko_payment_request_id=payment_request_id).first()
+
+    if sub:
+        if sub.status == Subscription.STATUS_ACTIVE:
+            return HttpResponseRedirect(f"{web_app_url}/?payment=success&ref={sub.reference}")
+
+        # Vérification temps réel auprès de l'API Jèko
+        if sub.jeko_payment_request_id:
+            jeko_data = get_payment_request_status(sub.jeko_payment_request_id)
+            if jeko_data:
+                tx_status = (jeko_data.get("status") or "").strip().lower()
+                if tx_status in ("success", "successful", "completed", "paid"):
+                    sub.activate_for_30_days()
+                    return HttpResponseRedirect(f"{web_app_url}/?payment=success&ref={sub.reference}")
+                elif tx_status in ("error", "failed", "cancelled", "canceled"):
+                    sub.status = Subscription.STATUS_CANCELLED
+                    sub.save(update_fields=["status", "updated_at"])
+                    return HttpResponseRedirect(f"{web_app_url}/?payment=cancelled&ref={sub.reference}")
+
+    return HttpResponseRedirect(f"{web_app_url}/?payment=success&ref={ref}")
 

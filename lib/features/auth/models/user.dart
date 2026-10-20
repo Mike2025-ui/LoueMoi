@@ -41,9 +41,10 @@ class User extends Equatable {
   bool get isAgent => role == UserRole.agent;
   bool get isBailleur => role == UserRole.bailleur;
 
-  /// Seuls les agents et les bailleurs peuvent être certifiés
+  /// Badge de certification : accordé automatiquement à tout utilisateur abonné
+  /// (client, bailleur, agent) ou certifié en base.
   bool get isVerifiedUser {
-    if (role == UserRole.client) return false;
+    if (hasActiveSubscription) return true;
     if (isAgent) {
       return (agentProfile?.isVerified ?? false) || isVerified;
     }

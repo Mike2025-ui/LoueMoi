@@ -6,13 +6,15 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/feedback.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../auth/models/user_role.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../models/payment_models.dart';
 import '../providers/payment_providers.dart';
 
 Future<bool?> showSubscriptionModal(
   BuildContext context, {
-  required bool isPro,
+  bool isPro = false,
+  UserRole? role,
   String? propertyId,
   String? reason,
 }) {
@@ -25,6 +27,7 @@ Future<bool?> showSubscriptionModal(
     ),
     builder: (sheetContext) => _SubscriptionSheet(
       isPro: isPro,
+      role: role,
       propertyId: propertyId,
       reason: reason,
     ),
@@ -34,11 +37,13 @@ Future<bool?> showSubscriptionModal(
 class _SubscriptionSheet extends ConsumerStatefulWidget {
   const _SubscriptionSheet({
     required this.isPro,
+    this.role,
     this.propertyId,
     this.reason,
   });
 
   final bool isPro;
+  final UserRole? role;
   final String? propertyId;
   final String? reason;
 
@@ -110,7 +115,14 @@ class _SubscriptionSheetState extends ConsumerState<_SubscriptionSheet> {
     setState(() => _isLoading = true);
     try {
       final repository = ref.read(paymentRepositoryProvider);
-      final status = await repository.getSubscriptionStatus();
+      var status = await repository.getSubscriptionStatus();
+
+      // Si le statut n'est pas encore actif, patienter brièvement pour laisser
+      // le temps à la passerelle Jèko d'enregistrer la transaction
+      if (!status.hasActiveSubscription) {
+        await Future.delayed(const Duration(seconds: 2));
+        status = await repository.getSubscriptionStatus();
+      }
 
       if (!status.hasActiveSubscription) {
         if (mounted) {
@@ -153,8 +165,35 @@ class _SubscriptionSheetState extends ConsumerState<_SubscriptionSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final price = widget.isPro ? 3000 : 1000;
-    final planLabel = widget.isPro ? 'Abonnement Bailleur / Agent' : 'Abonnement Client';
+    final currentUser = ref.watch(authControllerProvider).valueOrNull;
+    final effectiveRole = widget.role ??
+        currentUser?.role ??
+        (widget.isPro ? UserRole.bailleur : UserRole.client);
+
+    final String planLabel;
+    final int price;
+    final String description;
+    final String badgePerk;
+
+    if (effectiveRole == UserRole.bailleur) {
+      planLabel = 'Abonnement Bailleur';
+      price = 3000;
+      description =
+          'En tant que bailleur, un abonnement actif est requis pour contacter et échanger directement avec vos locataires. Vos locataires peuvent réserver vos biens gratuitement.';
+      badgePerk = 'Badge Bailleur certifié inclus sur votre profil et vos annonces.';
+    } else if (effectiveRole == UserRole.agent) {
+      planLabel = 'Abonnement Agent Immobilier';
+      price = 3000;
+      description =
+          'En tant qu\'agent immobilier, un abonnement actif est requis pour contacter et échanger directement avec les clients. Vos clients peuvent vous contacter gratuitement.';
+      badgePerk = 'Badge Agent certifié inclus sur votre profil et vos annonces.';
+    } else {
+      planLabel = 'Abonnement Client';
+      price = 1000;
+      description =
+          'Le propriétaire de ce bien n\'ayant pas d\'abonnement actif, un abonnement de 1 000 FCFA / mois est requis pour pouvoir le contacter directement.';
+      badgePerk = 'Badge Membre certifié et accès illimité aux contacts directs.';
+    }
 
     return Padding(
       padding: EdgeInsets.only(
@@ -227,34 +266,30 @@ class _SubscriptionSheetState extends ConsumerState<_SubscriptionSheet> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.isPro
-                        ? 'Les réservations sont gratuites pour vos clients, mais un abonnement actif est requis pour les contacter et discuter avec eux.'
-                        : 'Le bailleur de ce bien n\'ayant pas d\'abonnement actif, un abonnement de 1 000 FCFA / mois est requis pour pouvoir le contacter.',
+                    description,
                     style: const TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 13,
                       height: 1.4,
                     ),
                   ),
-                  if (widget.isPro) ...[
-                    const SizedBox(height: AppSpacing.sm),
-                    const Row(
-                      children: [
-                        Icon(Icons.verified, color: AppColors.primary, size: 16),
-                        SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            'Badge de certification automatique inclus.',
-                            style: TextStyle(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                            ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Row(
+                    children: [
+                      const Icon(Icons.verified, color: AppColors.primary, size: 16),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          badgePerk,
+                          style: const TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
                           ),
                         ),
-                      ],
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
