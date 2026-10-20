@@ -18,7 +18,9 @@ Future<void> _confirmDeleteAccount(BuildContext context, WidgetRef ref) async {
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (dialogContext) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+      ),
       title: const Text('Supprimer mon compte ?'),
       content: const Text(
         'Votre compte sera désactivé et vous serez déconnecté. Vos annonces, réservations, '
@@ -32,7 +34,10 @@ Future<void> _confirmDeleteAccount(BuildContext context, WidgetRef ref) async {
         ),
         TextButton(
           onPressed: () => Navigator.of(dialogContext).pop(true),
-          child: const Text('Continuer', style: TextStyle(color: AppColors.danger)),
+          child: const Text(
+            'Continuer',
+            style: TextStyle(color: AppColors.danger),
+          ),
         ),
       ],
     ),
@@ -58,7 +63,9 @@ Future<void> _confirmDeleteAccount(BuildContext context, WidgetRef ref) async {
             errorText = null;
           });
           try {
-            await ref.read(authControllerProvider.notifier).deactivateAccount(password);
+            await ref
+                .read(authControllerProvider.notifier)
+                .deactivateAccount(password);
             if (dialogContext.mounted) Navigator.of(dialogContext).pop();
             if (context.mounted) context.go(AppRoutes.login);
           } catch (e) {
@@ -70,7 +77,9 @@ Future<void> _confirmDeleteAccount(BuildContext context, WidgetRef ref) async {
         }
 
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+          ),
           title: const Text('Confirmez votre mot de passe'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -91,7 +100,9 @@ Future<void> _confirmDeleteAccount(BuildContext context, WidgetRef ref) async {
           ),
           actions: [
             TextButton(
-              onPressed: isSubmitting ? null : () => Navigator.of(dialogContext).pop(),
+              onPressed: isSubmitting
+                  ? null
+                  : () => Navigator.of(dialogContext).pop(),
               child: const Text('Annuler'),
             ),
             TextButton(
@@ -102,7 +113,10 @@ Future<void> _confirmDeleteAccount(BuildContext context, WidgetRef ref) async {
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Supprimer mon compte', style: TextStyle(color: AppColors.danger)),
+                  : const Text(
+                      'Supprimer mon compte',
+                      style: TextStyle(color: AppColors.danger),
+                    ),
             ),
           ],
         );
@@ -136,7 +150,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.screenPadding,
+          ),
           child: Column(
             children: [
               const SizedBox(height: AppSpacing.md),
@@ -151,7 +167,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ? NetworkImage(buildMediaUrl(user!.photo!))
                         : null,
                     child: user?.photo == null
-                        ? const Icon(Icons.person, size: 48, color: AppColors.white)
+                        ? const Icon(
+                            Icons.person,
+                            size: 48,
+                            color: AppColors.white,
+                          )
                         : null,
                   ),
                   if (isVerified)
@@ -174,10 +194,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(user?.fullName ?? 'Utilisateur', style: AppTextStyles.h3),
+                  Text(
+                    user?.fullName ?? 'Utilisateur',
+                    style: AppTextStyles.h3,
+                  ),
                   if (isVerified) ...[
                     const SizedBox(width: 6),
-                    const Icon(Icons.verified, color: AppColors.primary, size: 20),
+                    const Icon(
+                      Icons.verified,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
                   ],
                 ],
               ),
@@ -186,7 +213,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               if (isVerified) ...[
                 const SizedBox(height: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primaryLight,
                     borderRadius: BorderRadius.circular(999),
@@ -252,11 +282,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
               const SizedBox(height: AppSpacing.xl),
               TextButton(
-                onPressed: () => ref.read(authControllerProvider.notifier).logout().then(
-                      (_) {
-                        if (context.mounted) context.go(AppRoutes.login);
-                      },
-                    ),
+                onPressed: () => ref
+                    .read(authControllerProvider.notifier)
+                    .logout()
+                    .then((_) {
+                      if (context.mounted) context.go(AppRoutes.login);
+                    }),
                 child: const Text(
                   'Deconnexion',
                   style: TextStyle(

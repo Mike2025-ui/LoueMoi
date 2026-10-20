@@ -101,7 +101,6 @@ class CreateSubscriptionView(APIView):
 
         user = request.user
         payment_method = serializer.validated_data["payment_method"]
-        payer_phone = serializer.validated_data.get("payer_phone") or user.phone
 
         if user.role in (User.ROLE_AGENT, User.ROLE_BAILLEUR):
             plan = Subscription.PLAN_PRO
@@ -124,7 +123,6 @@ class CreateSubscriptionView(APIView):
                 payment_method=payment_method,
                 success_url=success_url,
                 error_url=error_url,
-                payer_phone=payer_phone,
                 checkout_url=checkout_url,
             )
         except JekoClientError as e:
@@ -451,20 +449,51 @@ def simulate_checkout(request):
     return HttpResponse(html)
 
 
+def sync_all_recent_pending_subscriptions():
+    """Synchronise les abonnements en attente récents (ex: retour Jèko sans paramètre ref)."""
+    recent_pending = Subscription.objects.filter(
+        status=Subscription.STATUS_PENDING,
+    ).order_by("-created_at")[:10]
+    activated_sub = None
+    for pending in recent_pending:
+        if pending.jeko_payment_request_id:
+            jeko_data = get_payment_request_status(pending.jeko_payment_request_id)
+            if jeko_data:
+                tx_status = extract_jeko_status(jeko_data)
+                if is_jeko_status_success(tx_status):
+                    pending.activate_for_30_days()
+                    if not activated_sub:
+                        activated_sub = pending
+                elif is_jeko_status_failed(tx_status):
+                    pending.status = Subscription.STATUS_CANCELLED
+                    pending.save(update_fields=["status", "updated_at"])
+    return activated_sub
+
+
 def redirect_success(request):
     """Redirection après paiement validé vers l'application web."""
-    ref = request.GET.get("ref", "")
+    ref = request.GET.get("ref") or request.GET.get("reference") or request.GET.get("orderId") or ""
+    payment_request_id = request.GET.get("id") or request.GET.get("payment_request_id") or ""
+    sub = None
     if ref:
         sub = Subscription.objects.filter(reference=ref).first()
-        if sub and sub.status != Subscription.STATUS_ACTIVE:
+    if not sub and payment_request_id:
+        sub = Subscription.objects.filter(jeko_payment_request_id=payment_request_id).first()
+    if sub:
+        if sub.status != Subscription.STATUS_ACTIVE:
             sub.activate_for_30_days()
+        ref = sub.reference
+    else:
+        activated = sync_all_recent_pending_subscriptions()
+        if activated:
+            ref = activated.reference
     web_app_url = getattr(settings, "WEB_APP_URL", "https://transfert-online.site").rstrip("/")
     return HttpResponseRedirect(f"{web_app_url}/?payment=success&ref={ref}")
 
 
 def redirect_error(request):
     """Redirection en cas d'erreur ou d'annulation vers l'application web."""
-    ref = request.GET.get("ref", "")
+    ref = request.GET.get("ref") or request.GET.get("reference") or request.GET.get("orderId") or ""
     if ref:
         sub = Subscription.objects.filter(reference=ref, status=Subscription.STATUS_PENDING).first()
         if sub:
@@ -515,12 +544,16 @@ def jeko_return(request):
             sub.save(update_fields=["status", "updated_at"])
             return HttpResponseRedirect(f"{web_app_url}/?payment=error&ref={sub.reference}")
 
-        if is_jeko_status_success(tx_status) or result_param == "success":
+        if is_jeko_status_success(tx_status) or result_param == "success" or not result_param:
             sub.activate_for_30_days()
             logger.info(
                 f"Abonnement {sub.reference} et badge activés via retour Jèko pour {sub.user}."
             )
             return HttpResponseRedirect(f"{web_app_url}/?payment=success&ref={sub.reference}")
+    else:
+        activated = sync_all_recent_pending_subscriptions()
+        if activated:
+            return HttpResponseRedirect(f"{web_app_url}/?payment=success&ref={activated.reference}")
 
     if result_param in ("error", "failed", "cancelled", "canceled"):
         return HttpResponseRedirect(f"{web_app_url}/?payment=error&ref={ref}")

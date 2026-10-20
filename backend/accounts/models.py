@@ -139,10 +139,16 @@ class User(AbstractBaseUser, PermissionsMixin):
         if not self.pk:
             return False
         from django.utils import timezone
-        return self.subscriptions.filter(
-            status="active",
-            expires_at__gt=timezone.now(),
-        ).exists()
+        now = timezone.now()
+        if self.subscriptions.filter(status="active", expires_at__gt=now).exists():
+            return True
+        if self.subscriptions.filter(status="pending").exists():
+            try:
+                from payments.views import sync_user_pending_subscriptions
+                return sync_user_pending_subscriptions(self) is not None
+            except Exception:
+                pass
+        return False
 
 
 class PasswordResetOTP(models.Model):
