@@ -482,6 +482,21 @@ EOF
     fi
 }
 
+# Configuration du cron quotidien pour les alertes (5 jours) et expirations d'abonnements
+setup_expirations_cron() {
+    log_info "Configuration de la tâche quotidienne de gestion des abonnements..."
+    
+    local CRON_FILE="/etc/cron.d/louemoi_check_expirations"
+    if [ -d /etc/cron.d ] && [ "$EUID" -eq 0 ]; then
+        cat <<EOF > "$CRON_FILE"
+# Vérification quotidienne des expirations d'abonnements, alertes à 5 jours et révocation à 02h00
+0 2 * * * root cd $SCRIPT_DIR && $DOCKER_COMPOSE exec -T web python manage.py check_expirations > /dev/null 2>&1
+EOF
+        chmod 0644 "$CRON_FILE"
+        log_success "Tâche Cron d'expiration d'abonnements installée dans $CRON_FILE."
+    fi
+}
+
 # Construction et lancement de la stack Docker
 start_stack() {
     log_title "Construction et Démarrage des Conteneurs Docker"
@@ -579,6 +594,8 @@ show_help() {
     echo "  --restore <fichier>  Restaure une sauvegarde spécifique"
     echo "  --logs [service]     Affiche les logs en direct (web, nginx, db, certbot)"
     echo "  --status             Affiche l'état des conteneurs et les informations de santé"
+    echo "  --check-expirations  Exécute manuellement la vérification des expirations et alertes"
+    echo "  --cron               Installe ou met à jour les tâches Cron (SSL et expirations)"
     echo "  --restart            Redémarre l'ensemble de la stack Docker"
     echo "  --stop               Arrête l'ensemble des conteneurs"
     echo "  --clean              Nettoie les images et volumes orphelins non utilisés"
@@ -615,6 +632,14 @@ main() {
             echo ""
             docker run --rm -v louemoi_certbot_conf:/etc/letsencrypt certbot/certbot certificates || true
             ;;
+        --check-expirations)
+            log_info "Exécution de la commande check_expirations..."
+            $DOCKER_COMPOSE exec -T web python manage.py check_expirations
+            ;;
+        --cron)
+            setup_renewal_cron
+            setup_expirations_cron
+            ;;
         --restart)
             log_info "Redémarrage de la stack Docker..."
             $DOCKER_COMPOSE restart
@@ -637,6 +662,7 @@ main() {
             generate_ssl
             start_stack
             setup_renewal_cron
+            setup_expirations_cron
             verify_deployment
             ;;
     esac

@@ -193,7 +193,12 @@ def get_sms_provider() -> SmsProvider:
         or os.environ.get("IKKODI_API_KEY", "")
     ).strip()
 
-    if api_key:
+    # Si la clé est vide ou un placeholder d'exemple (ex: "votre_cle_..."), rester en mode logging
+    is_placeholder = any(
+        api_key.lower().startswith(prefix)
+        for prefix in ("votre_", "changez_", "test_", "dummy", "sample")
+    )
+    if api_key and not is_placeholder and len(api_key) > 6:
         sender_id = (
             getattr(settings, "IKODDI_SENDER_ID", "")
             or os.environ.get("IKODDI_SENDER_ID", "")

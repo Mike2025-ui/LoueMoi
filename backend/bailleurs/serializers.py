@@ -19,5 +19,17 @@ class BailleurSearchSerializer(serializers.Serializer):
     # "Appeler" (téléphonie native) côté Flutter — même principe que
     # AgentSearchSerializer.phone.
     phone = serializers.CharField()
-    is_verified = serializers.BooleanField(default=False)
+    is_verified = serializers.SerializerMethodField()
+
+    def get_is_verified(self, user):
+        from django.utils import timezone
+        now = timezone.now()
+        # 1. Tout abonnement actif confère automatiquement le badge vérifié
+        if hasattr(user, "subscriptions") and user.subscriptions.filter(status="active", expires_at__gt=now).exists():
+            return True
+        # 2. Après expiration d'un abonnement, le badge est révoqué
+        if hasattr(user, "subscriptions") and user.subscriptions.filter(status__in=["active", "expired"]).exists():
+            return False
+        # 3. Badge administratif
+        return bool(getattr(user, "is_verified", False))
 
