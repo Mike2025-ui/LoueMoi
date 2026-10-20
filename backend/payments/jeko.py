@@ -105,6 +105,28 @@ def create_payment_request(
             raise JekoClientError(
                 "Erreur Jèko (401 : Invalid API key ID) : La valeur de JEKO_API_KEY_ID dans le fichier .env de votre serveur est incorrecte ou inversée avec JEKO_API_KEY. Vérifiez l'identifiant de clé sur https://jeko.africa."
             )
+        if e.code == 422:
+            try:
+                err_json = json.loads(error_body)
+                errors_list = (
+                    (err_json.get("extras") or {}).get("errors")
+                    or err_json.get("errors")
+                    or []
+                )
+                if errors_list and isinstance(errors_list, list):
+                    msgs = [
+                        f"{item.get('field', '')}: {item.get('message', '')}".strip(": ")
+                        for item in errors_list
+                        if isinstance(item, dict)
+                    ]
+                    if msgs:
+                        raise JekoClientError(f"Erreur de validation Jèko (422): {', '.join(msgs)}")
+                if err_json.get("message"):
+                    raise JekoClientError(f"Erreur de validation Jèko (422): {err_json['message']}")
+            except JekoClientError:
+                raise
+            except Exception:
+                pass
         raise JekoClientError(f"Erreur Jèko ({e.code}): {error_body}")
     except Exception as e:
         logger.error(f"Erreur réseau Jèko: {e}")

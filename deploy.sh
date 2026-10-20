@@ -574,7 +574,9 @@ update_project() {
 
     if [ -d .git ]; then
         log_info "Récupération des dernières modifications Git..."
-        git pull --rebase || true
+        git fetch origin main
+        git reset --hard origin/main
+        chmod +x deploy.sh backend/entrypoint.sh || true
     fi
 
     set -a
