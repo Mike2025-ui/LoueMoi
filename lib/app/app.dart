@@ -7,12 +7,14 @@ import '../core/config/env.dart';
 import '../core/constants/app_constants.dart';
 import '../core/network/network_providers.dart';
 import '../core/services/notification_router.dart';
+import '../core/theme/app_colors.dart';
 import '../core/theme/app_theme.dart';
 import '../features/auth/models/user.dart';
 import '../features/auth/providers/auth_providers.dart';
 import '../features/messaging/providers/message_providers.dart';
 import '../features/notifications/providers/device_token_providers.dart';
 import '../features/notifications/providers/notification_providers.dart';
+import '../features/payments/providers/payment_providers.dart';
 import '../features/properties/providers/property_providers.dart';
 import 'router.dart';
 import 'routes.dart';
@@ -35,7 +37,43 @@ class _LoueMoiAppState extends ConsumerState<LoueMoiApp> with WidgetsBindingObse
     WidgetsBinding.instance.addObserver(this);
     // USE_MOCK_DATA=true ne doit jamais toucher Firebase — voir la règle
     // mode mock de la mission notifications.
-    if (!Env.useMockData) _setUpPushHandling();
+    if (!Env.useMockData) {
+      _setUpPushHandling();
+      _handlePaymentRedirectQuery();
+    }
+  }
+
+  Future<void> _handlePaymentRedirectQuery() async {
+    final paymentParam = Uri.base.queryParameters['payment']?.toLowerCase();
+    if (paymentParam == null || paymentParam.isEmpty) return;
+
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (!mounted) return;
+
+    if (paymentParam == 'success') {
+      try {
+        await ref.read(paymentRepositoryProvider).getSubscriptionStatus();
+      } catch (_) {}
+      await ref.read(authControllerProvider.notifier).refreshProfile();
+      ref.invalidate(userSubscriptionStatusProvider);
+      _scaffoldMessengerKey.currentState?.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Paiement confirmé avec succès ! Votre abonnement et votre badge certifié sont activés.',
+          ),
+          backgroundColor: AppColors.success,
+          duration: Duration(seconds: 5),
+        ),
+      );
+    } else if (paymentParam == 'error' || paymentParam == 'cancelled') {
+      _scaffoldMessengerKey.currentState?.showSnackBar(
+        const SnackBar(
+          content: Text('Le paiement a été annulé ou n\'a pas pu aboutir.'),
+          backgroundColor: AppColors.warning,
+          duration: Duration(seconds: 4),
+        ),
+      );
+    }
   }
 
   @override
@@ -58,6 +96,8 @@ class _LoueMoiAppState extends ConsumerState<LoueMoiApp> with WidgetsBindingObse
       ref.invalidate(notificationsProvider);
       ref.invalidate(unreadNotificationsCountProvider);
       ref.invalidate(conversationsProvider);
+      ref.invalidate(userSubscriptionStatusProvider);
+      ref.read(authControllerProvider.notifier).refreshProfile();
     }
   }
 

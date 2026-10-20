@@ -157,19 +157,24 @@ class PropertyViewSet(viewsets.ModelViewSet):
             favorite.delete()
         else:
             # Notifier uniquement le propriétaire (agent/bailleur) de l'annonce, et rien d'autre
-            if request.user != property_obj.agent:
-                from notifications.models import Notification
-                from notifications.services import NotificationService
+            if property_obj.agent and request.user != property_obj.agent:
+                try:
+                    from notifications.models import Notification
+                    from notifications.services import NotificationService
 
-                user_display = request.user.get_full_name() or request.user.phone or "Un utilisateur"
-                NotificationService.notify(
-                    recipient=property_obj.agent,
-                    title="Nouveau favori",
-                    body=f"{user_display} a ajouté votre annonce \"{property_obj.title}\" à ses favoris.",
-                    notif_type=getattr(Notification, "TYPE_NEW_FAVORITE", "new_favorite"),
-                    data={"property_id": str(property_obj.pk)},
-                    property_obj=property_obj,
-                )
+                    full_name = f"{request.user.first_name} {request.user.last_name}".strip()
+                    user_display = full_name or request.user.phone or "Un utilisateur"
+                    NotificationService.notify(
+                        recipient=property_obj.agent,
+                        title="Nouveau favori",
+                        body=f"{user_display} a ajouté votre annonce \"{property_obj.title}\" à ses favoris.",
+                        notif_type=getattr(Notification, "TYPE_NEW_FAVORITE", "new_favorite"),
+                        data={"property_id": str(property_obj.pk)},
+                        property=property_obj,
+                        actor=request.user,
+                    )
+                except Exception:
+                    pass
         property_obj.favorites_count = property_obj.favorited_by.count()
         property_obj.save(update_fields=["favorites_count"])
         serializer = self.get_serializer(property_obj)

@@ -93,6 +93,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.phone})"
 
+    def get_full_name(self):
+        return f"{self.first_name} {self.last_name}".strip()
+
     def save(self, *args, **kwargs):
         # Règle de sécurité stricte : le rôle des clients, agents et bailleurs
         # ainsi que leurs numéros de téléphone ne doivent JAMAIS être modifiables.

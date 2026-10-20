@@ -65,6 +65,11 @@ class LoginView(APIView):
                 {"detail": "Ce compte a été désactivé."},
                 status=status.HTTP_403_FORBIDDEN,
             )
+        try:
+            from payments.views import sync_user_pending_subscriptions
+            sync_user_pending_subscriptions(user)
+        except Exception:
+            pass
         return Response(_auth_payload(user))
 
 
@@ -86,7 +91,13 @@ class MeView(generics.RetrieveUpdateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self):
-        return self.request.user
+        user = self.request.user
+        try:
+            from payments.views import sync_user_pending_subscriptions
+            sync_user_pending_subscriptions(user)
+        except Exception:
+            pass
+        return user
 
 
 class DeactivateAccountView(APIView):

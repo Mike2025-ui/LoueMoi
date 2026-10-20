@@ -111,12 +111,26 @@ Future<void> _confirmDeleteAccount(BuildContext context, WidgetRef ref) async {
   );
 }
 
-class ProfileScreen extends ConsumerWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      ref.read(authControllerProvider.notifier).refreshProfile();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final user = ref.watch(authControllerProvider).valueOrNull;
+    final isVerified = user?.isVerifiedUser ?? false;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -128,22 +142,40 @@ class ProfileScreen extends ConsumerWidget {
               const SizedBox(height: AppSpacing.md),
               const Text('Profil', style: AppTextStyles.h3),
               const SizedBox(height: AppSpacing.lg),
-              CircleAvatar(
-                radius: AppSizes.avatarLg / 2,
-                backgroundColor: AppColors.primary,
-                backgroundImage: user?.photo != null
-                    ? NetworkImage(buildMediaUrl(user!.photo!))
-                    : null,
-                child: user?.photo == null
-                    ? const Icon(Icons.person, size: 48, color: AppColors.white)
-                    : null,
+              Stack(
+                children: [
+                  CircleAvatar(
+                    radius: AppSizes.avatarLg / 2,
+                    backgroundColor: AppColors.primary,
+                    backgroundImage: user?.photo != null
+                        ? NetworkImage(buildMediaUrl(user!.photo!))
+                        : null,
+                    child: user?.photo == null
+                        ? const Icon(Icons.person, size: 48, color: AppColors.white)
+                        : null,
+                  ),
+                  if (isVerified)
+                    const Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: CircleAvatar(
+                        radius: 12,
+                        backgroundColor: AppColors.primary,
+                        child: Icon(
+                          Icons.check,
+                          size: 14,
+                          color: AppColors.white,
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: AppSpacing.md),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(user?.fullName ?? 'Utilisateur', style: AppTextStyles.h3),
-                  if (user?.isVerifiedUser ?? false) ...[
+                  if (isVerified) ...[
                     const SizedBox(width: 6),
                     const Icon(Icons.verified, color: AppColors.primary, size: 20),
                   ],
@@ -151,6 +183,31 @@ class ProfileScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 2),
               Text(user?.phone ?? '', style: AppTextStyles.caption),
+              if (isVerified) ...[
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.verified, color: AppColors.primary, size: 14),
+                      SizedBox(width: 4),
+                      Text(
+                        'Compte certifié',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: AppSpacing.xl),
               // Pas d'entrée "Messages" ici : la maquette n'en montre aucune
               // sur cet écran (l'onglet Messages de la bottom navigation
@@ -170,12 +227,15 @@ class ProfileScreen extends ConsumerWidget {
                 label: (user?.hasActiveSubscription ?? false)
                     ? 'Mon abonnement (Actif)'
                     : 'Abonnement LoueMoi',
-                onTap: () {
-                  showSubscriptionModal(
+                onTap: () async {
+                  await showSubscriptionModal(
                     context,
                     isPro: user?.canOwnProperties ?? false,
                     role: user?.role,
                   );
+                  if (mounted) {
+                    ref.read(authControllerProvider.notifier).refreshProfile();
+                  }
                 },
               ),
               if (user?.isAgent ?? false)

@@ -79,8 +79,6 @@ def create_payment_request(
         "successUrl": success_url,
         "errorUrl": error_url,
     }
-    if payer_phone:
-        payload_data["payerPhone"] = payer_phone
 
     body = {
         "storeId": store_id,
@@ -164,4 +162,43 @@ def get_payment_request_status(payment_request_id: str) -> dict | None:
     except Exception as e:
         logger.warning(f"Échec de vérification du paiement Jèko ({payment_request_id}): {e}")
         return None
+
+
+def extract_jeko_status(jeko_data: dict | None) -> str:
+    if not jeko_data or not isinstance(jeko_data, dict):
+        return ""
+    raw_status = (
+        jeko_data.get("status")
+        or (jeko_data.get("data") or {}).get("status")
+        or (jeko_data.get("transactionDetails") or {}).get("status")
+        or (jeko_data.get("paymentDetails") or {}).get("status")
+        or ""
+    )
+    return str(raw_status).strip().lower()
+
+
+def is_jeko_status_success(tx_status: str) -> bool:
+    return tx_status in (
+        "success",
+        "successful",
+        "succeeded",
+        "completed",
+        "paid",
+        "approved",
+        "validated",
+        "confirmed",
+        "done",
+    )
+
+
+def is_jeko_status_failed(tx_status: str) -> bool:
+    return tx_status in (
+        "error",
+        "failed",
+        "cancelled",
+        "canceled",
+        "declined",
+        "rejected",
+    )
+
 

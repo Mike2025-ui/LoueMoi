@@ -51,43 +51,37 @@ class _SubscriptionSheet extends ConsumerStatefulWidget {
   ConsumerState<_SubscriptionSheet> createState() => _SubscriptionSheetState();
 }
 
-class _SubscriptionSheetState extends ConsumerState<_SubscriptionSheet> {
+class _SubscriptionSheetState extends ConsumerState<_SubscriptionSheet>
+    with WidgetsBindingObserver {
   PaymentMethod _selectedMethod = PaymentMethod.wave;
-  late final TextEditingController _phoneController;
   bool _isLoading = false;
   bool _hasLaunchedPayment = false;
 
   @override
   void initState() {
     super.initState();
-    final currentUser = ref.read(authControllerProvider).valueOrNull;
-    _phoneController = TextEditingController(text: currentUser?.phone ?? '');
+    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void dispose() {
-    _phoneController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  Future<void> _initiatePayment() async {
-    final payerPhone = _phoneController.text.trim();
-    if (payerPhone.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Veuillez saisir votre numéro de téléphone.'),
-          backgroundColor: AppColors.danger,
-        ),
-      );
-      return;
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _hasLaunchedPayment && !_isLoading) {
+      _verifyAndClose(silentIfPending: true);
     }
+  }
 
+  Future<void> _initiatePayment() async {
     setState(() => _isLoading = true);
     try {
       final repository = ref.read(paymentRepositoryProvider);
       final result = await repository.createSubscription(
         paymentMethod: _selectedMethod,
-        payerPhone: payerPhone,
       );
 
       final uri = Uri.parse(result.redirectUrl);
@@ -111,7 +105,7 @@ class _SubscriptionSheetState extends ConsumerState<_SubscriptionSheet> {
     }
   }
 
-  Future<void> _verifyAndClose() async {
+  Future<void> _verifyAndClose({bool silentIfPending = false}) async {
     setState(() => _isLoading = true);
     try {
       final repository = ref.read(paymentRepositoryProvider);
@@ -127,14 +121,16 @@ class _SubscriptionSheetState extends ConsumerState<_SubscriptionSheet> {
       if (!status.hasActiveSubscription) {
         if (mounted) {
           setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Paiement non encore détecté. Si vous venez d\'effectuer le paiement, veuillez patienter quelques secondes puis réessayer.',
+          if (!silentIfPending) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Paiement non encore détecté. Si vous venez d\'effectuer le paiement, veuillez patienter quelques secondes puis réessayer.',
+                ),
+                backgroundColor: AppColors.warning,
               ),
-              backgroundColor: AppColors.warning,
-            ),
-          );
+            );
+          }
         }
         return;
       }
@@ -158,7 +154,9 @@ class _SubscriptionSheetState extends ConsumerState<_SubscriptionSheet> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        showErrorSnackbar(context, e);
+        if (!silentIfPending) {
+          showErrorSnackbar(context, e);
+        }
       }
     }
   }
@@ -355,35 +353,6 @@ class _SubscriptionSheetState extends ConsumerState<_SubscriptionSheet> {
                   ),
                 );
               }).toList(),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            const Text(
-              'Numéro de téléphone de paiement',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            TextField(
-              controller: _phoneController,
-              keyboardType: TextInputType.phone,
-              decoration: InputDecoration(
-                hintText: '+225 07 00 00 00 00',
-                prefixIcon: const Icon(Icons.phone_android_outlined, size: 20),
-                filled: true,
-                fillColor: const Color(0xFFF8FAFC),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                  borderSide: const BorderSide(color: AppColors.border),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                  borderSide: const BorderSide(color: AppColors.border),
-                ),
-              ),
             ),
             const SizedBox(height: AppSpacing.xl),
             if (!_hasLaunchedPayment) ...[

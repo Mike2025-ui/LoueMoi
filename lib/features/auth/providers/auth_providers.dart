@@ -136,6 +136,10 @@ class AuthController extends StateNotifier<AsyncValue<User?>> {
         photo: current.photo,
         token: current.token,
         role: current.role,
+        isApproved: current.isApproved,
+        activationRequested: current.activationRequested,
+        isVerified: current.isVerified,
+        hasActiveSubscription: current.hasActiveSubscription,
         agentProfile: profile,
       ),
     );

@@ -577,9 +577,17 @@ update_project() {
         git pull --rebase || true
     fi
 
+    set -a
+    [ -f .env ] && . .env
+    set +a
+
+    if [ -n "${DOMAIN:-}" ]; then
+        apply_nginx_config "$DOMAIN"
+    fi
+
     log_info "Reconstruction du backend..."
     $DOCKER_COMPOSE build web
-    $DOCKER_COMPOSE up -d --no-deps web nginx
+    $DOCKER_COMPOSE up -d --no-deps --force-recreate web nginx
     log_success "Mise à jour terminée avec succès."
 }
 

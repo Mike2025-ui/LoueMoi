@@ -61,8 +61,8 @@ server {
         access_log off;
     }
 
-    # Proxy vers Gunicorn (Application Django)
-    location / {
+    # Proxy vers Gunicorn (API Django, Dashboard Admin et Django Admin)
+    location ~ ^/(api|admin|dashboard)/ {
         proxy_pass http://louemoi_backend;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -80,6 +80,14 @@ server {
         proxy_connect_timeout 120s;
         proxy_send_timeout 120s;
         proxy_read_timeout 120s;
+    }
+
+    # Application Flutter Web (SPA & Redirection après paiement Jèko)
+    location / {
+        root /var/html/web;
+        index index.html;
+        try_files $uri $uri/ /index.html;
+        add_header Cache-Control "no-cache";
     }
 }
 

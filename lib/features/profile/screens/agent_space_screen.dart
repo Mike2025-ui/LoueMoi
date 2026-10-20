@@ -98,7 +98,25 @@ class AgentSpaceScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(agent.shortName, style: AppTextStyles.bodyMedium),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              agent.shortName,
+                              style: AppTextStyles.bodyMedium,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (isVerified) ...[
+                            const SizedBox(width: AppSpacing.xs),
+                            const Icon(
+                              Icons.verified,
+                              size: 16,
+                              color: AppColors.primary,
+                            ),
+                          ],
+                        ],
+                      ),
                       Text(agent.fullName, style: AppTextStyles.caption),
                       const Text(
                         'Agent immobilier',
