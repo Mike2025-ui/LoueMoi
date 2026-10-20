@@ -60,7 +60,11 @@ def create_payment_request(
         }
 
     url = f"{api_url}/partner_api/payment_requests"
-    amount_cents = amount_fcfa * 100
+    # Ajout des frais de transaction de 1.5% uniquement sur la page de paiement Jèko
+    # (1 000 FCFA -> 1 015 FCFA ; 3 000 FCFA -> 3 045 FCFA)
+    fee_fcfa = int(round(amount_fcfa * 0.015))
+    total_with_fee_fcfa = amount_fcfa + fee_fcfa
+    amount_cents = total_with_fee_fcfa * 100
 
     payload_data = {
         "paymentMethod": payment_method,

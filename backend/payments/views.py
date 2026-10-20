@@ -406,6 +406,9 @@ def simulate_checkout(request):
     else:
         plan_name = "Client (1 000 FCFA / mois)"
 
+    fee_amount = int(round(sub.amount * 0.015))
+    total_amount = sub.amount + fee_amount
+
     html = f"""
     <!DOCTYPE html>
     <html lang="fr">
@@ -433,14 +436,15 @@ def simulate_checkout(request):
             <span class="header-tag">Portail de Paiement Mobile Money</span>
             <div class="badge-op">{method_name[:2].upper()}</div>
             <h1>Abonnement LoueMoi</h1>
-            <div class="amount">{sub.amount:,} FCFA</div>
+            <div class="amount">{total_amount:,} FCFA</div>
             <div class="details">
                 <div class="details-row"><span>Formule :</span><span class="details-val">{plan_name}</span></div>
+                <div class="details-row"><span>Frais de transaction (1,5 %) :</span><span class="details-val">{fee_amount:,} FCFA</span></div>
                 <div class="details-row"><span>Moyen :</span><span class="details-val">{method_name}</span></div>
                 <div class="details-row"><span>Téléphone :</span><span class="details-val">{sub.user.phone}</span></div>
                 <div class="details-row"><span>Référence :</span><span class="details-val">{sub.reference}</span></div>
             </div>
-            <a href="?ref={ref}&action=confirm" class="btn-confirm">Payer</a>
+            <a href="?ref={ref}&action=confirm" class="btn-confirm">Payer {total_amount:,} FCFA</a>
             <a href="?ref={ref}&action=cancel" class="btn-cancel">Annuler la transaction</a>
         </div>
     </body>
