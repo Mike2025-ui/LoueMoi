@@ -42,9 +42,15 @@ class MessageSerializer(serializers.ModelSerializer):
     def get_attachment_url(self, obj):
         if not obj.attachment:
             return None
+        from urllib.parse import urlencode
+        from django.core.signing import TimestampSigner
+
         request = self.context.get("request")
         path = reverse("message-attachment", args=[obj.pk])
-        return request.build_absolute_uri(path) if request else path
+        signer = TimestampSigner(salt="messaging.attachment")
+        sig = signer.sign(str(obj.pk))
+        signed_path = f"{path}?{urlencode({'sig': sig})}"
+        return request.build_absolute_uri(signed_path) if request else signed_path
 
     def validate(self, attrs):
         import os

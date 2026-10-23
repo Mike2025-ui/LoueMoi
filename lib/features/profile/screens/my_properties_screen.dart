@@ -100,7 +100,7 @@ class MyPropertiesScreen extends ConsumerWidget {
     try {
       final repository = ref.read(propertyRepositoryProvider);
       await repository.renewProperty(property.id);
-      await markPropertyStatus(ref, propertyId: property.id, status: PropertyStatus.disponible);
+      ref.invalidate(propertyByIdProvider(property.id));
       ref.invalidate(myPropertiesProvider);
       ref.invalidate(propertiesListProvider);
       if (context.mounted) {

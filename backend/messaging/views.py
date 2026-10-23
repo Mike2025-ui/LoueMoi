@@ -150,16 +150,34 @@ class MessageListCreateView(generics.ListCreateAPIView):
 class MessageAttachmentDownloadView(APIView):
     """GET /api/messages/{id}/attachment/ — seuls les participants de la
     conversation (client/bailleur initiateur ou agent) peuvent télécharger
-    la pièce jointe. Jamais servi via l'URL MEDIA_URL publique brute, qui
-    serait accessible à quiconque connaît/devine l'URL sans authentification."""
+    la pièce jointe, soit via l'en-tête JWT Authorization, soit via l'URL
+    signée cryptographiquement (?sig=...) générée pour les lecteurs médias
+    Flutter (CachedNetworkImage, just_audio, video_player, Web)."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def get(self, request, pk):
+        from django.core.signing import BadSignature, SignatureExpired, TimestampSigner
+        from rest_framework.exceptions import NotAuthenticated
+
         message = get_object_or_404(Message, pk=pk)
         conversation = message.conversation
-        if request.user not in (conversation.client, conversation.agent):
-            raise PermissionDenied("Vous ne faites pas partie de cette conversation.")
+
+        if request.user and request.user.is_authenticated:
+            if request.user not in (conversation.client, conversation.agent):
+                raise PermissionDenied("Vous ne faites pas partie de cette conversation.")
+        else:
+            sig = request.query_params.get("sig", "")
+            if not sig:
+                raise NotAuthenticated()
+            signer = TimestampSigner(salt="messaging.attachment")
+            try:
+                unsigned_pk = signer.unsign(sig, max_age=86400 * 7)
+                if str(unsigned_pk) != str(message.pk):
+                    raise NotAuthenticated()
+            except (BadSignature, SignatureExpired):
+                raise NotAuthenticated()
+
         if not message.attachment:
             raise Http404
         filename = message.attachment.name.rsplit("/", 1)[-1]

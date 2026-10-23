@@ -183,14 +183,16 @@ class PropertyViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def view(self, request, pk=None):
         """POST /api/properties/{id}/view/ — incrémente views_count côté
-        serveur uniquement (jamais depuis Flutter directement). L'agent
-        propriétaire qui consulte sa propre annonce n'incrémente pas son
-        propre compteur (protection basique contre l'auto-gonflage)."""
+        serveur uniquement (jamais depuis Flutter directement) de manière
+        atomique via F('views_count') + 1. L'agent propriétaire qui consulte
+        sa propre annonce n'incrémente pas son propre compteur."""
         property_obj = self.get_object()
         is_owner = request.user.is_authenticated and property_obj.agent_id == request.user.id
         if not is_owner:
-            property_obj.views_count += 1
-            property_obj.save(update_fields=["views_count"])
+            Property.objects.filter(pk=property_obj.pk).update(
+                views_count=F("views_count") + 1
+            )
+            property_obj.refresh_from_db(fields=["views_count"])
         serializer = self.get_serializer(property_obj)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -392,6 +394,7 @@ class PropertyNearbyView(generics.ListAPIView):
             Property.objects.filter(latitude__isnull=False, longitude__isnull=False)
             .exclude(status="disabled")
             .exclude(status="accomplie")
+            .exclude(status="annulee")
             .select_related("agent", "agent__agent_profile")
         )
 
@@ -440,8 +443,8 @@ class PropertyNearbyView(generics.ListAPIView):
 
 class MyPropertiesView(generics.ListAPIView):
     """GET /api/agent/properties/ — uniquement les annonces de l'agent
-    connecté (tous statuts, y compris "occupee"). Le filtrage se fait ici,
-    côté Django, jamais côté Flutter."""
+    connecté (tous statuts, y compris "occupee", "accomplie", "annulee").
+    Le filtrage se fait ici, côté Django, jamais côté Flutter."""
 
     serializer_class = PropertySerializer
     permission_classes = [permissions.IsAuthenticated, IsAgent]
@@ -450,7 +453,6 @@ class MyPropertiesView(generics.ListAPIView):
         return (
             Property.objects.filter(agent=self.request.user)
             .exclude(status="disabled")
-            .exclude(status="accomplie")
             .select_related("agent", "agent__agent_profile")
         )
 

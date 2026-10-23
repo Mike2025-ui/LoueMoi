@@ -33,7 +33,9 @@ class ReservationCard extends ConsumerWidget {
     final propertyAsync = ref.watch(
       propertyByIdProvider(reservation.propertyId),
     );
-    final currentUserId = ref.watch(authControllerProvider).valueOrNull?.id;
+    final currentUser = ref.watch(authControllerProvider).valueOrNull;
+    final currentUserId = currentUser?.id;
+    final hasSub = currentUser?.hasActiveSubscription ?? false;
     // "Voir qui a réservé" : uniquement pertinent pour le propriétaire du
     // bien qui consulte une réservation faite par quelqu'un d'autre — un
     // client qui voit sa propre réservation n'a pas besoin de revoir ses
@@ -134,7 +136,7 @@ class ReservationCard extends ConsumerWidget {
                                   const SizedBox(width: 2),
                                   Expanded(
                                     child: Text(
-                                      client.phone.isEmpty
+                                      (client.phone.isEmpty || !hasSub)
                                           ? 'Réservé par ${client.fullName}'
                                           : 'Réservé par ${client.fullName} · ${client.phone}',
                                       style: AppTextStyles.small,

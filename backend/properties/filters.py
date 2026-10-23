@@ -1,3 +1,4 @@
+from django.db.models import Q
 from django_filters import rest_framework as filters
 
 from .models import Property
@@ -10,6 +11,7 @@ class PropertyFilter(filters.FilterSet):
     district = filters.CharFilter(field_name="district", lookup_expr="icontains")
     budget_min = filters.NumberFilter(field_name="price", lookup_expr="gte")
     budget_max = filters.NumberFilter(field_name="price", lookup_expr="lte")
+    search = filters.CharFilter(method="filter_search")
     # ?agent=<id> — annonces publiques d'un propriétaire donné (agent ou
     # bailleur, colonne `agent` conservée pour compatibilité). Utilisé par
     # "Rechercher un propriétaire" côté agent (voir bailleurs.views.
@@ -29,8 +31,23 @@ class PropertyFilter(filters.FilterSet):
         model = Property
         fields = ["transaction_type", "type", "category", "status", "is_future"]
 
+    def filter_search(self, queryset, name, value):
+        q = (value or "").strip()
+        if not q:
+            return queryset
+        return queryset.filter(
+            Q(title__icontains=q)
+            | Q(commune__icontains=q)
+            | Q(district__icontains=q)
+            | Q(city__icontains=q)
+            | Q(category__icontains=q)
+            | Q(description__icontains=q)
+        )
+
     def filter_favorites_only(self, queryset, name, value):
+        if not value:
+            return queryset
         user = getattr(self.request, "user", None)
-        if value and user is not None and user.is_authenticated:
+        if user is not None and user.is_authenticated:
             return queryset.filter(favorited_by__user=user)
-        return queryset
+        return queryset.none()

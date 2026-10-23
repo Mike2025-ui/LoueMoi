@@ -137,6 +137,14 @@ class Property extends Equatable {
   }
 
   factory Property.fromJson(Map<String, dynamic> json) {
+    final rawStatus = json['status'] as String;
+    final expiresAtRaw = json['expires_at'] as String?;
+    final expiresAt = expiresAtRaw != null ? DateTime.tryParse(expiresAtRaw) : null;
+    final isExpired = expiresAt != null && expiresAt.isBefore(DateTime.now());
+    final resolvedStatus = (isExpired && rawStatus == 'disponible')
+        ? PropertyStatus.annulee
+        : PropertyStatus.fromString(rawStatus);
+
     return Property(
       id: json['id'].toString(),
       title: json['title'] as String,
@@ -154,7 +162,7 @@ class Property extends Equatable {
       address: json['address'] as String? ?? '',
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
-      status: PropertyStatus.fromString(json['status'] as String),
+      status: resolvedStatus,
       isFuture: json['is_future'] as bool? ?? false,
       isFavorite: json['is_favorite'] as bool? ?? false,
       images: (json['images'] as List).map((e) => e as String).toList(),

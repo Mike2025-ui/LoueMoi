@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../models/message.dart';
@@ -53,11 +54,23 @@ class ApiMessageRepository implements MessageRepository {
       return Message.fromJson(response.data!);
     }
 
+    final xfile = XFile(attachmentPath);
+    final bytes = await xfile.readAsBytes();
+    var filename = xfile.name;
+    if (!filename.contains('.')) {
+      filename = switch (attachmentType) {
+        MessageAttachmentType.image => 'photo.jpg',
+        MessageAttachmentType.video => 'video.mp4',
+        MessageAttachmentType.audio => 'voice.m4a',
+        MessageAttachmentType.text => 'file.txt',
+      };
+    }
+
     final fields = <String, dynamic>{
       'conversation_id': conversationId,
       'content': content,
       'attachment_type': attachmentType.toJson(),
-      'attachment': await MultipartFile.fromFile(attachmentPath),
+      'attachment': MultipartFile.fromBytes(bytes, filename: filename),
     };
     if (duration != null) fields['duration'] = duration;
     final formData = FormData.fromMap(fields);

@@ -53,9 +53,9 @@ class BailleurDashboardView(APIView):
 
 class BailleurPropertiesView(generics.ListAPIView):
     """GET /api/bailleur/properties/ — uniquement les annonces du bailleur
-    connecté (tous statuts, y compris "occupee"). Filtrage côté Django
-    uniquement, jamais côté Flutter — un bailleur ne voit jamais les biens
-    d'un autre bailleur ni ceux d'un agent."""
+    connecté (tous statuts, y compris "occupee", "accomplie", "annulee").
+    Filtrage côté Django uniquement, jamais côté Flutter — un bailleur ne
+    voit jamais les biens d'un autre bailleur ni ceux d'un agent."""
 
     serializer_class = PropertySerializer
     permission_classes = [permissions.IsAuthenticated, IsBailleur]
@@ -64,7 +64,6 @@ class BailleurPropertiesView(generics.ListAPIView):
         return (
             Property.objects.filter(agent=self.request.user)
             .exclude(status="disabled")
-            .exclude(status="accomplie")
             .select_related("agent", "agent__agent_profile")
         )
 

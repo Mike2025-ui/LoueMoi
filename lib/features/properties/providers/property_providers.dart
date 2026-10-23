@@ -187,19 +187,22 @@ Future<void> markPropertyStatus(
 Future<void> toggleFavorite(WidgetRef ref, String propertyId) async {
   final controller = ref.read(propertiesControllerProvider.notifier);
   final currentList = ref.read(propertiesControllerProvider).valueOrNull ?? const [];
+  final favList = ref.read(favoritesListProvider).valueOrNull ?? const [];
 
-  bool wasFavorite = false;
+  bool? wasFavorite;
   for (final property in currentList) {
     if (property.id == propertyId) {
       wasFavorite = property.isFavorite;
       break;
     }
   }
+  wasFavorite ??= favList.any((p) => p.id == propertyId);
 
   controller.applyFavoriteChange(propertyId, !wasFavorite);
   try {
     final repository = ref.read(propertyRepositoryProvider);
-    await repository.toggleFavorite(propertyId);
+    final updated = await repository.toggleFavorite(propertyId);
+    controller.applyFavoriteChange(propertyId, updated.isFavorite);
     ref.invalidate(favoritesListProvider);
     ref.invalidate(propertyByIdProvider(propertyId));
   } catch (e) {

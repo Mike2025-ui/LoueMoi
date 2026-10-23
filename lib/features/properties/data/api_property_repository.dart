@@ -37,11 +37,21 @@ class ApiPropertyRepository implements PropertyRepository {
     return query;
   }
 
-  PropertyPage _parsePage(Map<String, dynamic> data) {
-    final results = (data['results'] as List)
-        .map((json) => Property.fromJson(json as Map<String, dynamic>))
-        .where((p) => p.status != PropertyStatus.accomplie)
-        .toList();
+  PropertyPage _parsePage(
+    Map<String, dynamic> data, {
+    bool excludeClosed = true,
+  }) {
+    final mapped = (data['results'] as List)
+        .map((json) => Property.fromJson(json as Map<String, dynamic>));
+    final results = excludeClosed
+        ? mapped
+            .where(
+              (p) =>
+                  p.status != PropertyStatus.accomplie &&
+                  p.status != PropertyStatus.annulee,
+            )
+            .toList()
+        : mapped.toList();
     return PropertyPage(
       results: results,
       hasMore: data['next'] != null,
@@ -108,7 +118,7 @@ class ApiPropertyRepository implements PropertyRepository {
       ApiEndpoints.myProperties,
       query: {'page_size': 100},
     );
-    return _parsePage(response.data!).results;
+    return _parsePage(response.data!, excludeClosed: false).results;
   }
 
   @override
@@ -117,7 +127,7 @@ class ApiPropertyRepository implements PropertyRepository {
       ApiEndpoints.bailleurProperties,
       query: {'page_size': 100},
     );
-    return _parsePage(response.data!).results;
+    return _parsePage(response.data!, excludeClosed: false).results;
   }
 
   @override
@@ -144,13 +154,15 @@ class ApiPropertyRepository implements PropertyRepository {
     bool isCover = false,
     String? category,
   }) async {
-    final filename = category != null && !file.name.startsWith('cat_')
-        ? 'cat_${category}_${file.name}'
-        : file.name;
+    final baseName = file.name.contains('.') ? file.name : '${file.name}.jpg';
+    final filename = category != null && !baseName.startsWith('cat_')
+        ? 'cat_${category}_$baseName'
+        : baseName;
+    final bytes = await file.readAsBytes();
     final formData = FormData.fromMap({
       'is_cover': isCover,
       'category': ?category,
-      'image': await MultipartFile.fromFile(file.path, filename: filename),
+      'image': MultipartFile.fromBytes(bytes, filename: filename),
     });
     final response = await _apiClient.post<Map<String, dynamic>>(
       ApiEndpoints.propertyUploadImage(propertyId),
@@ -180,8 +192,10 @@ class ApiPropertyRepository implements PropertyRepository {
 
   @override
   Future<Property> uploadVideo(String propertyId, XFile file) async {
+    final filename = file.name.contains('.') ? file.name : '${file.name}.mp4';
+    final bytes = await file.readAsBytes();
     final formData = FormData.fromMap({
-      'video': await MultipartFile.fromFile(file.path, filename: file.name),
+      'video': MultipartFile.fromBytes(bytes, filename: filename),
     });
     final response = await _apiClient.post<Map<String, dynamic>>(
       ApiEndpoints.propertyUploadVideo(propertyId),

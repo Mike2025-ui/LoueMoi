@@ -6,16 +6,42 @@ from .models import Reservation
 
 
 class ReservationClientSerializer(serializers.Serializer):
-    """Coordonnées publiques du client qui a réservé — exposées au
-    propriétaire du bien (agent ou bailleur) pour qu'il sache qui a
-    réservé. Jamais de champ sensible (password, tokens...) : mêmes champs
-    que la fiche agent publique (AgentSearchSerializer)."""
+    """Coordonnées du client qui a réservé — le nom/prénom est exposé au
+    propriétaire du bien (agent ou bailleur) pour qu'il sache qui a réservé,
+    mais le téléphone/WhatsApp n'est transmis que si le propriétaire dispose
+    d'un abonnement Pro actif (ou si le demandeur est le client lui-même)."""
 
     id = serializers.IntegerField()
     first_name = serializers.CharField()
     last_name = serializers.CharField()
-    phone = serializers.CharField()
-    whatsapp = serializers.CharField()
+    phone = serializers.SerializerMethodField()
+    whatsapp = serializers.SerializerMethodField()
+
+    def _can_view_contact(self, client_user):
+        from django.utils import timezone
+
+        request = self.context.get("request")
+        req_user = getattr(request, "user", None) if request else None
+        if not req_user or not getattr(req_user, "is_authenticated", False):
+            return False
+        if req_user.id == client_user.id or getattr(req_user, "is_staff", False):
+            return True
+        now = timezone.now()
+        if hasattr(req_user, "subscriptions") and req_user.subscriptions.filter(
+            status="active", expires_at__gt=now
+        ).exists():
+            return True
+        return False
+
+    def get_phone(self, obj):
+        if not self._can_view_contact(obj):
+            return ""
+        return obj.phone or ""
+
+    def get_whatsapp(self, obj):
+        if not self._can_view_contact(obj):
+            return ""
+        return obj.whatsapp or ""
 
 
 class ReservationSerializer(serializers.ModelSerializer):

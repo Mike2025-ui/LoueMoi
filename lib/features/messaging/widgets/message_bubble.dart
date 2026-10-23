@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
@@ -44,7 +45,9 @@ class MessageBubble extends StatelessWidget {
                     child: Icon(Icons.broken_image_outlined, color: AppColors.textHint),
                   ),
                 )
-              : Image.file(File(url), width: 200, fit: BoxFit.cover),
+              : (kIsWeb
+                  ? Image.network(url, width: 200, fit: BoxFit.cover)
+                  : Image.file(File(url), width: 200, fit: BoxFit.cover)),
         );
       case MessageAttachmentType.video:
         return VideoMessagePlayer(source: url, isLocalFile: !_isNetworkAttachment);

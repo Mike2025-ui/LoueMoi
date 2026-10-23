@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 
@@ -35,7 +36,7 @@ class _AudioMessagePlayerState extends State<AudioMessagePlayer> {
 
   Future<void> _load() async {
     try {
-      if (widget.isLocalFile) {
+      if (widget.isLocalFile && !kIsWeb) {
         await _player.setFilePath(widget.source);
       } else {
         await _player.setUrl(widget.source);

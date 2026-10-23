@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -436,7 +437,9 @@ class _StagedAttachmentPreview extends StatelessWidget {
     if (image != null) {
       content = ClipRRect(
         borderRadius: BorderRadius.circular(AppRadius.sm),
-        child: Image.file(File(image!.path), width: 64, height: 64, fit: BoxFit.cover),
+        child: kIsWeb
+            ? Image.network(image!.path, width: 64, height: 64, fit: BoxFit.cover)
+            : Image.file(File(image!.path), width: 64, height: 64, fit: BoxFit.cover),
       );
     } else if (video != null) {
       content = Container(
