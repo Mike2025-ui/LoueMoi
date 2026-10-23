@@ -127,6 +127,8 @@ if os.environ.get("POSTGRES_DB") and not is_testing:
             "PASSWORD": os.environ.get("POSTGRES_PASSWORD", ""),
             "HOST": os.environ.get("POSTGRES_HOST", "db"),
             "PORT": os.environ.get("POSTGRES_PORT", "5432"),
+            "CONN_MAX_AGE": int(os.environ.get("POSTGRES_CONN_MAX_AGE", "600")),
+            "CONN_HEALTH_CHECKS": True,
         }
     }
 else:
@@ -134,6 +136,23 @@ else:
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
+
+# Cache distribué Redis (haute capacité 2M+ utilisateurs) avec repli LocMemCache
+_REDIS_URL = os.environ.get("REDIS_URL", "").strip()
+if _REDIS_URL and not is_testing:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": _REDIS_URL,
+        }
+    }
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "louemoi-default-cache",
         }
     }
 

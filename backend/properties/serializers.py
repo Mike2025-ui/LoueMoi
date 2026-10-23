@@ -26,20 +26,54 @@ class AgentSerializer(serializers.Serializer):
     def _profile(self, user):
         return getattr(user, "agent_profile", None)
 
+    def _owner_has_active_sub(self, owner):
+        prefetched = getattr(owner, "_prefetched_has_active_sub", None)
+        if prefetched is not None:
+            return bool(prefetched)
+        from django.utils import timezone
+        now = timezone.now()
+        res = bool(
+            hasattr(owner, "subscriptions")
+            and owner.subscriptions.filter(status="active", expires_at__gt=now).exists()
+        )
+        owner._prefetched_has_active_sub = res
+        return res
+
+    def _owner_had_any_sub(self, owner):
+        prefetched = getattr(owner, "_prefetched_had_any_sub", None)
+        if prefetched is not None:
+            return bool(prefetched)
+        res = bool(
+            hasattr(owner, "subscriptions")
+            and owner.subscriptions.filter(status__in=["active", "expired"]).exists()
+        )
+        owner._prefetched_had_any_sub = res
+        return res
+
     def _can_view_contact(self, owner):
         """Protège les numéros personnels (téléphone/WhatsApp) côté serveur :
         visibles uniquement si le propriétaire est abonné, ou si le visiteur
         connecté est le propriétaire lui-même, un admin, ou possède un abonnement actif."""
-        from django.utils import timezone
-        now = timezone.now()
-        if hasattr(owner, "subscriptions") and owner.subscriptions.filter(status="active", expires_at__gt=now).exists():
+        if self._owner_has_active_sub(owner):
             return True
         request = self.context.get("request")
         req_user = getattr(request, "user", None) if request else None
         if req_user and getattr(req_user, "is_authenticated", False):
             if req_user.id == owner.id or getattr(req_user, "is_staff", False):
                 return True
-            if hasattr(req_user, "subscriptions") and req_user.subscriptions.filter(status="active", expires_at__gt=now).exists():
+            cached_req_sub = getattr(request, "_cached_req_user_has_sub", None)
+            if cached_req_sub is None:
+                from django.utils import timezone
+                now = timezone.now()
+                cached_req_sub = bool(
+                    hasattr(req_user, "subscriptions")
+                    and req_user.subscriptions.filter(status="active", expires_at__gt=now).exists()
+                )
+                try:
+                    setattr(request, "_cached_req_user_has_sub", cached_req_sub)
+                except Exception:
+                    pass
+            if cached_req_sub:
                 return True
         return False
 
@@ -55,13 +89,11 @@ class AgentSerializer(serializers.Serializer):
         return (profile.whatsapp if profile and profile.whatsapp else user.whatsapp) or ""
 
     def get_is_verified(self, user):
-        from django.utils import timezone
-        now = timezone.now()
         # 1. Tout abonnement actif confère le badge
-        if hasattr(user, "subscriptions") and user.subscriptions.filter(status="active", expires_at__gt=now).exists():
+        if self._owner_has_active_sub(user):
             return True
         # 2. Après expiration d'un abonnement, le badge est révoqué
-        if hasattr(user, "subscriptions") and user.subscriptions.filter(status__in=["active", "expired"]).exists():
+        if self._owner_had_any_sub(user):
             return False
         # 3. Badge administratif
         if getattr(user, "is_verified", False):
@@ -76,11 +108,7 @@ class AgentSerializer(serializers.Serializer):
         return float(profile.rating) if profile else 0.0
 
     def get_has_active_subscription(self, user):
-        from django.utils import timezone
-        return user.subscriptions.filter(
-            status="active",
-            expires_at__gt=timezone.now(),
-        ).exists()
+        return self._owner_has_active_sub(user)
 
 
 class PropertySerializer(serializers.ModelSerializer):
@@ -149,13 +177,25 @@ class PropertySerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
+    def to_representation(self, instance):
+        if instance.agent_id and getattr(instance, "agent", None) is not None:
+            if hasattr(instance, "_owner_has_active_sub"):
+                instance.agent._prefetched_has_active_sub = bool(instance._owner_has_active_sub)
+            if hasattr(instance, "_owner_had_any_sub"):
+                instance.agent._prefetched_had_any_sub = bool(instance._owner_had_any_sub)
+        return super().to_representation(instance)
+
     def get_is_favorite(self, obj):
+        if hasattr(obj, "_is_favorited"):
+            return bool(obj._is_favorited)
         request = self.context.get("request")
         if request is None or not request.user.is_authenticated:
             return False
         return Favorite.objects.filter(user=request.user, property=obj).exists()
 
     def get_owner_has_active_subscription(self, obj):
+        if hasattr(obj, "_owner_has_active_sub"):
+            return bool(obj._owner_has_active_sub)
         if not obj.agent:
             return False
         from django.utils import timezone

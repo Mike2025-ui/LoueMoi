@@ -85,6 +85,12 @@ class Subscription(models.Model):
         ordering = ["-created_at"]
         verbose_name = "Abonnement"
         verbose_name_plural = "Abonnements"
+        indexes = [
+            models.Index(
+                fields=["user", "status", "expires_at"],
+                name="sub_user_active_idx",
+            ),
+        ]
 
     def __str__(self):
         return f"{self.user} - {self.get_plan_display()} ({self.get_status_display()})"

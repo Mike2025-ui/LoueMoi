@@ -35,7 +35,11 @@ class ReservationViewSet(viewsets.ModelViewSet):
         # - En tant que propriétaire/agent du bien réservé (property__agent=user)
         # Aucune fuite de données vers des tiers ou d'autres bailleurs/agents.
         # (La vue globale de toutes les réservations appartient exclusivement au Dashboard Django /dashboard/reservations/).
-        return Reservation.objects.filter(Q(user=user) | Q(property__agent=user)).distinct()
+        return (
+            Reservation.objects.filter(Q(user=user) | Q(property__agent=user))
+            .select_related("user", "property", "property__agent")
+            .distinct()
+        )
 
     @transaction.atomic
     def perform_create(self, serializer):

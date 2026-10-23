@@ -61,11 +61,14 @@ class BailleurPropertiesView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated, IsBailleur]
 
     def get_queryset(self):
-        return (
+        from properties.views import annotate_property_queryset
+
+        qs = (
             Property.objects.filter(agent=self.request.user)
             .exclude(status="disabled")
             .select_related("agent", "agent__agent_profile")
         )
+        return annotate_property_queryset(qs, self.request.user)
 
     def get_serializer_context(self):
         context = super().get_serializer_context()

@@ -6,7 +6,16 @@ import uuid
 from PIL import Image
 
 from django.core.files.storage import default_storage
-from django.db.models import ExpressionWrapper, F, FloatField, Q, Value
+from django.db.models import (
+    BooleanField,
+    Exists,
+    ExpressionWrapper,
+    F,
+    FloatField,
+    OuterRef,
+    Q,
+    Value,
+)
 from django.db.models.deletion import ProtectedError
 from django.db.models.functions import ASin, Cast, Cos, Power, Radians, Sin, Sqrt
 from django.utils import timezone
@@ -55,6 +64,38 @@ def _haversine_distance_km(origin_latitude, origin_longitude):
     return ExpressionWrapper(c * EARTH_RADIUS_KM, output_field=FloatField())
 
 
+def annotate_property_queryset(queryset, user=None):
+    """Pré-calcule en 1 seule requête SQL (Exists/OuterRef) les booléens
+    d'abonnement propriétaire et de favori utilisateur pour éliminer les
+    ~140 requêtes N+1 par page de PropertySerializer & AgentSerializer."""
+    from payments.models import Subscription
+
+    now = timezone.now()
+    active_sub_sq = Subscription.objects.filter(
+        user_id=OuterRef("agent_id"),
+        status="active",
+        expires_at__gt=now,
+    )
+    any_sub_sq = Subscription.objects.filter(
+        user_id=OuterRef("agent_id"),
+        status__in=["active", "expired"],
+    )
+    annotations = {
+        "_owner_has_active_sub": Exists(active_sub_sq),
+        "_owner_had_any_sub": Exists(any_sub_sq),
+    }
+    if user is not None and getattr(user, "is_authenticated", False):
+        fav_sq = Favorite.objects.filter(
+            user_id=user.id,
+            property_id=OuterRef("pk"),
+        )
+        annotations["_is_favorited"] = Exists(fav_sq)
+    else:
+        annotations["_is_favorited"] = Value(False, output_field=BooleanField())
+
+    return queryset.annotate(**annotations)
+
+
 class PropertyViewSet(viewsets.ModelViewSet):
     """/api/properties/ — liste publique (toutes les annonces, tous
     agents/bailleurs confondus) + CRUD réservé au propriétaire pour les
@@ -94,8 +135,10 @@ class PropertyViewSet(viewsets.ModelViewSet):
         not_expired = Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now())
         user = self.request.user
         if user.is_authenticated:
-            return base.filter(not_expired | Q(agent=user))
-        return base.filter(not_expired)
+            qs = base.filter(not_expired | Q(agent=user))
+        else:
+            qs = base.filter(not_expired)
+        return annotate_property_queryset(qs, user)
 
     def get_permissions(self):
         if self.action == "create":
@@ -399,7 +442,7 @@ class PropertyNearbyView(generics.ListAPIView):
         )
 
         not_expired = Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now())
-        qs = qs.filter(not_expired)
+        qs = annotate_property_queryset(qs.filter(not_expired), self.request.user)
 
         # Si ni latitude ni longitude ne sont passées : afficher toutes les annonces géolocalisées
         if lat_raw is None and lng_raw is None:
@@ -419,8 +462,7 @@ class PropertyNearbyView(generics.ListAPIView):
         if not (-180.0 <= lng <= 180.0):
             raise ValidationError({"longitude": ["Longitude hors intervalle [-180, 180]."]})
 
-        qs = qs.annotate(distance_km=_haversine_distance_km(lat, lng))
-
+        radius_km = None
         if radius_raw is not None and radius_raw != "":
             if radius_raw in ("0", "all", "toutes"):
                 pass
@@ -431,7 +473,20 @@ class PropertyNearbyView(generics.ListAPIView):
                     raise ValidationError({"radius": ["Rayon invalide."]})
                 if radius_km <= 0:
                     raise ValidationError({"radius": ["Le rayon doit être strictement positif."]})
-                qs = qs.filter(distance_km__lte=radius_km)
+                # Pré-filtre Bounding Box indexé (prop_coords_idx) avant Haversine
+                delta_lat = (radius_km * 1.05) / 111.0
+                cos_lat = max(math.cos(math.radians(lat)), 0.01)
+                delta_lng = (radius_km * 1.05) / (111.0 * cos_lat)
+                qs = qs.filter(
+                    latitude__gte=lat - delta_lat,
+                    latitude__lte=lat + delta_lat,
+                    longitude__gte=lng - delta_lng,
+                    longitude__lte=lng + delta_lng,
+                )
+
+        qs = qs.annotate(distance_km=_haversine_distance_km(lat, lng))
+        if radius_km is not None:
+            qs = qs.filter(distance_km__lte=radius_km)
 
         return qs.order_by("distance_km")
 
@@ -450,11 +505,12 @@ class MyPropertiesView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated, IsAgent]
 
     def get_queryset(self):
-        return (
+        qs = (
             Property.objects.filter(agent=self.request.user)
             .exclude(status="disabled")
             .select_related("agent", "agent__agent_profile")
         )
+        return annotate_property_queryset(qs, self.request.user)
 
     def get_serializer_context(self):
         context = super().get_serializer_context()

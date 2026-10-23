@@ -75,6 +75,16 @@ class Message(models.Model):
 
     class Meta:
         ordering = ["created_at"]
+        indexes = [
+            models.Index(
+                fields=["conversation", "is_read"],
+                name="msg_conv_unread_idx",
+            ),
+            models.Index(
+                fields=["conversation", "-created_at"],
+                name="msg_conv_created_idx",
+            ),
+        ]
 
     def __str__(self):
         return f"{self.sender} → {self.receiver}: {self.content[:30]}"

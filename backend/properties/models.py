@@ -141,6 +141,28 @@ class Property(models.Model):
         # Flutter, qui se contente d'afficher tel quel ce que Django renvoie.
         ordering = ["-created_at", "-id"]
         verbose_name_plural = "properties"
+        indexes = [
+            models.Index(
+                fields=["status", "transaction_type", "type", "-created_at", "-id"],
+                name="prop_public_feed_idx",
+            ),
+            models.Index(
+                fields=["agent", "status", "-created_at"],
+                name="prop_owner_status_idx",
+            ),
+            models.Index(
+                fields=["commune", "district"],
+                name="prop_location_idx",
+            ),
+            models.Index(
+                fields=["latitude", "longitude"],
+                name="prop_coords_idx",
+            ),
+            models.Index(
+                fields=["expires_at"],
+                name="prop_expires_idx",
+            ),
+        ]
 
     def __str__(self):
         return f"{self.title} ({self.commune}, {self.district})"

@@ -1,4 +1,4 @@
-from django.db.models import Q
+from django.db.models import Count, Exists, OuterRef, Q
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions, serializers, viewsets
@@ -24,12 +24,21 @@ class ConversationViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        has_messages = Exists(Message.objects.filter(conversation_id=OuterRef("pk")))
         # Ne renvoie que les conversations qui contiennent au moins un message réel
         # pour éviter d'afficher des conversations fantômes non démarrées
         return (
             Conversation.objects.filter(Q(client=user) | Q(agent=user))
-            .filter(messages__isnull=False)
-            .distinct()
+            .annotate(_has_messages=has_messages)
+            .filter(_has_messages=True)
+            .select_related("client", "agent", "property")
+            .annotate(
+                _unread_count=Count(
+                    "messages",
+                    filter=Q(messages__is_read=False) & ~Q(messages__sender=user),
+                )
+            )
+            .order_by("-created_at", "-id")
         )
 
     def get_serializer_context(self):
@@ -94,6 +103,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
             recipient=request.user,
             type=Notification.TYPE_NEW_MESSAGE,
         ).update(is_read=True)
+        conversation._unread_count = 0
         return Response(self.get_serializer(conversation).data)
 
 

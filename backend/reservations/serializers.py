@@ -26,12 +26,18 @@ class ReservationClientSerializer(serializers.Serializer):
             return False
         if req_user.id == client_user.id or getattr(req_user, "is_staff", False):
             return True
-        now = timezone.now()
-        if hasattr(req_user, "subscriptions") and req_user.subscriptions.filter(
-            status="active", expires_at__gt=now
-        ).exists():
-            return True
-        return False
+        cached_sub = getattr(request, "_cached_req_user_has_sub", None)
+        if cached_sub is None:
+            now = timezone.now()
+            cached_sub = bool(
+                hasattr(req_user, "subscriptions")
+                and req_user.subscriptions.filter(status="active", expires_at__gt=now).exists()
+            )
+            try:
+                setattr(request, "_cached_req_user_has_sub", cached_sub)
+            except Exception:
+                pass
+        return bool(cached_sub)
 
     def get_phone(self, obj):
         if not self._can_view_contact(obj):

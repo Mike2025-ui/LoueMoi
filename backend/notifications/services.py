@@ -12,11 +12,14 @@ d'exception remontée à l'appelant, jamais de blocage d'une opération métier
 import json
 import logging
 import os
+import sys
+from concurrent.futures import ThreadPoolExecutor
 from django.db import transaction
 
 from .models import DeviceToken, Notification
 
 logger = logging.getLogger(__name__)
+_push_executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix="fcm_push")
 
 try:
     import firebase_admin
@@ -127,14 +130,31 @@ class NotificationService:
 
     @staticmethod
     def _safe_send_push(notification):
+        if "test" in sys.argv:
+            try:
+                NotificationService._send_push(notification)
+            except Exception:
+                logger.warning(
+                    "Erreur inattendue lors de l'envoi du push pour la notification %s.",
+                    notification.id,
+                    exc_info=True,
+                )
+            return
+
+        def _task():
+            try:
+                NotificationService._send_push(notification)
+            except Exception:
+                logger.warning(
+                    "Erreur inattendue lors de l'envoi du push pour la notification %s.",
+                    notification.id,
+                    exc_info=True,
+                )
+
         try:
-            NotificationService._send_push(notification)
+            _push_executor.submit(_task)
         except Exception:
-            logger.warning(
-                "Erreur inattendue lors de l'envoi du push pour la notification %s.",
-                notification.id,
-                exc_info=True,
-            )
+            _task()
 
     @staticmethod
     def _send_push(notification):

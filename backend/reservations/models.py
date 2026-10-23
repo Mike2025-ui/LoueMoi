@@ -28,6 +28,16 @@ class Reservation(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(
+                fields=["property", "status"],
+                name="res_prop_status_idx",
+            ),
+            models.Index(
+                fields=["user", "status"],
+                name="res_user_status_idx",
+            ),
+        ]
 
     def total(self):
         # Note : le champ FK ci-dessus s'appelle `property`, ce qui masque le
