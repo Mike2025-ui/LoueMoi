@@ -15,7 +15,7 @@ class AgentSerializer(serializers.Serializer):
     id = serializers.IntegerField(source="pk")
     first_name = serializers.CharField()
     last_name = serializers.CharField()
-    phone = serializers.CharField()
+    phone = serializers.SerializerMethodField()
     whatsapp = serializers.SerializerMethodField()
     photo = serializers.CharField(allow_null=True)
     role = serializers.CharField()
@@ -26,9 +26,33 @@ class AgentSerializer(serializers.Serializer):
     def _profile(self, user):
         return getattr(user, "agent_profile", None)
 
+    def _can_view_contact(self, owner):
+        """Protège les numéros personnels (téléphone/WhatsApp) côté serveur :
+        visibles uniquement si le propriétaire est abonné, ou si le visiteur
+        connecté est le propriétaire lui-même, un admin, ou possède un abonnement actif."""
+        from django.utils import timezone
+        now = timezone.now()
+        if hasattr(owner, "subscriptions") and owner.subscriptions.filter(status="active", expires_at__gt=now).exists():
+            return True
+        request = self.context.get("request")
+        req_user = getattr(request, "user", None) if request else None
+        if req_user and getattr(req_user, "is_authenticated", False):
+            if req_user.id == owner.id or getattr(req_user, "is_staff", False):
+                return True
+            if hasattr(req_user, "subscriptions") and req_user.subscriptions.filter(status="active", expires_at__gt=now).exists():
+                return True
+        return False
+
+    def get_phone(self, user):
+        if not self._can_view_contact(user):
+            return ""
+        return user.phone or ""
+
     def get_whatsapp(self, user):
+        if not self._can_view_contact(user):
+            return ""
         profile = self._profile(user)
-        return (profile.whatsapp if profile and profile.whatsapp else user.whatsapp)
+        return (profile.whatsapp if profile and profile.whatsapp else user.whatsapp) or ""
 
     def get_is_verified(self, user):
         from django.utils import timezone

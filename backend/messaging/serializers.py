@@ -47,6 +47,10 @@ class MessageSerializer(serializers.ModelSerializer):
         return request.build_absolute_uri(path) if request else path
 
     def validate(self, attrs):
+        import os
+        import uuid
+        from PIL import Image
+
         content = attrs.get("content", "") or ""
         attachment = attrs.get("attachment")
         attachment_type = attrs.get("attachment_type", Message.TYPE_TEXT)
@@ -54,10 +58,46 @@ class MessageSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 "Un message doit contenir du texte ou une pièce jointe."
             )
-        if attachment and attachment_type == Message.TYPE_TEXT:
-            raise serializers.ValidationError(
-                {"attachment_type": "Précisez le type de la pièce jointe (image/video/audio)."}
-            )
+        if attachment:
+            if attachment_type == Message.TYPE_TEXT:
+                raise serializers.ValidationError(
+                    {"attachment_type": "Précisez le type de la pièce jointe (image/video/audio)."}
+                )
+            ext = os.path.splitext(attachment.name or "")[1].lower()
+            allowed_by_type = {
+                Message.TYPE_IMAGE: ({".jpg", ".jpeg", ".png", ".webp"}, 10 * 1024 * 1024),
+                Message.TYPE_VIDEO: ({".mp4", ".mov", ".webm"}, 50 * 1024 * 1024),
+                Message.TYPE_AUDIO: ({".m4a", ".aac", ".mp3", ".wav", ".ogg", ".opus"}, 15 * 1024 * 1024),
+            }
+            if attachment_type not in allowed_by_type:
+                raise serializers.ValidationError({"attachment_type": "Type de pièce jointe invalide."})
+
+            allowed_exts, max_bytes = allowed_by_type[attachment_type]
+            if ext not in allowed_exts:
+                raise serializers.ValidationError(
+                    {"attachment": f"Extension de fichier non autorisée ({ext})."}
+                )
+            if attachment.size > max_bytes:
+                max_mb = max_bytes // (1024 * 1024)
+                raise serializers.ValidationError(
+                    {"attachment": f"Le fichier dépasse la taille maximale autorisée ({max_mb} Mo)."}
+                )
+            if attachment_type == Message.TYPE_IMAGE:
+                try:
+                    header = attachment.read(16)
+                    attachment.seek(0)
+                    is_valid_magic = (
+                        header.startswith(b"\xff\xd8\xff")
+                        or header.startswith(b"\x89PNG\r\n\x1a\n")
+                        or (header.startswith(b"RIFF") and b"WEBP" in header)
+                    )
+                    if not is_valid_magic:
+                        raise ValueError("Invalid magic bytes")
+                except Exception:
+                    raise serializers.ValidationError(
+                        {"attachment": "Le fichier image est invalide ou corrompu."}
+                    )
+            attachment.name = f"{uuid.uuid4().hex[:16]}{ext}"
         return attrs
 
 

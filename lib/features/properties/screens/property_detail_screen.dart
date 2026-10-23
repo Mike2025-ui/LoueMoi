@@ -431,6 +431,9 @@ class _AProposTab extends ConsumerWidget {
       propertyId: property.id,
       reason: 'subscription_required',
     );
+    if (subscribed == true) {
+      ref.invalidate(propertyByIdProvider(property.id));
+    }
     return subscribed == true;
   }
 
@@ -462,7 +465,17 @@ class _AProposTab extends ConsumerWidget {
     final canProceed = await _ensureCanContact(context, ref);
     if (!canProceed) return;
 
-    final cleanPhone = rawPhone.replaceAll(RegExp(r'[^0-9+]'), '');
+    var phoneToUse = rawPhone;
+    if (phoneToUse.trim().isEmpty) {
+      try {
+        final refreshed = await ref.refresh(
+          propertyByIdProvider(property.id).future,
+        );
+        phoneToUse = refreshed.agent.phone;
+      } catch (_) {}
+    }
+
+    final cleanPhone = phoneToUse.replaceAll(RegExp(r'[^0-9+]'), '');
     if (cleanPhone.isEmpty) {
       if (context.mounted) {
         showErrorSnackbar(context, "Numéro de téléphone non renseigné.");
@@ -493,7 +506,19 @@ class _AProposTab extends ConsumerWidget {
     final canProceed = await _ensureCanContact(context, ref);
     if (!canProceed) return;
 
-    final cleanPhone = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
+    var phoneToUse = rawPhone;
+    if (phoneToUse.trim().isEmpty) {
+      try {
+        final refreshed = await ref.refresh(
+          propertyByIdProvider(property.id).future,
+        );
+        phoneToUse = refreshed.agent.whatsapp.isNotEmpty
+            ? refreshed.agent.whatsapp
+            : refreshed.agent.phone;
+      } catch (_) {}
+    }
+
+    final cleanPhone = phoneToUse.replaceAll(RegExp(r'[^0-9]'), '');
     if (cleanPhone.isEmpty) {
       if (context.mounted) {
         showErrorSnackbar(context, "Numéro WhatsApp non renseigné.");

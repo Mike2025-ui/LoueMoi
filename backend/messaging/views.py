@@ -163,4 +163,7 @@ class MessageAttachmentDownloadView(APIView):
         if not message.attachment:
             raise Http404
         filename = message.attachment.name.rsplit("/", 1)[-1]
-        return FileResponse(message.attachment.open("rb"), filename=filename)
+        response = FileResponse(message.attachment.open("rb"), filename=filename)
+        response["X-Content-Type-Options"] = "nosniff"
+        response["Content-Security-Policy"] = "default-src 'none'; sandbox"
+        return response

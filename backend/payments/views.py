@@ -355,6 +355,17 @@ def jeko_webhook(request):
         return JsonResponse({"received": True, "warning": "Référence inconnue"}, status=200)
 
     if is_jeko_status_success(tx_status):
+        # Défense en profondeur : si JEKO_WEBHOOK_SECRET n'est pas configuré mais que les clés API Jèko
+        # sont présentes en production, vérifier l'état réel de la transaction auprès de l'API Jèko.
+        has_jeko_keys = bool(getattr(settings, "JEKO_API_KEY", "") and getattr(settings, "JEKO_API_KEY_ID", ""))
+        if not secret and has_jeko_keys and sub.jeko_payment_request_id and not sub.jeko_payment_request_id.startswith("sim_"):
+            jeko_data = get_payment_request_status(sub.jeko_payment_request_id)
+            verified_status = extract_jeko_status(jeko_data) if jeko_data else ""
+            if not is_jeko_status_success(verified_status):
+                logger.warning(
+                    f"Webhook non signé rejeté : statut Jèko non confirmé pour {sub.reference}."
+                )
+                return JsonResponse({"error": "Statut non confirmé par Jèko"}, status=401)
         sub.activate_for_30_days()
         logger.info(f"Abonnement {sub.reference} activé pour 30 jours pour {sub.user}.")
     elif is_jeko_status_failed(tx_status):
@@ -370,7 +381,7 @@ def simulate_checkout(request):
 
     Ne valide JAMAIS un paiement automatiquement : l'utilisateur doit
     explicitement confirmer la transaction avant qu'elle ne soit validée.
-    Après confirmation ou annulation, l'utilisateur est redirigé vers l'application web.
+    Strictement réservé au mode simulation (JEKO_SIMULATION_MODE, absence de clés Jèko ou ID sim_).
     """
     ref = request.GET.get("ref", "")
     sub = Subscription.objects.filter(reference=ref).first()
@@ -378,6 +389,20 @@ def simulate_checkout(request):
 
     if not sub:
         return HttpResponseRedirect(f"{web_app_url}/?payment=error&reason=not_found")
+
+    has_live_jeko_keys = bool(
+        getattr(settings, "JEKO_API_KEY", "")
+        and getattr(settings, "JEKO_API_KEY_ID", "")
+        and getattr(settings, "JEKO_STORE_ID", "")
+    )
+    is_sim_allowed = (
+        getattr(settings, "JEKO_SIMULATION_MODE", False)
+        or not has_live_jeko_keys
+        or (sub.jeko_payment_request_id and sub.jeko_payment_request_id.startswith("sim_"))
+    )
+    if not is_sim_allowed:
+        logger.warning(f"Tentative d'accès non autorisée à simulate_checkout pour {sub.reference}.")
+        return HttpResponseRedirect(f"{web_app_url}/?payment=error&reason=simulation_disabled")
 
     action = request.POST.get("action") or request.GET.get("action")
     if action == "confirm":
@@ -475,7 +500,8 @@ def sync_all_recent_pending_subscriptions():
 
 
 def redirect_success(request):
-    """Redirection après paiement validé vers l'application web."""
+    """Redirection après paiement validé vers l'application web.
+    Vérifie toujours le statut réel auprès de l'API Jèko avant toute activation."""
     ref = request.GET.get("ref") or request.GET.get("reference") or request.GET.get("orderId") or ""
     payment_request_id = request.GET.get("id") or request.GET.get("payment_request_id") or ""
     sub = None
@@ -484,8 +510,11 @@ def redirect_success(request):
     if not sub and payment_request_id:
         sub = Subscription.objects.filter(jeko_payment_request_id=payment_request_id).first()
     if sub:
-        if sub.status != Subscription.STATUS_ACTIVE:
-            sub.activate_for_30_days()
+        if sub.status != Subscription.STATUS_ACTIVE and sub.jeko_payment_request_id:
+            jeko_data = get_payment_request_status(sub.jeko_payment_request_id)
+            tx_status = extract_jeko_status(jeko_data) if jeko_data else ""
+            if is_jeko_status_success(tx_status):
+                sub.activate_for_30_days()
         ref = sub.reference
     else:
         activated = sync_all_recent_pending_subscriptions()
@@ -500,9 +529,12 @@ def redirect_error(request):
     ref = request.GET.get("ref") or request.GET.get("reference") or request.GET.get("orderId") or ""
     if ref:
         sub = Subscription.objects.filter(reference=ref, status=Subscription.STATUS_PENDING).first()
-        if sub:
-            sub.status = Subscription.STATUS_CANCELLED
-            sub.save(update_fields=["status", "updated_at"])
+        if sub and sub.jeko_payment_request_id:
+            jeko_data = get_payment_request_status(sub.jeko_payment_request_id)
+            tx_status = extract_jeko_status(jeko_data) if jeko_data else ""
+            if is_jeko_status_failed(tx_status):
+                sub.status = Subscription.STATUS_CANCELLED
+                sub.save(update_fields=["status", "updated_at"])
     web_app_url = getattr(settings, "WEB_APP_URL", "https://transfert-online.site").rstrip("/")
     return HttpResponseRedirect(f"{web_app_url}/?payment=error&ref={ref}")
 
@@ -511,8 +543,8 @@ def jeko_return(request):
     """GET /api/payments/jeko/return/
 
     Point de retour configurable pour le Checkout Jèko.
-    Vérifie le paiement auprès de Jèko, active l'abonnement et le badge si validé,
-    puis redirige l'utilisateur vers l'application web avec statut.
+    Vérifie obligatoirement le paiement auprès de l'API Jèko avant d'activer
+    l'abonnement et le badge, puis redirige l'utilisateur vers l'application web.
     """
     web_app_url = getattr(settings, "WEB_APP_URL", "https://transfert-online.site").rstrip("/")
     ref = request.GET.get("ref") or request.GET.get("reference") or request.GET.get("orderId") or ""
@@ -540,20 +572,22 @@ def jeko_return(request):
             if jeko_data:
                 tx_status = extract_jeko_status(jeko_data)
 
-        if is_jeko_status_failed(tx_status) or (
-            result_param in ("error", "failed", "cancelled", "canceled")
-            and not is_jeko_status_success(tx_status)
-        ):
+        if is_jeko_status_failed(tx_status):
             sub.status = Subscription.STATUS_CANCELLED
             sub.save(update_fields=["status", "updated_at"])
             return HttpResponseRedirect(f"{web_app_url}/?payment=error&ref={sub.reference}")
 
-        if is_jeko_status_success(tx_status) or result_param == "success" or not result_param:
+        if is_jeko_status_success(tx_status):
             sub.activate_for_30_days()
             logger.info(
-                f"Abonnement {sub.reference} et badge activés via retour Jèko pour {sub.user}."
+                f"Abonnement {sub.reference} et badge activés après vérification API Jèko pour {sub.user}."
             )
             return HttpResponseRedirect(f"{web_app_url}/?payment=success&ref={sub.reference}")
+
+        if result_param in ("error", "failed", "cancelled", "canceled"):
+            return HttpResponseRedirect(f"{web_app_url}/?payment=error&ref={sub.reference}")
+
+        return HttpResponseRedirect(f"{web_app_url}/?payment=pending&ref={sub.reference}")
     else:
         activated = sync_all_recent_pending_subscriptions()
         if activated:
@@ -562,6 +596,6 @@ def jeko_return(request):
     if result_param in ("error", "failed", "cancelled", "canceled"):
         return HttpResponseRedirect(f"{web_app_url}/?payment=error&ref={ref}")
 
-    return HttpResponseRedirect(f"{web_app_url}/?payment=success&ref={ref}")
+    return HttpResponseRedirect(f"{web_app_url}/?payment=pending&ref={ref}")
 
 

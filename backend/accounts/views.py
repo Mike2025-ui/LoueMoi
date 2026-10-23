@@ -139,6 +139,12 @@ class DeactivateAccountView(APIView):
                 RefreshToken(refresh_token).blacklist()
             except Exception:
                 pass
+        try:
+            from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+            for token in OutstandingToken.objects.filter(user=user):
+                BlacklistedToken.objects.get_or_create(token=token)
+        except Exception:
+            pass
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -226,7 +232,12 @@ class PasswordResetConfirmView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        user = User.objects.filter(phone=phone).first()
+        from .sms import normalize_phone_number
+        normalized_phone = normalize_phone_number(phone)
+        user = (
+            User.objects.filter(phone=normalized_phone).first()
+            or User.objects.filter(phone=phone).first()
+        )
         otp = (
             PasswordResetOTP.objects.filter(user=user, is_used=False)
             .order_by("-created_at")
@@ -242,6 +253,12 @@ class PasswordResetConfirmView(APIView):
         otp.mark_used()
         user.set_password(new_password)
         user.save(update_fields=["password"])
+        try:
+            from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+            for token in OutstandingToken.objects.filter(user=user):
+                BlacklistedToken.objects.get_or_create(token=token)
+        except Exception:
+            pass
         return Response({"detail": "Mot de passe réinitialisé avec succès."})
 
 
