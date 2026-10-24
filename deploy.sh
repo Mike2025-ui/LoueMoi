@@ -287,10 +287,8 @@ generate_ssl() {
     [ -f .env ] && . .env
     set +a
 
-    if [ -z "$DOMAIN" ]; then
-        log_error "Le DOMAIN n'est pas défini dans .env !"
-        exit 1
-    fi
+    DOMAIN="${DOMAIN:-transfert-online.site}"
+    SSL_EMAIL="${SSL_EMAIL:-admin@${DOMAIN}}"
 
     # Création des volumes Docker si inexistants
     docker volume create louemoi_certbot_conf >/dev/null 2>&1 || true
@@ -594,8 +592,16 @@ update_project() {
     [ -f .env ] && . .env
     set +a
 
-    if [ -n "${DOMAIN:-}" ]; then
-        apply_nginx_config "$DOMAIN"
+    DOMAIN="${DOMAIN:-transfert-online.site}"
+    apply_nginx_config "$DOMAIN"
+
+    # Vérifier que le certificat SSL est bien présent dans le volume, sinon le régénérer
+    local CERT_EXISTS
+    CERT_EXISTS=$(docker run --rm -v louemoi_certbot_conf:/etc/letsencrypt alpine sh -c "[ -f /etc/letsencrypt/live/$DOMAIN/fullchain.pem ] && echo 'yes' || echo 'no'")
+    if [ "$CERT_EXISTS" != "yes" ]; then
+        log_warning "Certificat SSL absent du volume pour $DOMAIN, régénération..."
+        free_ports_and_stop_nginx
+        generate_ssl
     fi
 
     log_info "Reconstruction du backend..."
