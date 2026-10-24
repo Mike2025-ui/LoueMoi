@@ -41,7 +41,13 @@ class _LoueMoiAppState extends ConsumerState<LoueMoiApp> with WidgetsBindingObse
     if (!Env.useMockData) {
       _setUpPushHandling();
       _handlePaymentRedirectQuery();
-      Future.microtask(() => ref.read(remoteAppConfigProvider));
+      Future.microtask(() {
+        ref.read(remoteAppConfigProvider);
+        final user = ref.read(authControllerProvider).valueOrNull;
+        if (user != null) {
+          syncDeviceTokenOnLogin(ref);
+        }
+      });
     }
   }
 
@@ -115,6 +121,10 @@ class _LoueMoiAppState extends ConsumerState<LoueMoiApp> with WidgetsBindingObse
       ref.invalidate(userSubscriptionStatusProvider);
       ref.invalidate(remoteAppConfigProvider);
       ref.read(authControllerProvider.notifier).refreshProfile();
+      final user = ref.read(authControllerProvider).valueOrNull;
+      if (user != null) {
+        syncDeviceTokenOnLogin(ref);
+      }
     }
   }
 
