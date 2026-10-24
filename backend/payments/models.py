@@ -168,22 +168,25 @@ class Subscription(models.Model):
                 profile.save(update_fields=["is_verified"])
 
     def cancel_and_revoke(self):
-        """Annule l'abonnement immédiatement, coupe la durée et retire le badge si aucun autre abonnement actif."""
+        """Annule l'abonnement immédiatement, coupe la durée, annule toute souscription active ou en attente et retire le badge."""
         now = timezone.now()
         self.status = self.STATUS_CANCELLED
         self.expires_at = now
         self.save(update_fields=["status", "expires_at", "updated_at"])
 
         user = self.user
-        has_other_active = user.subscriptions.filter(
-            status=self.STATUS_ACTIVE,
-            expires_at__gt=now,
-        ).exclude(pk=self.pk).exists()
+        # Annuler également tout autre abonnement actif ou en attente de l'utilisateur pour garantir l'effet immédiat
+        user.subscriptions.filter(
+            status__in=[self.STATUS_ACTIVE, self.STATUS_PENDING]
+        ).exclude(pk=self.pk).update(
+            status=self.STATUS_CANCELLED,
+            expires_at=now,
+            updated_at=now,
+        )
 
-        if not has_other_active:
-            user.is_verified = False
-            user.save(update_fields=["is_verified"])
-            if hasattr(user, "agent_profile"):
-                profile = user.agent_profile
-                profile.is_verified = False
-                profile.save(update_fields=["is_verified"])
+        user.is_verified = False
+        user.save(update_fields=["is_verified"])
+        if hasattr(user, "agent_profile"):
+            profile = user.agent_profile
+            profile.is_verified = False
+            profile.save(update_fields=["is_verified"])

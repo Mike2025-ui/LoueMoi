@@ -401,18 +401,12 @@ class _AProposTab extends ConsumerWidget {
       return false;
     }
 
-    // 1. Si le propriétaire (agent ou bailleur) possède un abonnement : gratuit pour les clients !
-    if (property.ownerHasActiveSubscription ||
-        property.agent.hasActiveSubscription) {
+    // Le propriétaire consultant son propre bien est autorisé d'office
+    if (currentUser.id == property.agent.id) {
       return true;
     }
 
-    // 2. Si le client connecté possède son propre abonnement : autorisé
-    if (currentUser.hasActiveSubscription) {
-      return true;
-    }
-
-    // 3. Vérification dynamique auprès du serveur
+    // Vérification dynamique systématique en temps réel auprès du serveur (source de vérité absolue)
     try {
       final repository = ref.read(paymentRepositoryProvider);
       final check = await repository.checkCanContact(propertyId: property.id);
@@ -421,7 +415,7 @@ class _AProposTab extends ConsumerWidget {
       }
     } catch (_) {}
 
-    // 4. Ni le propriétaire ni l'utilisateur n'ont d'abonnement actif -> ouvrir le modal adapté au rôle
+    // Ni le propriétaire ni l'utilisateur n'ont d'abonnement actif valide -> ouvrir le modal adapté au rôle
     if (!context.mounted) return false;
     final isPro = currentUser.isAgent || currentUser.isBailleur;
     final subscribed = await showSubscriptionModal(

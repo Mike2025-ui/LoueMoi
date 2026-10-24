@@ -485,11 +485,10 @@ class _OwnerActionsRowState extends ConsumerState<_OwnerActionsRow> {
   Future<void> _openChat() async {
     final currentUser = ref.read(authControllerProvider).valueOrNull;
     final isPro = currentUser?.isAgent == true || currentUser?.isBailleur == true;
-    final hasActiveSub = currentUser?.hasActiveSubscription == true;
 
     // Règle métier : les réservations sont gratuites, mais l'agent ou bailleur
     // ne peut pas contacter ou discuter avec le client sans abonnement actif (3 000 FCFA/mois).
-    if (isPro && !hasActiveSub) {
+    if (isPro) {
       bool needModal = true;
       try {
         final status = await ref.read(paymentRepositoryProvider).getSubscriptionStatus();

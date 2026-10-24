@@ -84,8 +84,9 @@ class BailleurSearchScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currentUser = ref.watch(authControllerProvider).valueOrNull;
     final subStatus = ref.watch(userSubscriptionStatusProvider).valueOrNull;
-    final hasActiveSub = (currentUser?.hasActiveSubscription == true) ||
-        (subStatus?.hasActiveSubscription == true);
+    final hasActiveSub = subStatus != null
+        ? subStatus.hasActiveSubscription
+        : (currentUser?.hasActiveSubscription == true);
 
     if (currentUser == null) {
       return Scaffold(
