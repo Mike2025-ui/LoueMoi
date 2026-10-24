@@ -220,6 +220,9 @@ def delete_user(request, pk):
             user.delete()
 
         messages.success(request, f"L'utilisateur {user_name} et toutes ses données associées ont été supprimés avec succès.")
+        next_url = request.POST.get("next") or request.GET.get("next") or ""
+        if next_url and next_url.startswith("/dashboard/"):
+            return redirect(next_url)
         return redirect("dashboard:users_list")
 
     return render(
@@ -228,6 +231,7 @@ def delete_user(request, pk):
         {
             "obj": user,
             "active": "users",
+            "next_url": request.GET.get("next", ""),
             "properties_count": Property.objects.filter(agent=user).count(),
             "reservations_count": Reservation.objects.filter(user=user).count(),
         },
@@ -390,17 +394,39 @@ def reviews_list(request):
 
 @staff_required
 def agents_list(request):
-    qs = AgentProfile.objects.select_related("user").order_by("-created_at")
+    qs = (
+        User.objects.filter(role__in=[User.ROLE_AGENT, User.ROLE_BAILLEUR])
+        .select_related("agent_profile")
+        .annotate(properties_count=Count("properties", distinct=True))
+        .order_by("-date_joined")
+    )
+    role = request.GET.get("role", "")
     q = request.GET.get("q", "")
+    if role in (User.ROLE_AGENT, User.ROLE_BAILLEUR):
+        qs = qs.filter(role=role)
     if q:
         qs = qs.filter(
-            Q(user__phone__icontains=q) | Q(user__first_name__icontains=q)
-            | Q(user__last_name__icontains=q) | Q(agency_name__icontains=q)
+            Q(phone__icontains=q)
+            | Q(whatsapp__icontains=q)
+            | Q(first_name__icontains=q)
+            | Q(last_name__icontains=q)
+            | Q(agent_profile__agency_name__icontains=q)
         )
     page = _paginate(request, qs)
     return render(
-        request, "dashboard/agents_list.html",
-        {"page_obj": page, "active": "agents", "q": q, "querystring": _querystring(request)},
+        request,
+        "dashboard/agents_list.html",
+        {
+            "page_obj": page,
+            "active": "agents",
+            "q": q,
+            "role": role,
+            "role_choices": [
+                (User.ROLE_BAILLEUR, "Bailleurs"),
+                (User.ROLE_AGENT, "Agents immobiliers"),
+            ],
+            "querystring": _querystring(request),
+        },
     )
 
 

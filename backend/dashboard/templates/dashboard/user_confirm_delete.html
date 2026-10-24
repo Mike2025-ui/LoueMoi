@@ -44,7 +44,8 @@
 
     <form method="post" action="{% url 'dashboard:delete_user' obj.pk %}" style="display:flex;gap:12px;justify-content:flex-end">
       {% csrf_token %}
-      <a href="{% url 'dashboard:user_detail' obj.pk %}" class="btn-action-view" style="padding:10px 18px">
+      {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+      <a href="{% if next_url %}{{ next_url }}{% else %}{% url 'dashboard:user_detail' obj.pk %}{% endif %}" class="btn-action-view" style="padding:10px 18px">
         Annuler
       </a>
       <button type="submit" class="btn-action-reject" style="padding:10px 20px;font-weight:600">
