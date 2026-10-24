@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../core/services/ota_and_remote_config_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -164,6 +165,7 @@ class _SubscriptionSheetState extends ConsumerState<_SubscriptionSheet>
   @override
   Widget build(BuildContext context) {
     final currentUser = ref.watch(authControllerProvider).valueOrNull;
+    final remoteConfig = ref.watch(remoteAppConfigProvider).valueOrNull ?? const RemoteAppConfig();
     final effectiveRole = widget.role ??
         currentUser?.role ??
         (widget.isPro ? UserRole.bailleur : UserRole.client);
@@ -175,21 +177,21 @@ class _SubscriptionSheetState extends ConsumerState<_SubscriptionSheet>
 
     if (effectiveRole == UserRole.bailleur) {
       planLabel = 'Abonnement Bailleur';
-      price = 3000;
+      price = remoteConfig.proPriceFcfa;
       description =
           'En tant que bailleur, un abonnement actif est requis pour contacter et échanger directement avec vos locataires. Vos locataires peuvent réserver vos biens gratuitement.';
       badgePerk = 'Badge Bailleur certifié inclus sur votre profil et vos annonces.';
     } else if (effectiveRole == UserRole.agent) {
       planLabel = 'Abonnement Agent Immobilier';
-      price = 3000;
+      price = remoteConfig.proPriceFcfa;
       description =
           'En tant qu\'agent immobilier, un abonnement actif est requis pour contacter et échanger directement avec les clients. Vos clients peuvent vous contacter gratuitement.';
       badgePerk = 'Badge Agent certifié inclus sur votre profil et vos annonces.';
     } else {
       planLabel = 'Abonnement Client';
-      price = 1000;
+      price = remoteConfig.clientPriceFcfa;
       description =
-          'Le propriétaire de ce bien n\'ayant pas d\'abonnement actif, un abonnement de 1 000 FCFA / mois est requis pour pouvoir le contacter directement.';
+          'Le propriétaire de ce bien n\'ayant pas d\'abonnement actif, un abonnement de $price FCFA / mois est requis pour pouvoir le contacter directement.';
       badgePerk = 'Badge Membre certifié et accès illimité aux contacts directs.';
     }
 
@@ -308,7 +310,10 @@ class _SubscriptionSheetState extends ConsumerState<_SubscriptionSheet>
               mainAxisSpacing: 10,
               crossAxisSpacing: 10,
               childAspectRatio: 2.6,
-              children: PaymentMethod.values.map((method) {
+              children: PaymentMethod.values
+                  .where((m) => remoteConfig.enabledPaymentMethods.isEmpty ||
+                      remoteConfig.enabledPaymentMethods.contains(m.code))
+                  .map((method) {
                 final isSelected = _selectedMethod == method;
                 return InkWell(
                   onTap: () => setState(() => _selectedMethod = method),

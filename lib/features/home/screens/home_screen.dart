@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/routes.dart';
+import '../../../core/services/ota_and_remote_config_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -73,12 +74,64 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final searchQuery = ref.watch(searchQueryProvider);
     final unreadCount =
         ref.watch(unreadNotificationsCountProvider).valueOrNull ?? 0;
+    final remoteConfig = ref.watch(remoteAppConfigProvider).valueOrNull;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
+            if (remoteConfig != null &&
+                remoteConfig.announcementEnabled &&
+                (remoteConfig.announcementTitle.isNotEmpty ||
+                    remoteConfig.announcementBody.isNotEmpty))
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.fromLTRB(
+                  AppSpacing.screenPadding,
+                  AppSpacing.sm,
+                  AppSpacing.screenPadding,
+                  0,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.25),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.campaign_rounded, color: AppColors.primary, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (remoteConfig.announcementTitle.isNotEmpty)
+                            Text(
+                              remoteConfig.announcementTitle,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          if (remoteConfig.announcementBody.isNotEmpty)
+                            Text(
+                              remoteConfig.announcementBody,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             Padding(
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.screenPadding,

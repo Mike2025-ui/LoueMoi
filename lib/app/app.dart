@@ -7,6 +7,7 @@ import '../core/config/env.dart';
 import '../core/constants/app_constants.dart';
 import '../core/network/network_providers.dart';
 import '../core/services/notification_router.dart';
+import '../core/services/ota_and_remote_config_service.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_theme.dart';
 import '../features/auth/models/user.dart';
@@ -40,6 +41,7 @@ class _LoueMoiAppState extends ConsumerState<LoueMoiApp> with WidgetsBindingObse
     if (!Env.useMockData) {
       _setUpPushHandling();
       _handlePaymentRedirectQuery();
+      Future.microtask(() => ref.read(remoteAppConfigProvider));
     }
   }
 
@@ -111,6 +113,7 @@ class _LoueMoiAppState extends ConsumerState<LoueMoiApp> with WidgetsBindingObse
       ref.invalidate(unreadNotificationsCountProvider);
       ref.invalidate(conversationsProvider);
       ref.invalidate(userSubscriptionStatusProvider);
+      ref.invalidate(remoteAppConfigProvider);
       ref.read(authControllerProvider.notifier).refreshProfile();
     }
   }

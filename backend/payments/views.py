@@ -102,12 +102,15 @@ class CreateSubscriptionView(APIView):
         user = request.user
         payment_method = serializer.validated_data["payment_method"]
 
+        from dashboard.models import AppConfiguration
+        app_cfg = AppConfiguration.get_solo()
+
         if user.role in (User.ROLE_AGENT, User.ROLE_BAILLEUR):
             plan = Subscription.PLAN_PRO
-            amount = Subscription.PRICES[Subscription.PLAN_PRO]
+            amount = app_cfg.pro_subscription_price or Subscription.PRICES[Subscription.PLAN_PRO]
         else:
             plan = Subscription.PLAN_CLIENT
-            amount = Subscription.PRICES[Subscription.PLAN_CLIENT]
+            amount = app_cfg.client_subscription_price or Subscription.PRICES[Subscription.PLAN_CLIENT]
 
         reference = f"SUB-{uuid.uuid4().hex[:10].upper()}"
 
@@ -206,12 +209,18 @@ class SubscriptionStatusView(APIView):
                 active_sub.expiry_warning_sent = True
                 active_sub.save(update_fields=["expiry_warning_sent"])
 
+        from dashboard.models import AppConfiguration
+        app_cfg = AppConfiguration.get_solo()
         required_plan = (
             Subscription.PLAN_PRO
             if user.role in (User.ROLE_AGENT, User.ROLE_BAILLEUR)
             else Subscription.PLAN_CLIENT
         )
-        plan_price = Subscription.PRICES[required_plan]
+        plan_price = (
+            app_cfg.pro_subscription_price
+            if required_plan == Subscription.PLAN_PRO
+            else app_cfg.client_subscription_price
+        ) or Subscription.PRICES[required_plan]
 
         return Response(
             {

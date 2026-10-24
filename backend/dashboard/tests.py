@@ -374,3 +374,36 @@ class DashboardDataAccuracyTests(TestCase):
             ).exists()
         )
 
+    def test_app_settings_view_and_public_api_update_dynamically(self):
+        res_get = self.client.get(reverse("dashboard:app_settings"))
+        self.assertEqual(res_get.status_code, 200)
+
+        res_post = self.client.post(
+            reverse("dashboard:app_settings"),
+            {
+                "app_version": "1.0.5+6",
+                "min_supported_version": "1.0.0",
+                "ota_auto_update_enabled": "1",
+                "maintenance_mode": "0",
+                "announcement_enabled": "1",
+                "announcement_title": "Bienvenue sur LoueMoi",
+                "announcement_body": "Nouvelle mise à jour disponible en direct !",
+                "client_subscription_price": "1500",
+                "pro_subscription_price": "3500",
+                "payment_methods": ["wave", "orange"],
+                "support_whatsapp": "+2250700000000",
+            },
+        )
+        self.assertEqual(res_post.status_code, 302)
+
+        api_res = self.client.get(reverse("public_app_config"))
+        self.assertEqual(api_res.status_code, 200)
+        data = api_res.json()
+        self.assertEqual(data["app_version"], "1.0.5+6")
+        self.assertTrue(data["ota_auto_update_enabled"])
+        self.assertTrue(data["announcement"]["enabled"])
+        self.assertEqual(data["announcement"]["title"], "Bienvenue sur LoueMoi")
+        self.assertEqual(data["pricing"]["client_fcfa"], 1500)
+        self.assertEqual(data["pricing"]["pro_fcfa"], 3500)
+        self.assertEqual(data["enabled_payment_methods"], ["wave", "orange"])
+

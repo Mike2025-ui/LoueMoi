@@ -24,6 +24,7 @@ from reservations.models import Reservation
 from reviews.models import Review
 
 from .decorators import staff_required
+from .models import AppConfiguration
 
 PAGE_SIZE = 25
 
@@ -661,5 +662,91 @@ def toggle_certificate(request, pk):
     if "agents" in referer:
         return redirect("dashboard:agents_list")
     return redirect("dashboard:user_detail", pk=pk)
+
+
+@staff_required
+def app_settings_view(request):
+    """GET / POST /dashboard/app-settings/
+    Pilotage en temps réel de l'application mobile (Solution 2 : Server-Driven Config + Solution 1 : Shorebird OTA)."""
+    cfg = AppConfiguration.get_solo()
+    if request.method == "POST":
+        cfg.app_version = (request.POST.get("app_version") or cfg.app_version).strip()
+        cfg.min_supported_version = (request.POST.get("min_supported_version") or cfg.min_supported_version).strip()
+        cfg.ota_auto_update_enabled = request.POST.get("ota_auto_update_enabled") == "1"
+        cfg.maintenance_mode = request.POST.get("maintenance_mode") == "1"
+        cfg.maintenance_message = (request.POST.get("maintenance_message") or "").strip()
+        cfg.announcement_enabled = request.POST.get("announcement_enabled") == "1"
+        cfg.announcement_title = (request.POST.get("announcement_title") or "").strip()[:120]
+        cfg.announcement_body = (request.POST.get("announcement_body") or "").strip()
+        cfg.support_whatsapp = (request.POST.get("support_whatsapp") or "").strip()[:30]
+
+        try:
+            client_price = int(request.POST.get("client_subscription_price") or cfg.client_subscription_price)
+            if client_price >= 100:
+                cfg.client_subscription_price = client_price
+        except ValueError:
+            pass
+
+        try:
+            pro_price = int(request.POST.get("pro_subscription_price") or cfg.pro_subscription_price)
+            if pro_price >= 100:
+                cfg.pro_subscription_price = pro_price
+        except ValueError:
+            pass
+
+        selected_methods = request.POST.getlist("payment_methods")
+        if selected_methods:
+            cfg.enabled_payment_methods = ",".join(selected_methods)
+
+        cfg.save()
+        messages.success(
+            request,
+            "La configuration dynamique de l'application a été mise à jour ! Les changements sont immédiatement actifs sur tous les téléphones.",
+        )
+        return redirect("dashboard:app_settings")
+
+    enabled_methods = [m.strip() for m in cfg.enabled_payment_methods.split(",") if m.strip()]
+    return render(
+        request,
+        "dashboard/app_settings.html",
+        {
+            "cfg": cfg,
+            "enabled_methods": enabled_methods,
+            "active": "app_settings",
+        },
+    )
+
+
+def public_app_config_api(request):
+    """GET /api/config/app-settings/
+    Endpoint public ultra-léger interrogé silencieusement par l'application Flutter
+    au démarrage et au retour au premier plan pour mettre à jour l'interface, les tarifs,
+    la bannière d'annonce et le contrôle OTA sans passer par le Play Store."""
+    from django.http import JsonResponse
+
+    cfg = AppConfiguration.get_solo()
+    methods = [m.strip() for m in cfg.enabled_payment_methods.split(",") if m.strip()]
+    return JsonResponse(
+        {
+            "app_version": cfg.app_version,
+            "min_supported_version": cfg.min_supported_version,
+            "ota_auto_update_enabled": cfg.ota_auto_update_enabled,
+            "maintenance_mode": cfg.maintenance_mode,
+            "maintenance_message": cfg.maintenance_message,
+            "announcement": {
+                "enabled": cfg.announcement_enabled,
+                "title": cfg.announcement_title,
+                "body": cfg.announcement_body,
+            },
+            "pricing": {
+                "client_fcfa": cfg.client_subscription_price,
+                "pro_fcfa": cfg.pro_subscription_price,
+            },
+            "enabled_payment_methods": methods,
+            "support_whatsapp": cfg.support_whatsapp,
+            "updated_at": cfg.updated_at.isoformat() if cfg.updated_at else None,
+        }
+    )
+
 
 

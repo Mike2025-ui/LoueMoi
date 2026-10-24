@@ -72,6 +72,9 @@ class ApiEndpoints {
   static const String devices = '/api/devices/';
   static const String devicesDeactivate = '/api/devices/deactivate/';
 
+  // Configuration dynamique & OTA (Server-Driven Config)
+  static const String appConfig = '/api/config/app-settings/';
+
   // Payments & Abonnements (Jèko)
   static const String subscriptionCreate = '/api/payments/subscriptions/create/';
   static const String subscriptionStatus = '/api/payments/subscriptions/status/';

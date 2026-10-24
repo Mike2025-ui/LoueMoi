@@ -7,10 +7,12 @@ from django.contrib import admin
 from django.urls import include, path
 
 from .media_views import serve_media
+from dashboard.views import public_app_config_api
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("dashboard/", include("dashboard.urls")),
+    path("api/config/app-settings/", public_app_config_api, name="public_app_config"),
     path("api/", include("accounts.urls")),
     path("api/", include("agents.urls")),
     path("api/", include("bailleurs.urls")),

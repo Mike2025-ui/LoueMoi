@@ -1,0 +1,183 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Mises à jour &amp; Config OTA · LoueMoi Admin{% endblock %}
+{% block page_title %}Mises à jour Silencieuses (OTA) &amp; Configuration Dynamique{% endblock %}
+{% block content %}
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert-banner success" style="margin-bottom: 16px;">
+      <div class="alert-content">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        <span>{{ message }}</span>
+      </div>
+    </div>
+  {% endfor %}
+{% endif %}
+
+<form method="post" action="{% url 'dashboard:app_settings' %}">
+  {% csrf_token %}
+
+  <!-- Section 1 : Shorebird OTA & Mises à jour silencieuses -->
+  <div class="card" style="margin-bottom: 20px; border-left: 4px solid var(--primary);">
+    <div class="card-header">
+      <h2 class="card-title">
+        <span class="section-icon grad-indigo">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </span>
+        <span>Solution 1 : Mises à jour silencieuses en arrière-plan (Shorebird OTA)</span>
+      </h2>
+      {% if cfg.ota_auto_update_enabled %}
+        <span class="badge badge-success"><span class="badge-dot"></span>OTA Silencieux Actif</span>
+      {% else %}
+        <span class="badge badge-warning">OTA En pause</span>
+      {% endif %}
+    </div>
+    <div class="card-body">
+      <p style="font-size: 13px; color: var(--text-muted); margin-top: 0; margin-bottom: 14px; line-height: 1.5;">
+        Lorsque l'OTA est activé, l'application vérifie silencieusement au lancement et à chaque retour au premier plan si un correctif Dart/Flutter (Shorebird Code Push) ou une mise à jour serveur est disponible, et l'applique automatiquement sans bouton ni passage par le Play Store.
+      </p>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:700;color:var(--text-secondary);margin-bottom:6px">
+            Version actuelle publiée
+          </label>
+          <input type="text" name="app_version" value="{{ cfg.app_version }}" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-md);font-size:13.5px">
+        </div>
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:700;color:var(--text-secondary);margin-bottom:6px">
+            Version minimale compatible
+          </label>
+          <input type="text" name="min_supported_version" value="{{ cfg.min_supported_version }}" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-md);font-size:13.5px">
+        </div>
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:700;color:var(--text-secondary);margin-bottom:6px">
+            Mise à jour automatique invisible (OTA)
+          </label>
+          <select name="ota_auto_update_enabled" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-md);background:#FFF;font-size:13.5px">
+            <option value="1" {% if cfg.ota_auto_update_enabled %}selected{% endif %}>Activée (téléchargement silencieux)</option>
+            <option value="0" {% if not cfg.ota_auto_update_enabled %}selected{% endif %}>Désactivée</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 2 : Pilotage dynamique des tarifs & moyens de paiement -->
+  <div class="card" style="margin-bottom: 20px;">
+    <div class="card-header">
+      <h2 class="card-title">
+        <span class="section-icon grad-teal">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+        </span>
+        <span>Solution 2 : Tarifs &amp; Opérateurs Mobile Money pilotés à distance</span>
+      </h2>
+    </div>
+    <div class="card-body">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 16px;">
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:700;color:var(--text-secondary);margin-bottom:6px">
+            Tarif Abonnement Client (FCFA / mois)
+          </label>
+          <input type="number" name="client_subscription_price" value="{{ cfg.client_subscription_price }}" min="100" step="100" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-md);font-size:13.5px">
+        </div>
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:700;color:var(--text-secondary);margin-bottom:6px">
+            Tarif Abonnement Bailleur / Agent (FCFA / mois)
+          </label>
+          <input type="number" name="pro_subscription_price" value="{{ cfg.pro_subscription_price }}" min="100" step="100" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-md);font-size:13.5px">
+        </div>
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:700;color:var(--text-secondary);margin-bottom:6px">
+            WhatsApp Support Officiel
+          </label>
+          <input type="text" name="support_whatsapp" value="{{ cfg.support_whatsapp }}" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-md);font-size:13.5px">
+        </div>
+      </div>
+
+      <div>
+        <label style="display:block;font-size:12.5px;font-weight:700;color:var(--text-secondary);margin-bottom:8px">
+          Opérateurs Mobile Money affichés dans l'application
+        </label>
+        <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:13.5px">
+          <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+            <input type="checkbox" name="payment_methods" value="wave" {% if "wave" in enabled_methods %}checked{% endif %}> Wave
+          </label>
+          <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+            <input type="checkbox" name="payment_methods" value="orange" {% if "orange" in enabled_methods %}checked{% endif %}> Orange Money
+          </label>
+          <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+            <input type="checkbox" name="payment_methods" value="mtn" {% if "mtn" in enabled_methods %}checked{% endif %}> MTN MoMo
+          </label>
+          <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+            <input type="checkbox" name="payment_methods" value="moov" {% if "moov" in enabled_methods %}checked{% endif %}> Moov Money
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 3 : Bannière d'annonce en direct & Mode Maintenance -->
+  <div class="card" style="margin-bottom: 20px;">
+    <div class="card-header">
+      <h2 class="card-title">
+        <span class="section-icon grad-orange">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </span>
+        <span>Bannière d'information en direct &amp; Mode Maintenance</span>
+      </h2>
+    </div>
+    <div class="card-body">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 14px;">
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:700;color:var(--text-secondary);margin-bottom:6px">
+            Bannière d'annonce dans l'application
+          </label>
+          <select name="announcement_enabled" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-md);background:#FFF;font-size:13.5px">
+            <option value="0" {% if not cfg.announcement_enabled %}selected{% endif %}>Masquée</option>
+            <option value="1" {% if cfg.announcement_enabled %}selected{% endif %}>Affichée en direct dans l'application</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:700;color:var(--text-secondary);margin-bottom:6px">
+            Titre de la bannière
+          </label>
+          <input type="text" name="announcement_title" value="{{ cfg.announcement_title }}" placeholder="Ex: Offre spéciale, Information..." style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-md);font-size:13.5px">
+        </div>
+      </div>
+      <div style="margin-bottom: 16px;">
+        <label style="display:block;font-size:12.5px;font-weight:700;color:var(--text-secondary);margin-bottom:6px">
+          Message de la bannière
+        </label>
+        <input type="text" name="announcement_body" value="{{ cfg.announcement_body }}" placeholder="Texte affiché instantanément dans l'application sans mise à jour APK..." style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-md);font-size:13.5px">
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:700;color:var(--text-secondary);margin-bottom:6px">
+            Mode Maintenance
+          </label>
+          <select name="maintenance_mode" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-md);background:#FFF;font-size:13.5px">
+            <option value="0" {% if not cfg.maintenance_mode %}selected{% endif %}>Désactivé (Application ouverte)</option>
+            <option value="1" {% if cfg.maintenance_mode %}selected{% endif %}>Activé (Maintenance en cours)</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:700;color:var(--text-secondary);margin-bottom:6px">
+            Message de maintenance
+          </label>
+          <input type="text" name="maintenance_message" value="{{ cfg.maintenance_message }}" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-md);font-size:13.5px">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;justify-content:flex-end">
+    <button type="submit" class="btn-action-success" style="padding:12px 24px;font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      <span>Enregistrer &amp; Appliquer en direct sur tous les téléphones</span>
+    </button>
+  </div>
+</form>
+
+{% endblock %}
+
