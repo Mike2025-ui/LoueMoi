@@ -1,6 +1,5 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 
 /// Service isolé pour l'initialisation Firebase : permission, récupération
 /// du token FCM, écoute de son rafraîchissement. Ne contient aucune

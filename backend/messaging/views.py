@@ -25,6 +25,13 @@ class ConversationViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        now = timezone.now()
+        # Dès que l'utilisateur relève ses conversations, ses messages entrants sont marqués comme délivrés sur son appareil (✓✓ gris)
+        Message.objects.filter(
+            receiver=user,
+            is_delivered=False,
+        ).update(is_delivered=True, delivered_at=now)
+
         has_messages = Exists(Message.objects.filter(conversation_id=OuterRef("pk")))
         # Ne renvoie que les conversations qui contiennent au moins un message réel
         # pour éviter d'afficher des conversations fantômes non démarrées
@@ -97,11 +104,12 @@ class ConversationViewSet(viewsets.ModelViewSet):
         jamais, même après lecture."""
         conversation = self.get_object()
         now = timezone.now()
-        conversation.messages.filter(is_read=False).exclude(sender=request.user).update(
+        unread_messages = conversation.messages.filter(is_read=False).exclude(sender=request.user)
+        unread_messages.filter(delivered_at__isnull=True).update(is_delivered=True, delivered_at=now)
+        unread_messages.update(
             is_read=True,
             is_delivered=True,
             read_at=now,
-            delivered_at=now,
         )
         Notification.objects.filter(
             conversation=conversation,

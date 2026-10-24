@@ -48,6 +48,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       if (mounted) {
         ref.invalidate(messagesProvider(widget.conversationId));
         ref.invalidate(conversationsProvider);
+        _markRead();
       }
     });
   }
