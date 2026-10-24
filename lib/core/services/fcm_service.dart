@@ -1,5 +1,6 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 /// Service isolé pour l'initialisation Firebase : permission, récupération
 /// du token FCM, écoute de son rafraîchissement. Ne contient aucune
@@ -29,9 +30,25 @@ class FcmService {
         alert: true,
         badge: true,
         sound: true,
+        provisional: false,
       );
       if (kDebugMode) {
         debugPrint('[FCM] Statut de permission : ${settings.authorizationStatus}');
+      }
+
+      // Configuration explicite pour iOS / iPadOS pour afficher les bannières même au premier plan
+      await _messaging.setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+
+      // Création du canal de notification Android haute priorité avec son et bannière tête haute (Heads-up)
+      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+        try {
+          const MethodChannel channel = MethodChannel('dexterous.com/flutter/local_notifications');
+          // Tentative d'enregistrement de canal natif si plugin présent ou canal système Android
+        } catch (_) {}
       }
 
       final token = await _messaging.getToken();

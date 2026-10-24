@@ -181,10 +181,32 @@ class NotificationService:
             # jusqu'ici.
             data_payload["notification_id"] = str(notification.id)
 
+            android_config = firebase_messaging.AndroidConfig(
+                priority="high",
+                notification=firebase_messaging.AndroidNotification(
+                    channel_id="louemoi_important_notifications",
+                    sound="default",
+                    default_sound=True,
+                    default_vibrate_timings=True,
+                    notification_priority="PRIORITY_MAX",
+                    visibility="public",
+                ),
+            )
+            apns_config = firebase_messaging.APNSConfig(
+                payload=firebase_messaging.APNSPayload(
+                    aps=firebase_messaging.Aps(
+                        sound="default",
+                        badge=1,
+                    )
+                )
+            )
+
             message = firebase_messaging.MulticastMessage(
                 notification=firebase_messaging.Notification(
                     title=notification.title, body=notification.body
                 ),
+                android=android_config,
+                apns=apns_config,
                 data=data_payload,
                 tokens=tokens,
             )
@@ -243,6 +265,26 @@ class NotificationService:
                 str_data = {"type": Notification.TYPE_ADMIN_BROADCAST}
                 str_data.update({k: str(v) for k, v in payload_data.items()})
 
+                android_config = firebase_messaging.AndroidConfig(
+                    priority="high",
+                    notification=firebase_messaging.AndroidNotification(
+                        channel_id="louemoi_important_notifications",
+                        sound="default",
+                        default_sound=True,
+                        default_vibrate_timings=True,
+                        notification_priority="PRIORITY_MAX",
+                        visibility="public",
+                    ),
+                )
+                apns_config = firebase_messaging.APNSConfig(
+                    payload=firebase_messaging.APNSPayload(
+                        aps=firebase_messaging.Aps(
+                            sound="default",
+                            badge=1,
+                        )
+                    )
+                )
+
                 # FCM send_each_for_multicast accepte jusqu'à 500 tokens par lot
                 for i in range(0, len(active_tokens), 500):
                     chunk = active_tokens[i : i + 500]
@@ -250,6 +292,8 @@ class NotificationService:
                         notification=firebase_messaging.Notification(
                             title=title, body=body
                         ),
+                        android=android_config,
+                        apns=apns_config,
                         data=str_data,
                         tokens=chunk,
                     )
