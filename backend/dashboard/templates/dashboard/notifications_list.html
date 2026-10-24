@@ -1,12 +1,80 @@
 {% extends "dashboard/base.html" %}
-{% block title %}Notifications · LoueMoi Admin{% endblock %}
-{% block page_title %}Notifications Push / In-App{% endblock %}
+{% block title %}Notifications & Diffusion · LoueMoi Admin{% endblock %}
+{% block page_title %}Notifications Push & Diffusion Groupée{% endblock %}
 {% block content %}
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert-banner {% if message.tags == 'error' %}danger{% else %}success{% endif %}" style="margin-bottom: 16px;">
+      <div class="alert-content">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        <span>{{ message }}</span>
+      </div>
+    </div>
+  {% endfor %}
+{% endif %}
+
+<!-- Formulaire d'envoi de notification / message groupé à tous les utilisateurs -->
+<div class="card" style="margin-bottom: 24px; border-left: 4px solid var(--primary);">
+  <div class="card-header">
+    <h2 class="card-title">
+      <span class="section-icon grad-indigo">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+      </span>
+      <span>Envoyer un message / notification groupée aux utilisateurs</span>
+    </h2>
+    <span class="badge badge-primary" title="Appareils mobiles enregistrés pour recevoir le Push FCM">
+      📱 {{ audience_counts.active_devices }} téléphone(s) FCM actif(s)
+    </span>
+  </div>
+  <div class="card-body">
+    <form method="post" action="{% url 'dashboard:broadcast_notification' %}" onsubmit="return confirm('Confirmez-vous l\'envoi immédiat de cette notification groupée sur les téléphones des utilisateurs sélectionnés ?');">
+      {% csrf_token %}
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-bottom: 14px;">
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:700;color:var(--text-secondary);margin-bottom:6px">
+            Destinataires ciblés
+          </label>
+          <select name="target" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-md);background:#FFF;font-size:13.5px" required>
+            <option value="all">Tous les utilisateurs actifs ({{ audience_counts.all }})</option>
+            <option value="client">Uniquement les Clients ({{ audience_counts.clients }})</option>
+            <option value="bailleur">Uniquement les Bailleurs ({{ audience_counts.bailleurs }})</option>
+            <option value="agent">Uniquement les Agents immobiliers ({{ audience_counts.agents }})</option>
+            <option value="pro">Tous les Bailleurs &amp; Agents</option>
+            <option value="verified">Uniquement les Comptes Certifiés ({{ audience_counts.verified }})</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:700;color:var(--text-secondary);margin-bottom:6px">
+            Titre de la notification (affiché en gras sur le téléphone)
+          </label>
+          <input type="text" name="title" maxlength="150" placeholder="Ex: Nouveautés sur LoueMoi, Offre spéciale, Information importante..." style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-md);font-size:13.5px" required>
+        </div>
+      </div>
+      <div style="margin-bottom: 14px;">
+        <label style="display:block;font-size:12.5px;font-weight:700;color:var(--text-secondary);margin-bottom:6px">
+          Contenu du message
+        </label>
+        <textarea name="body" rows="3" placeholder="Rédigez ici le message que les utilisateurs recevront instantanément en notification réelle sur leur téléphone et dans leur centre de notifications..." style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-md);font-size:13.5px;font-family:inherit;resize:vertical" required></textarea>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+        <span style="font-size:12px;color:var(--text-muted)">
+          💡 Le message est enregistré dans la cloche de l'application ET envoyé en notification Push réelle (Firebase Cloud Messaging) sur les téléphones Android &amp; iOS.
+        </span>
+        <button type="submit" class="btn-action-success" style="padding:10px 20px;font-size:13.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+          <span>Envoyer la notification groupée</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <p style="color:var(--text-muted);font-size:12px;margin-bottom:14px">
   Le modèle Notification ne stocke pas d'acteur de manière persistante (seul le destinataire est en base) — cette colonne n'existe donc pas ici.
 </p>
 <form class="filters" method="get">
-  <input type="text" name="q" placeholder="Destinataire, titre..." value="{{ q }}">
+  <input type="text" name="q" placeholder="Destinataire, titre, message..." value="{{ q }}">
   <select name="type">
     <option value="">Tous les types</option>
     {% for value, label in type_choices %}
@@ -42,7 +110,7 @@
     <thead><tr>
       <th>Destinataire</th>
       <th>Type</th>
-      <th>Titre & Contenu</th>
+      <th>Titre &amp; Contenu</th>
       <th>État</th>
       <th>Date d'envoi</th>
     </tr></thead>
@@ -53,7 +121,12 @@
           <a href="{% url 'dashboard:user_detail' n.recipient.pk %}">{{ n.recipient }}</a>
         </td>
         <td><span class="badge badge-primary">{{ n.get_type_display }}</span></td>
-        <td style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ n.title }}</td>
+        <td style="max-width:360px">
+          <div style="font-weight:600;color:var(--text-primary)">{{ n.title }}</div>
+          {% if n.body %}
+            <div class="cell-subtext" style="white-space:normal;line-height:1.35">{{ n.body|truncatechars:120 }}</div>
+          {% endif %}
+        </td>
         <td>
           {% if n.is_read %}
             <span class="badge badge-success"><span class="badge-dot"></span>Lue</span>

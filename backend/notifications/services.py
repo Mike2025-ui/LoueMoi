@@ -201,3 +201,74 @@ class NotificationService:
                 notification.id,
                 exc_info=True,
             )
+
+    @staticmethod
+    def broadcast(recipients_qs, title: str, body: str, data: dict | None = None) -> dict:
+        """Envoie une notification groupée (in-app + push FCM temps réel sur téléphone)
+        à tous les utilisateurs du QuerySet `recipients_qs`.
+
+        Retourne un dictionnaire récapitulatif :
+        `{"users_count": int, "devices_count": int}`.
+        """
+        recipient_ids = list(recipients_qs.values_list("id", flat=True))
+        if not recipient_ids:
+            return {"users_count": 0, "devices_count": 0}
+
+        payload_data = dict(data or {})
+        payload_data.setdefault("type", Notification.TYPE_ADMIN_BROADCAST)
+
+        notif_objs = [
+            Notification(
+                recipient_id=uid,
+                type=Notification.TYPE_ADMIN_BROADCAST,
+                title=title,
+                body=body,
+                data=payload_data,
+            )
+            for uid in recipient_ids
+        ]
+        Notification.objects.bulk_create(notif_objs, batch_size=500)
+
+        active_tokens = list(
+            DeviceToken.objects.filter(
+                user_id__in=recipient_ids, is_active=True
+            ).values_list("token", flat=True)
+        )
+
+        def _send_multicast_batches():
+            try:
+                app = _get_firebase_app()
+                if app is None or not active_tokens:
+                    return
+                str_data = {"type": Notification.TYPE_ADMIN_BROADCAST}
+                str_data.update({k: str(v) for k, v in payload_data.items()})
+
+                # FCM send_each_for_multicast accepte jusqu'à 500 tokens par lot
+                for i in range(0, len(active_tokens), 500):
+                    chunk = active_tokens[i : i + 500]
+                    message = firebase_messaging.MulticastMessage(
+                        notification=firebase_messaging.Notification(
+                            title=title, body=body
+                        ),
+                        data=str_data,
+                        tokens=chunk,
+                    )
+                    response = firebase_messaging.send_each_for_multicast(message, app=app)
+                    for tok, res in zip(chunk, response.responses):
+                        if not res.success and _is_unregistered_token_error(res.exception):
+                            DeviceToken.objects.filter(token=tok).update(is_active=False)
+            except Exception:
+                logger.warning("Échec lors de la diffusion push FCM groupée.", exc_info=True)
+
+        if "test" in sys.argv:
+            _send_multicast_batches()
+        else:
+            try:
+                _push_executor.submit(_send_multicast_batches)
+            except Exception:
+                _send_multicast_batches()
+
+        return {
+            "users_count": len(recipient_ids),
+            "devices_count": len(active_tokens),
+        }

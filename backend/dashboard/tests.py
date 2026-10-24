@@ -352,3 +352,25 @@ class DashboardDataAccuracyTests(TestCase):
         target_client.refresh_from_db()
         self.assertFalse(target_client.is_verified)
 
+    def test_broadcast_notification_sends_to_all_or_filtered_users(self):
+        before_count = Notification.objects.filter(type=Notification.TYPE_ADMIN_BROADCAST).count()
+        response = self.client.post(
+            reverse("dashboard:broadcast_notification"),
+            {
+                "title": "Information Importante LoueMoi",
+                "body": "Découvrez les nouvelles fonctionnalités de la plateforme !",
+                "target": "all",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        after_count = Notification.objects.filter(type=Notification.TYPE_ADMIN_BROADCAST).count()
+        active_users_count = User.objects.filter(is_active=True).count()
+        self.assertEqual(after_count - before_count, active_users_count)
+        self.assertTrue(
+            Notification.objects.filter(
+                recipient=self.agent,
+                type=Notification.TYPE_ADMIN_BROADCAST,
+                title="Information Importante LoueMoi",
+            ).exists()
+        )
+

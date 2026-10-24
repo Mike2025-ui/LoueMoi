@@ -37,6 +37,11 @@ class NotificationRouter {
         final propertyId = data['property_id']?.toString();
         return propertyId == null ? null : AppRoutes.propertyDetailPath(propertyId);
 
+      case 'admin_broadcast':
+      case 'subscription_expiring':
+      case 'subscription_expired':
+        return AppRoutes.notifications;
+
       default:
         return null;
     }

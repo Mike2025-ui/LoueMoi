@@ -23,6 +23,7 @@ class Notification(models.Model):
     TYPE_NEW_FAVORITE = "new_favorite"
     TYPE_SUBSCRIPTION_EXPIRING = "subscription_expiring"
     TYPE_SUBSCRIPTION_EXPIRED = "subscription_expired"
+    TYPE_ADMIN_BROADCAST = "admin_broadcast"
     TYPE_CHOICES = [
         (TYPE_RESERVATION_CREATED, "Réservation envoyée"),
         (TYPE_RESERVATION_CONFIRMED, "Réservation confirmée"),
@@ -35,6 +36,7 @@ class Notification(models.Model):
         (TYPE_NEW_FAVORITE, "Nouveau favori"),
         (TYPE_SUBSCRIPTION_EXPIRING, "Abonnement expirant bientôt"),
         (TYPE_SUBSCRIPTION_EXPIRED, "Abonnement expiré"),
+        (TYPE_ADMIN_BROADCAST, "Annonce / Diffusion générale"),
     ]
 
     recipient = models.ForeignKey(

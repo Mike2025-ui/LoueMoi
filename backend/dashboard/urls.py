@@ -18,6 +18,7 @@ urlpatterns = [
     path("conversations/", views.conversations_list, name="conversations_list"),
     path("conversations/<int:pk>/", views.conversation_detail, name="conversation_detail"),
     path("notifications/", views.notifications_list, name="notifications_list"),
+    path("notifications/broadcast/", views.broadcast_notification, name="broadcast_notification"),
     path("reviews/", views.reviews_list, name="reviews_list"),
     path("agents/", views.agents_list, name="agents_list"),
     path("activations/", views.pending_activations, name="pending_activations"),

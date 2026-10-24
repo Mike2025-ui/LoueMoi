@@ -363,14 +363,81 @@ def notifications_list(request):
             Q(recipient__phone__icontains=q) | Q(title__icontains=q) | Q(body__icontains=q)
         )
     page = _paginate(request, qs)
+    audience_counts = {
+        "all": User.objects.filter(is_active=True).count(),
+        "clients": User.objects.filter(is_active=True, role=User.ROLE_CLIENT).count(),
+        "bailleurs": User.objects.filter(is_active=True, role=User.ROLE_BAILLEUR).count(),
+        "agents": User.objects.filter(is_active=True, role=User.ROLE_AGENT).count(),
+        "verified": User.objects.filter(is_active=True, is_verified=True).count(),
+        "active_devices": DeviceToken.objects.filter(is_active=True).count(),
+    }
     return render(
         request,
         "dashboard/notifications_list.html",
         {
-            "page_obj": page, "active": "notifications", "notif_type": notif_type, "read": read, "q": q,
-            "type_choices": Notification.TYPE_CHOICES, "querystring": _querystring(request),
+            "page_obj": page,
+            "active": "notifications",
+            "notif_type": notif_type,
+            "read": read,
+            "q": q,
+            "type_choices": Notification.TYPE_CHOICES,
+            "audience_counts": audience_counts,
+            "querystring": _querystring(request),
         },
     )
+
+
+@staff_required
+def broadcast_notification(request):
+    """POST /dashboard/notifications/broadcast/
+    Permet à l'administrateur d'envoyer un message groupé (notification in-app + Push FCM réel sur téléphone)
+    à tous les utilisateurs ou à un segment ciblé (Clients, Bailleurs, Agents, Certifiés)."""
+    if request.method != "POST":
+        return redirect("dashboard:notifications_list")
+
+    title = (request.POST.get("title") or "").strip()
+    body = (request.POST.get("body") or "").strip()
+    target = (request.POST.get("target") or "all").strip()
+
+    if not title or not body:
+        messages.error(request, "Veuillez renseigner à la fois le titre et le message de la notification.")
+        return redirect("dashboard:notifications_list")
+
+    qs = User.objects.filter(is_active=True)
+    target_labels = {
+        "all": "tous les utilisateurs actifs",
+        "client": "tous les clients",
+        "bailleur": "tous les bailleurs",
+        "agent": "tous les agents immobiliers",
+        "pro": "tous les bailleurs et agents",
+        "verified": "tous les comptes certifiés",
+    }
+    if target == "client":
+        qs = qs.filter(role=User.ROLE_CLIENT)
+    elif target == "bailleur":
+        qs = qs.filter(role=User.ROLE_BAILLEUR)
+    elif target == "agent":
+        qs = qs.filter(role=User.ROLE_AGENT)
+    elif target == "pro":
+        qs = qs.filter(role__in=[User.ROLE_BAILLEUR, User.ROLE_AGENT])
+    elif target == "verified":
+        qs = qs.filter(is_verified=True)
+
+    from notifications.services import NotificationService
+
+    result = NotificationService.broadcast(
+        recipients_qs=qs,
+        title=title[:200],
+        body=body,
+        data={"target": target},
+    )
+    label = target_labels.get(target, "les utilisateurs sélectionnés")
+    messages.success(
+        request,
+        f"Diffusion envoyée avec succès à {result['users_count']} utilisateur(s) ({label}) "
+        f"et transmise en temps réel vers {result['devices_count']} téléphone(s) enregistré(s).",
+    )
+    return redirect("dashboard:notifications_list")
 
 
 @staff_required

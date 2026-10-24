@@ -68,19 +68,30 @@ class NotificationsScreen extends ConsumerWidget {
                   final path = const NotificationRouter()
                       .resolvePath(notification.rawType, notification.data);
                   if (path != null) {
-                    // AppRoutes.reservationsList appartient à une branche du
-                    // shell (StatefulShellRoute) : un push() depuis cet écran
-                    // (poussé sur le navigateur racine) créerait une 2e
-                    // instance du shell avec les mêmes GlobalKey de
-                    // Navigator par branche que l'instance déjà montée, ce
-                    // qui fait planter Flutter ("keyReservation.contains
-                    // (key)"). go() navigue vers l'onglet existant au lieu
-                    // d'en empiler un nouveau. Les autres destinations
-                    // (conversation, détail annonce) restent des routes
-                    // rattachées au navigateur racine (parentNavigatorKey),
-                    // donc push() y reste correct et préserve le bouton
-                    // retour vers les notifications.
-                    if (path == AppRoutes.reservationsList) {
+                    if (path == AppRoutes.notifications) {
+                      if (!context.mounted) return;
+                      showDialog<void>(
+                        context: context,
+                        builder: (dialogCtx) => AlertDialog(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.lg),
+                          ),
+                          title: Text(notification.title, style: AppTextStyles.h3),
+                          content: SingleChildScrollView(
+                            child: Text(
+                              notification.message,
+                              style: AppTextStyles.body.copyWith(height: 1.5),
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(dialogCtx).pop(),
+                              child: const Text('Fermer'),
+                            ),
+                          ],
+                        ),
+                      );
+                    } else if (path == AppRoutes.reservationsList) {
                       context.go(path);
                     } else {
                       context.push(path);
