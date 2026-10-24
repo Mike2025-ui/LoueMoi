@@ -14,6 +14,7 @@ import logging
 import os
 import sys
 from concurrent.futures import ThreadPoolExecutor
+from django.conf import settings
 from django.db import transaction
 
 from .models import DeviceToken, Notification
@@ -44,18 +45,20 @@ def _get_firebase_app():
         return None
     if _firebase_app is not None:
         return _firebase_app
-    if _firebase_app_init_attempted:
-        return None
-    _firebase_app_init_attempted = True
+    try:
+        _firebase_app = firebase_admin.get_app()
+        return _firebase_app
+    except (ValueError, Exception):
+        pass
 
     # 1. Vérification en priorité du fichier physique de service account
     file_candidates = [
         "/app/firebase-credentials.json",
-        os.path.join(settings.BASE_DIR, "firebase-credentials.json"),
-        os.path.join(os.path.dirname(settings.BASE_DIR), "firebase-credentials.json"),
+        os.path.join(getattr(settings, "BASE_DIR", ""), "firebase-credentials.json"),
+        os.path.join(os.path.dirname(getattr(settings, "BASE_DIR", "")), "firebase-credentials.json"),
     ]
     for path in file_candidates:
-        if os.path.isfile(path):
+        if path and os.path.isfile(path):
             try:
                 cred = firebase_credentials.Certificate(path)
                 _firebase_app = firebase_admin.initialize_app(cred)
@@ -67,19 +70,21 @@ def _get_firebase_app():
     # 2. Repli sur la variable d'environnement FIREBASE_CREDENTIALS_JSON
     credentials_json = os.environ.get("FIREBASE_CREDENTIALS_JSON", "").strip()
     if not credentials_json:
-        logger.info(
-            "Aucun fichier firebase-credentials.json ni FIREBASE_CREDENTIALS_JSON configuré."
-        )
+        if not _firebase_app_init_attempted:
+            logger.info(
+                "Aucun fichier firebase-credentials.json ni FIREBASE_CREDENTIALS_JSON configuré."
+            )
+            _firebase_app_init_attempted = True
         return None
 
     try:
         cred = firebase_credentials.Certificate(json.loads(credentials_json))
         _firebase_app = firebase_admin.initialize_app(cred)
         logger.info("Firebase Admin initialisé avec succès depuis FIREBASE_CREDENTIALS_JSON.")
+        return _firebase_app
     except Exception:
         logger.warning("Impossible d'initialiser Firebase Admin depuis FIREBASE_CREDENTIALS_JSON.", exc_info=True)
         return None
-    return _firebase_app
 
 
 def _is_unregistered_token_error(exc) -> bool:
