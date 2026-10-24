@@ -207,7 +207,6 @@ class NotificationService:
                     sound="default",
                     default_sound=True,
                     default_vibrate_timings=True,
-                    notification_priority="PRIORITY_MAX",
                     visibility="public",
                 ),
             )
@@ -290,7 +289,6 @@ class NotificationService:
                         sound="default",
                         default_sound=True,
                         default_vibrate_timings=True,
-                        notification_priority="PRIORITY_MAX",
                         visibility="public",
                     ),
                 )
