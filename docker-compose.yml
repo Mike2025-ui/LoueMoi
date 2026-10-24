@@ -34,6 +34,7 @@ services:
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
+      - ./backend/firebase-credentials.json:/app/firebase-credentials.json:ro
     expose:
       - "8000"
     healthcheck:

@@ -35,11 +35,9 @@ _firebase_app_init_attempted = False
 
 
 def _get_firebase_app():
-    """Initialise Firebase Admin une seule fois (mise en cache), à partir de
-    la variable d'environnement FIREBASE_CREDENTIALS_JSON (le contenu JSON
-    du compte de service — jamais un chemin de fichier committé dans Git).
-    Retourne None si le SDK n'est pas installé, si la variable est absente,
-    ou si l'initialisation échoue — jamais d'exception propagée."""
+    """Initialise Firebase Admin une seule fois (mise en cache).
+    Cherche en priorité le fichier sécurisé backend/firebase-credentials.json (/app/firebase-credentials.json)
+    ou la variable d'environnement FIREBASE_CREDENTIALS_JSON."""
     global _firebase_app, _firebase_app_init_attempted
 
     if firebase_admin is None:
@@ -50,19 +48,36 @@ def _get_firebase_app():
         return None
     _firebase_app_init_attempted = True
 
-    credentials_json = os.environ.get("FIREBASE_CREDENTIALS_JSON")
+    # 1. Vérification en priorité du fichier physique de service account
+    file_candidates = [
+        "/app/firebase-credentials.json",
+        os.path.join(settings.BASE_DIR, "firebase-credentials.json"),
+        os.path.join(os.path.dirname(settings.BASE_DIR), "firebase-credentials.json"),
+    ]
+    for path in file_candidates:
+        if os.path.isfile(path):
+            try:
+                cred = firebase_credentials.Certificate(path)
+                _firebase_app = firebase_admin.initialize_app(cred)
+                logger.info(f"Firebase Admin initialisé avec succès depuis le fichier : {path}")
+                return _firebase_app
+            except Exception:
+                logger.warning(f"Impossible d'initialiser Firebase Admin depuis le fichier {path}.", exc_info=True)
+
+    # 2. Repli sur la variable d'environnement FIREBASE_CREDENTIALS_JSON
+    credentials_json = os.environ.get("FIREBASE_CREDENTIALS_JSON", "").strip()
     if not credentials_json:
         logger.info(
-            "FIREBASE_CREDENTIALS_JSON absente : notifications créées en base, "
-            "aucun push FCM ne sera envoyé."
+            "Aucun fichier firebase-credentials.json ni FIREBASE_CREDENTIALS_JSON configuré."
         )
         return None
 
     try:
         cred = firebase_credentials.Certificate(json.loads(credentials_json))
         _firebase_app = firebase_admin.initialize_app(cred)
+        logger.info("Firebase Admin initialisé avec succès depuis FIREBASE_CREDENTIALS_JSON.")
     except Exception:
-        logger.warning("Impossible d'initialiser Firebase Admin.", exc_info=True)
+        logger.warning("Impossible d'initialiser Firebase Admin depuis FIREBASE_CREDENTIALS_JSON.", exc_info=True)
         return None
     return _firebase_app
 

@@ -47,6 +47,8 @@ app.*.map.json
 # Déploiement & Secrets
 .env
 backups/
+firebase-credentials.json
+backend/firebase-credentials.json
 nginx/conf.d/louemoi.conf
 *.sql
 *.tar.gz
