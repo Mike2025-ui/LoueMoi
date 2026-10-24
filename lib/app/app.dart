@@ -51,21 +51,35 @@ class _LoueMoiAppState extends ConsumerState<LoueMoiApp> with WidgetsBindingObse
     if (!mounted) return;
 
     if (paymentParam == 'success') {
+      var isReallyActive = false;
       try {
-        await ref.read(paymentRepositoryProvider).getSubscriptionStatus();
+        final status = await ref.read(paymentRepositoryProvider).getSubscriptionStatus();
+        isReallyActive = status.hasActiveSubscription;
       } catch (_) {}
       await ref.read(authControllerProvider.notifier).refreshProfile();
       ref.invalidate(userSubscriptionStatusProvider);
-      _scaffoldMessengerKey.currentState?.showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Paiement confirmé avec succès ! Votre abonnement et votre badge certifié sont activés.',
+      if (isReallyActive) {
+        _scaffoldMessengerKey.currentState?.showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Paiement confirmé avec succès ! Votre abonnement et votre badge certifié sont activés.',
+            ),
+            backgroundColor: AppColors.success,
+            duration: Duration(seconds: 5),
           ),
-          backgroundColor: AppColors.success,
-          duration: Duration(seconds: 5),
-        ),
-      );
-    } else if (paymentParam == 'error' || paymentParam == 'cancelled') {
+        );
+      } else {
+        _scaffoldMessengerKey.currentState?.showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Le paiement n\'a pas encore été validé. Aucun abonnement n\'a été activé.',
+            ),
+            backgroundColor: AppColors.warning,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+    } else if (paymentParam == 'error' || paymentParam == 'cancelled' || paymentParam == 'pending') {
       _scaffoldMessengerKey.currentState?.showSnackBar(
         const SnackBar(
           content: Text('Le paiement a été annulé ou n\'a pas pu aboutir.'),

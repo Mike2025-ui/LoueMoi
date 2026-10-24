@@ -522,12 +522,14 @@ def redirect_success(request):
                 return HttpResponseRedirect(f"{web_app_url}/?payment=error&ref={sub.reference}")
         if sub.status == Subscription.STATUS_PENDING:
             return _render_payment_initiated_waiting_page(sub, web_app_url)
-        ref = sub.reference
+        if sub.status != Subscription.STATUS_ACTIVE:
+            return HttpResponseRedirect(f"{web_app_url}/?payment=error&ref={sub.reference}")
+        return HttpResponseRedirect(f"{web_app_url}/?payment=success&ref={sub.reference}")
     else:
         activated = sync_all_recent_pending_subscriptions()
         if activated:
-            ref = activated.reference
-    return HttpResponseRedirect(f"{web_app_url}/?payment=success&ref={ref}")
+            return HttpResponseRedirect(f"{web_app_url}/?payment=success&ref={activated.reference}")
+    return HttpResponseRedirect(f"{web_app_url}/?payment=error&ref={ref}")
 
 
 def redirect_error(request):
@@ -571,6 +573,7 @@ def _render_payment_initiated_waiting_page(sub, web_app_url: str) -> HttpRespons
     fee_amount = int(round(sub.amount * 0.015))
     total_amount = sub.amount + fee_amount
     check_url = f"/api/payments/jeko/return/?ref={sub.reference}&check=1"
+    cancel_url = f"/api/payments/jeko/return/?ref={sub.reference}&action=cancel"
     success_target = f"{web_app_url}/?payment=success&ref={sub.reference}"
     error_target = f"{web_app_url}/?payment=error&ref={sub.reference}"
 
@@ -674,8 +677,8 @@ def _render_payment_initiated_waiting_page(sub, web_app_url: str) -> HttpRespons
         <button type="button" class="btn-primary" id="btn-check" onclick="checkNow()">
             J'ai validé le paiement sur mon téléphone
         </button>
-        <a href="{success_target}" class="btn-secondary">
-            Aller directement sur l'application Web LoueMoi
+        <a href="{cancel_url}" class="btn-secondary">
+            Annuler et retourner sur l'application Web LoueMoi
         </a>
     </div>
 
@@ -763,6 +766,17 @@ def jeko_return(request):
                 return JsonResponse({"status": "active", "redirect_url": target})
             return HttpResponseRedirect(target)
 
+        if sub.status in (Subscription.STATUS_CANCELLED, Subscription.STATUS_EXPIRED):
+            target = f"{web_app_url}/?payment=error&ref={sub.reference}"
+            if is_ajax_check:
+                return JsonResponse({"status": "failed", "redirect_url": target})
+            return HttpResponseRedirect(target)
+
+        if request.GET.get("action") == "cancel" and not is_ajax_check:
+            sub.status = Subscription.STATUS_CANCELLED
+            sub.save(update_fields=["status", "updated_at"])
+            return HttpResponseRedirect(f"{web_app_url}/?payment=cancelled&ref={sub.reference}")
+
         tx_status = ""
         if sub.jeko_payment_request_id:
             jeko_data = get_payment_request_status(sub.jeko_payment_request_id)
@@ -788,6 +802,8 @@ def jeko_return(request):
             return HttpResponseRedirect(target)
 
         if result_param in ("error", "failed", "cancelled", "canceled") and not is_ajax_check:
+            sub.status = Subscription.STATUS_CANCELLED
+            sub.save(update_fields=["status", "updated_at"])
             return HttpResponseRedirect(f"{web_app_url}/?payment=error&ref={sub.reference}")
 
         if is_ajax_check:

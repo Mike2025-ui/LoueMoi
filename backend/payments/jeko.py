@@ -208,10 +208,23 @@ def get_payment_request_status(payment_request_id: str) -> dict | None:
 def extract_jeko_status(jeko_data: dict | None) -> str:
     if not jeko_data or not isinstance(jeko_data, dict):
         return ""
+    logger.info(f"[Jèko Status Payload] {json.dumps(jeko_data, default=str)[:500]}")
+    # Vérifier d'abord le statut de la transaction effective (transactionDetails / transactions)
+    tx_details = jeko_data.get("transactionDetails") or (jeko_data.get("data") or {}).get("transactionDetails") or {}
+    if isinstance(tx_details, dict) and tx_details.get("status"):
+        return str(tx_details.get("status")).strip().lower()
+
+    transactions = jeko_data.get("transactions") or (jeko_data.get("data") or {}).get("transactions") or []
+    if isinstance(transactions, list) and transactions:
+        last_tx = transactions[-1]
+        if isinstance(last_tx, dict) and last_tx.get("status"):
+            return str(last_tx.get("status")).strip().lower()
+
     raw_status = (
-        jeko_data.get("status")
+        jeko_data.get("paymentStatus")
+        or (jeko_data.get("data") or {}).get("paymentStatus")
+        or jeko_data.get("status")
         or (jeko_data.get("data") or {}).get("status")
-        or (jeko_data.get("transactionDetails") or {}).get("status")
         or (jeko_data.get("paymentDetails") or {}).get("status")
         or ""
     )
@@ -219,16 +232,15 @@ def extract_jeko_status(jeko_data: dict | None) -> str:
 
 
 def is_jeko_status_success(tx_status: str) -> bool:
+    """Ne retourne True QUE si la transaction Jèko est réellement payée/complétée.
+    Attention : 'created', 'initiated', 'pending', 'processing', 'open', 'active'
+    sur un objet PaymentRequest signifient que la demande est ouverte mais PAS payée !"""
     return tx_status in (
         "success",
         "successful",
         "succeeded",
         "completed",
         "paid",
-        "approved",
-        "validated",
-        "confirmed",
-        "done",
     )
 
 
@@ -240,6 +252,7 @@ def is_jeko_status_failed(tx_status: str) -> bool:
         "canceled",
         "declined",
         "rejected",
+        "expired",
     )
 
 
