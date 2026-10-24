@@ -126,6 +126,7 @@ class ConversationSerializer(serializers.ModelSerializer):
     participant_last_seen = serializers.SerializerMethodField()
     last_message = serializers.SerializerMethodField()
     unread_count = serializers.SerializerMethodField()
+    can_access = serializers.SerializerMethodField()
 
     class Meta:
         model = Conversation
@@ -141,6 +142,7 @@ class ConversationSerializer(serializers.ModelSerializer):
             "participant_last_seen",
             "last_message",
             "unread_count",
+            "can_access",
             "created_at",
         ]
         read_only_fields = ["id", "client", "created_at"]
@@ -197,3 +199,11 @@ class ConversationSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         user = request.user if request else None
         return obj.messages.filter(is_read=False).exclude(sender=user).count()
+
+    def get_can_access(self, obj):
+        request = self.context.get("request")
+        user = request.user if request else None
+        if not user or not user.is_authenticated:
+            return False
+        from .views import user_can_access_conversation
+        return user_can_access_conversation(user, obj)

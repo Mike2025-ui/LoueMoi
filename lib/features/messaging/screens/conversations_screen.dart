@@ -8,6 +8,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/media_url.dart';
 import '../../auth/providers/auth_providers.dart';
+import '../../payments/widgets/subscription_modal.dart';
 import '../models/message.dart';
 import '../providers/message_providers.dart';
 
@@ -164,6 +165,19 @@ class ConversationsScreen extends ConsumerWidget {
                   },
                   child: ListTile(
                     onTap: () async {
+                      if (!conversation.canAccess) {
+                        final isPro = currentUser.isAgent || currentUser.isBailleur;
+                        final subscribed = await showSubscriptionModal(
+                          context,
+                          isPro: isPro,
+                          role: currentUser.role,
+                          reason: 'subscription_required',
+                        );
+                        if (subscribed == true) {
+                          ref.invalidate(conversationsProvider);
+                        }
+                        return;
+                      }
                       await context.push(
                         AppRoutes.conversationPath(conversation.id),
                         extra: {'participantName': conversation.participantName},
@@ -200,7 +214,41 @@ class ConversationsScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    title: Text(conversation.participantName, style: AppTextStyles.bodyMedium),
+                    title: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            conversation.participantName,
+                            style: AppTextStyles.bodyMedium,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (!conversation.canAccess)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.warningBg,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.lock_outline, size: 12, color: AppColors.warningText),
+                                SizedBox(width: 3),
+                                Text(
+                                  'Verrouillée',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.warningText,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
                     subtitle: Row(
                       children: [
                         if (conversation.lastMessage != null &&

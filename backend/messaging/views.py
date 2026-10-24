@@ -15,6 +15,34 @@ from .models import Conversation, Message
 from .serializers import ConversationSerializer, MessageSerializer
 
 
+def user_can_access_conversation(user, conversation):
+    """Détermine si l'utilisateur est autorisé à consulter/lire les messages d'une conversation.
+
+    Règles métier LoueMoi :
+    - Staff / Admin : toujours autorisé.
+    - Si l'utilisateur connecté possède un abonnement actif : autorisé.
+    - Si l'autre interlocuteur (agent ou bailleur) possède un abonnement actif : le client peut échanger gratuitement.
+    - Si ni l'utilisateur connecté ni le professionnel n'ont d'abonnement actif : bloqué.
+    """
+    if not user or not getattr(user, "is_authenticated", False):
+        return False
+    if getattr(user, "is_staff", False):
+        return True
+
+    now = timezone.now()
+    # 1. L'utilisateur connecté possède-t-il un abonnement actif ?
+    if hasattr(user, "subscriptions") and user.subscriptions.filter(status="active", expires_at__gt=now).exists():
+        return True
+
+    # 2. L'autre interlocuteur (agent ou bailleur) possède-t-il un abonnement actif ?
+    other_party = conversation.agent if user == conversation.client else conversation.client
+    if other_party and getattr(other_party, "role", "") in ("agent", "bailleur"):
+        if hasattr(other_party, "subscriptions") and other_party.subscriptions.filter(status="active", expires_at__gt=now).exists():
+            return True
+
+    return False
+
+
 class ConversationViewSet(viewsets.ModelViewSet):
     """/api/conversations/ — conversations de l'utilisateur connecté,
     côté client/bailleur (initiateur) ou côté agent."""
@@ -94,6 +122,12 @@ class ConversationViewSet(viewsets.ModelViewSet):
             raise PermissionDenied("Vous ne faites pas partie de cette conversation.")
         instance.delete()
 
+    def retrieve(self, request, *args, **kwargs):
+        conversation = self.get_object()
+        if not user_can_access_conversation(request.user, conversation):
+            raise PermissionDenied("Un abonnement actif est requis pour consulter cette conversation.")
+        serializer = self.get_serializer(conversation)
+        return Response(serializer.data)
 
     @action(detail=True, methods=["post"], url_path="mark-read")
     def mark_read(self, request, pk=None):
@@ -103,6 +137,8 @@ class ConversationViewSet(viewsets.ModelViewSet):
         `unread_count` (et donc le badge de l'onglet Messages) ne redescend
         jamais, même après lecture."""
         conversation = self.get_object()
+        if not user_can_access_conversation(request.user, conversation):
+            raise PermissionDenied("Un abonnement actif est requis pour consulter cette conversation.")
         now = timezone.now()
         unread_messages = conversation.messages.filter(is_read=False).exclude(sender=request.user)
         unread_messages.filter(delivered_at__isnull=True).update(is_delivered=True, delivered_at=now)
@@ -130,17 +166,27 @@ class MessageListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         conversation_id = self.request.query_params.get("conversation")
-        queryset = Message.objects.filter(
-            conversation__client=self.request.user
-        ) | Message.objects.filter(conversation__agent=self.request.user)
         if conversation_id:
-            queryset = queryset.filter(conversation_id=conversation_id)
+            conversation = get_object_or_404(
+                Conversation.objects.select_related("client", "agent"),
+                pk=conversation_id,
+            )
+            if self.request.user not in (conversation.client, conversation.agent):
+                raise PermissionDenied("Vous ne faites pas partie de cette conversation.")
+            if not user_can_access_conversation(self.request.user, conversation):
+                raise PermissionDenied("Un abonnement actif est requis pour consulter les messages de cette conversation.")
+
             # Marquer automatiquement comme délivrés (2 traits gris) les messages reçus
             Message.objects.filter(
                 conversation_id=conversation_id,
                 receiver=self.request.user,
                 is_delivered=False,
             ).update(is_delivered=True, delivered_at=timezone.now())
+            return Message.objects.filter(conversation_id=conversation_id).distinct()
+
+        queryset = Message.objects.filter(
+            conversation__client=self.request.user
+        ) | Message.objects.filter(conversation__agent=self.request.user)
         return queryset.distinct()
 
     def get_serializer_context(self):
@@ -153,12 +199,10 @@ class MessageListCreateView(generics.ListCreateAPIView):
         user = self.request.user
         if user not in (conversation.client, conversation.agent):
             raise serializers.ValidationError("Vous ne faites pas partie de cette conversation.")
-        receiver = conversation.agent if user == conversation.client else conversation.client
+        if not user_can_access_conversation(user, conversation):
+            raise PermissionDenied("Un abonnement actif est requis pour envoyer des messages dans cette conversation.")
 
-        # Un agent ou bailleur ne peut pas envoyer de message à un client sans abonnement actif
-        if user.role in ("agent", "bailleur") and receiver.role == "client":
-            if not user.has_active_subscription:
-                raise PermissionDenied("Un abonnement actif est requis pour contacter ou répondre à un client.")
+        receiver = conversation.agent if user == conversation.client else conversation.client
 
         now = timezone.now()
         is_delivered = False

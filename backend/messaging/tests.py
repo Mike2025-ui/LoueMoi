@@ -35,6 +35,27 @@ def _make_client(phone):
     )
 
 
+def _subscribe(user):
+    from datetime import timedelta
+    from django.utils import timezone
+    from payments.models import Subscription
+    plan = Subscription.PLAN_PRO if user.role in (User.ROLE_AGENT, User.ROLE_BAILLEUR) else Subscription.PLAN_CLIENT
+    sub, _ = Subscription.objects.get_or_create(
+        user=user,
+        defaults={
+            "plan": plan,
+            "amount": 3000 if plan == Subscription.PLAN_PRO else 1000,
+            "reference": f"SUB-TEST-{user.phone}",
+            "status": Subscription.STATUS_ACTIVE,
+            "started_at": timezone.now(),
+            "expires_at": timezone.now() + timedelta(days=30),
+        },
+    )
+    user.is_verified = True
+    user.save(update_fields=["is_verified"])
+    return sub
+
+
 class ConversationCreationTests(APITestCase):
     """Test 24, 25 : un bailleur (ou un client) peut contacter un agent ;
     l'agent peut répondre — un seul système de messagerie, réutilisé tel
@@ -71,6 +92,7 @@ class ConversationCreationTests(APITestCase):
     def test_agent_can_respond_in_the_conversation(self):
         bailleur = _make_bailleur("+2250711116003")
         agent = _make_agent("+2250711116004")
+        _subscribe(agent)
         conversation = Conversation.objects.create(client=bailleur, agent=agent)
 
         self.client.force_authenticate(user=agent)
@@ -121,6 +143,7 @@ class MessageNotificationTests(APITestCase):
 
         bailleur = _make_bailleur("+2250711116050")
         agent = _make_agent("+2250711116051")
+        _subscribe(bailleur)
         conversation = Conversation.objects.create(client=bailleur, agent=agent)
 
         self.client.force_authenticate(user=bailleur)
@@ -150,6 +173,7 @@ class ConversationAccessTests(APITestCase):
     def setUp(self):
         self.bailleur = _make_bailleur("+2250711116010")
         self.agent = _make_agent("+2250711116011")
+        _subscribe(self.agent)
         self.outsider = _make_client("+2250711116012")
         self.conversation = Conversation.objects.create(client=self.bailleur, agent=self.agent)
         Message.objects.create(
@@ -166,8 +190,7 @@ class ConversationAccessTests(APITestCase):
     def test_non_participant_cannot_read_conversation_messages(self):
         self.client.force_authenticate(user=self.outsider)
         response = self.client.get(f"/api/messages/?conversation={self.conversation.id}")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["count"], 0)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
 
 class ConversationMarkReadTests(APITestCase):

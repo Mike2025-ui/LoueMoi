@@ -12,13 +12,18 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/feedback.dart';
 import '../../../core/utils/media_url.dart';
 import '../../auth/providers/auth_providers.dart';
+import '../../payments/widgets/subscription_modal.dart';
 import '../models/message.dart';
 import '../providers/message_providers.dart';
 import '../widgets/audio_message_player.dart';
 import '../widgets/message_bubble.dart';
 
 class ConversationScreen extends ConsumerStatefulWidget {
-  const ConversationScreen({super.key, required this.conversationId, this.participantName});
+  const ConversationScreen({
+    super.key,
+    required this.conversationId,
+    this.participantName,
+  });
 
   final String conversationId;
   final String? participantName;
@@ -96,7 +101,10 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
 
   Future<void> _pickImage() async {
     try {
-      final file = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85);
+      final file = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
       if (file == null) return;
       setState(() {
         _stagedImage = file;
@@ -105,8 +113,9 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       });
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text("Impossible d'ouvrir la galerie.")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Impossible d'ouvrir la galerie.")),
+        );
       }
     }
   }
@@ -125,8 +134,9 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       });
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text("Impossible de sélectionner la vidéo.")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Impossible de sélectionner la vidéo.")),
+        );
       }
     }
   }
@@ -148,7 +158,9 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     if (!started) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Autorisez le microphone pour enregistrer un vocal.')),
+          const SnackBar(
+            content: Text('Autorisez le microphone pour enregistrer un vocal.'),
+          ),
         );
       }
       return;
@@ -206,7 +218,10 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       builder: (ctx) {
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md, horizontal: AppSpacing.lg),
+            padding: const EdgeInsets.symmetric(
+              vertical: AppSpacing.md,
+              horizontal: AppSpacing.lg,
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
@@ -244,13 +259,16 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
 
     final messagesAsync = ref.watch(messagesProvider(widget.conversationId));
     final conversationsAsync = ref.watch(conversationsProvider);
-    final conv = conversationsAsync.valueOrNull?.where((c) => c.id == widget.conversationId).firstOrNull;
+    final conv = conversationsAsync.valueOrNull
+        ?.where((c) => c.id == widget.conversationId)
+        .firstOrNull;
     final isOnline = conv?.participantIsOnline ?? false;
     final currentUserId = ref.watch(authControllerProvider).valueOrNull?.id;
     final hasText = _controller.text.trim().isNotEmpty;
     final canSend = hasText || _hasStagedAttachment;
 
-    final displayName = widget.participantName ?? conv?.participantName ?? 'Contact';
+    final displayName =
+        widget.participantName ?? conv?.participantName ?? 'Contact';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -267,7 +285,11 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                       ? NetworkImage(buildMediaUrl(conv!.participantPhoto!))
                       : null,
                   child: conv?.participantPhoto == null
-                      ? const Icon(Icons.person, size: 22, color: AppColors.primary)
+                      ? const Icon(
+                          Icons.person,
+                          size: 22,
+                          color: AppColors.primary,
+                        )
                       : null,
                 ),
                 Positioned(
@@ -277,7 +299,9 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                     width: 12,
                     height: 12,
                     decoration: BoxDecoration(
-                      color: isOnline ? const Color(0xFF25D366) : Colors.grey.shade400,
+                      color: isOnline
+                          ? const Color(0xFF25D366)
+                          : Colors.grey.shade400,
                       shape: BoxShape.circle,
                       border: Border.all(color: AppColors.white, width: 2),
                     ),
@@ -293,7 +317,10 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                 children: [
                   Text(
                     displayName,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 1),
@@ -304,7 +331,9 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                         height: 7,
                         margin: const EdgeInsets.only(right: 5),
                         decoration: BoxDecoration(
-                          color: isOnline ? const Color(0xFF25D366) : Colors.grey.shade400,
+                          color: isOnline
+                              ? const Color(0xFF25D366)
+                              : Colors.grey.shade400,
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -312,8 +341,12 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                         isOnline ? 'En ligne' : 'Hors ligne',
                         style: TextStyle(
                           fontSize: 12,
-                          color: isOnline ? const Color(0xFF25D366) : AppColors.textSecondary,
-                          fontWeight: isOnline ? FontWeight.w600 : FontWeight.normal,
+                          color: isOnline
+                              ? const Color(0xFF25D366)
+                              : AppColors.textSecondary,
+                          fontWeight: isOnline
+                              ? FontWeight.w600
+                              : FontWeight.normal,
                         ),
                       ),
                     ],
@@ -324,37 +357,149 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           ],
         ),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: messagesAsync.when(
-              skipLoadingOnReload: true,
-              data: (messages) {
-                if (messages.isEmpty) {
-                  return const Center(
-                    child: Text('Démarrez la conversation', style: AppTextStyles.caption),
-                  );
-                }
-                return ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.all(AppSpacing.screenPadding),
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    final message = messages[index];
-                    return MessageBubble(
-                      message: message,
-                      isMine: message.senderId == currentUserId,
-                    );
-                  },
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => const Center(
-                child: Text('Impossible de charger la conversation.',
-                    style: AppTextStyles.caption),
+      body: (conv?.canAccess == false)
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.lock_outline,
+                        size: 36,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    const Text(
+                      'Discussion verrouillée',
+                      style: AppTextStyles.h3,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    const Text(
+                      'Un abonnement actif est requis pour consulter cette conversation et lire vos messages.',
+                      style: AppTextStyles.bodyMedium,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        final currentUser = ref.read(authControllerProvider).valueOrNull;
+                        final isPro = currentUser?.isAgent == true || currentUser?.isBailleur == true;
+                        final subscribed = await showSubscriptionModal(
+                          context,
+                          isPro: isPro,
+                          role: currentUser?.role,
+                          reason: 'subscription_required',
+                        );
+                        if (subscribed == true) {
+                          ref.invalidate(conversationsProvider);
+                          ref.invalidate(messagesProvider(widget.conversationId));
+                        }
+                      },
+                      icon: const Icon(Icons.workspace_premium, size: 18),
+                      label: const Text('Débloquer mes messages'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: AppColors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.xl,
+                          vertical: AppSpacing.md,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ),
+            )
+          : Column(
+              children: [
+                Expanded(
+                  child: messagesAsync.when(
+                    skipLoadingOnReload: true,
+                    data: (messages) {
+                      if (messages.isEmpty) {
+                        return const Center(
+                          child: Text(
+                            'Démarrez la conversation',
+                            style: AppTextStyles.caption,
+                          ),
+                        );
+                      }
+                      return ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.all(AppSpacing.screenPadding),
+                        itemCount: messages.length,
+                        itemBuilder: (context, index) {
+                          final message = messages[index];
+                          return MessageBubble(
+                            message: message,
+                            isMine: message.senderId == currentUserId,
+                          );
+                        },
+                      );
+                    },
+                    loading: () => const Center(child: CircularProgressIndicator()),
+                    error: (e, _) {
+                      final isPermissionDenied = e.toString().contains('403') ||
+                          e.toString().toLowerCase().contains('abonnement');
+                      if (isPermissionDenied) {
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.lock_outline, size: 40, color: AppColors.primary),
+                                const SizedBox(height: 12),
+                                const Text(
+                                  'Abonnement requis pour lire les messages',
+                                  style: AppTextStyles.h3,
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton(
+                                  onPressed: () async {
+                                    final currentUser = ref.read(authControllerProvider).valueOrNull;
+                                    final isPro = currentUser?.isAgent == true || currentUser?.isBailleur == true;
+                                    final subscribed = await showSubscriptionModal(
+                                      context,
+                                      isPro: isPro,
+                                      role: currentUser?.role,
+                                      reason: 'subscription_required',
+                                    );
+                                    if (subscribed == true) {
+                                      ref.invalidate(conversationsProvider);
+                                      ref.invalidate(messagesProvider(widget.conversationId));
+                                    }
+                                  },
+                                  child: const Text('S\'abonner'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+                      return const Center(
+                        child: Text(
+                          'Impossible de charger la conversation.',
+                          style: AppTextStyles.caption,
+                        ),
+                      );
+                    },
+                  ),
+                ),
           SafeArea(
             top: false,
             child: Container(
@@ -364,7 +509,9 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
               ),
               decoration: const BoxDecoration(
                 color: AppColors.surface,
-                border: Border(top: BorderSide(color: AppColors.border, width: 0.5)),
+                border: Border(
+                  top: BorderSide(color: AppColors.border, width: 0.5),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -381,9 +528,16 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                       padding: EdgeInsets.only(bottom: AppSpacing.xs),
                       child: Row(
                         children: [
-                          Icon(Icons.fiber_manual_record, size: 14, color: AppColors.danger),
+                          Icon(
+                            Icons.fiber_manual_record,
+                            size: 14,
+                            color: AppColors.danger,
+                          ),
                           SizedBox(width: 6),
-                          Text('Enregistrement en cours…', style: AppTextStyles.caption),
+                          Text(
+                            'Enregistrement en cours…',
+                            style: AppTextStyles.caption,
+                          ),
                         ],
                       ),
                     ),
@@ -391,18 +545,32 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       IconButton(
-                        onPressed: _hasStagedAttachment || _isRecording ? null : _showAttachmentMenu,
-                        icon: const Icon(Icons.attach_file, color: AppColors.textSecondary),
+                        onPressed: _hasStagedAttachment || _isRecording
+                            ? null
+                            : _showAttachmentMenu,
+                        icon: const Icon(
+                          Icons.attach_file,
+                          color: AppColors.textSecondary,
+                        ),
                         iconSize: 24,
                         padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 38, minHeight: 42),
+                        constraints: const BoxConstraints(
+                          minWidth: 38,
+                          minHeight: 42,
+                        ),
                         tooltip: 'Joindre un fichier',
                       ),
                       const SizedBox(width: 2),
                       Expanded(
                         child: Container(
-                          constraints: const BoxConstraints(minHeight: 42, maxHeight: 120),
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                          constraints: const BoxConstraints(
+                            minHeight: 42,
+                            maxHeight: 120,
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.surfaceMuted,
                             borderRadius: BorderRadius.circular(22),
@@ -450,7 +618,11 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                               color: AppColors.danger,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.stop, color: AppColors.white, size: 22),
+                            child: const Icon(
+                              Icons.stop,
+                              color: AppColors.white,
+                              size: 22,
+                            ),
                           ),
                         )
                       else if (canSend)
@@ -462,10 +634,16 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                             height: 42,
                             margin: const EdgeInsets.only(bottom: 1),
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: _sending ? 0.5 : 1),
+                              color: AppColors.primary.withValues(
+                                alpha: _sending ? 0.5 : 1,
+                              ),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.send, color: AppColors.white, size: 20),
+                            child: const Icon(
+                              Icons.send,
+                              color: AppColors.white,
+                              size: 20,
+                            ),
                           ),
                         )
                       else
@@ -480,7 +658,11 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                               color: AppColors.primary,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.mic_none, color: AppColors.white, size: 22),
+                            child: const Icon(
+                              Icons.mic_none,
+                              color: AppColors.white,
+                              size: 22,
+                            ),
                           ),
                         ),
                     ],
@@ -515,8 +697,18 @@ class _StagedAttachmentPreview extends StatelessWidget {
       content = ClipRRect(
         borderRadius: BorderRadius.circular(AppRadius.sm),
         child: kIsWeb
-            ? Image.network(image!.path, width: 64, height: 64, fit: BoxFit.cover)
-            : Image.file(File(image!.path), width: 64, height: 64, fit: BoxFit.cover),
+            ? Image.network(
+                image!.path,
+                width: 64,
+                height: 64,
+                fit: BoxFit.cover,
+              )
+            : Image.file(
+                File(image!.path),
+                width: 64,
+                height: 64,
+                fit: BoxFit.cover,
+              ),
       );
     } else if (video != null) {
       content = Container(
@@ -550,7 +742,9 @@ class _StagedAttachmentPreview extends StatelessWidget {
         children: [
           content,
           const SizedBox(width: AppSpacing.sm),
-          const Expanded(child: Text('Prêt à envoyer', style: AppTextStyles.caption)),
+          const Expanded(
+            child: Text('Prêt à envoyer', style: AppTextStyles.caption),
+          ),
           IconButton(
             onPressed: onCancel,
             icon: const Icon(Icons.close, size: 18, color: AppColors.textHint),

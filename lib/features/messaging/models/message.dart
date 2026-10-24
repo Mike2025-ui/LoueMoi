@@ -119,6 +119,7 @@ class Conversation extends Equatable {
   final DateTime? participantLastSeen;
   final Message? lastMessage;
   final int unreadCount;
+  final bool canAccess;
 
   /// Propriété au sujet de laquelle la conversation a été ouverte (ex:
   /// "Contacter l'agent" depuis une fiche annonce) — null pour une
@@ -137,6 +138,7 @@ class Conversation extends Equatable {
     this.participantLastSeen,
     this.lastMessage,
     this.unreadCount = 0,
+    this.canAccess = true,
     this.propertyId,
   });
 
@@ -153,6 +155,7 @@ class Conversation extends Equatable {
           : null,
       lastMessage: lastMessageJson != null ? Message.fromJson(lastMessageJson) : null,
       unreadCount: json['unread_count'] as int? ?? 0,
+      canAccess: json['can_access'] as bool? ?? true,
       propertyId: json['property']?.toString(),
     );
   }
@@ -167,6 +170,7 @@ class Conversation extends Equatable {
         participantLastSeen,
         lastMessage,
         unreadCount,
+        canAccess,
         propertyId,
       ];
 }
