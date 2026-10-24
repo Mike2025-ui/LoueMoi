@@ -502,6 +502,7 @@ def sync_all_recent_pending_subscriptions():
 def redirect_success(request):
     """Redirection après paiement validé vers l'application web.
     Vérifie toujours le statut réel auprès de l'API Jèko avant toute activation."""
+    web_app_url = getattr(settings, "WEB_APP_URL", "https://transfert-online.site").rstrip("/")
     ref = request.GET.get("ref") or request.GET.get("reference") or request.GET.get("orderId") or ""
     payment_request_id = request.GET.get("id") or request.GET.get("payment_request_id") or ""
     sub = None
@@ -515,12 +516,17 @@ def redirect_success(request):
             tx_status = extract_jeko_status(jeko_data) if jeko_data else ""
             if is_jeko_status_success(tx_status):
                 sub.activate_for_30_days()
+            elif is_jeko_status_failed(tx_status):
+                sub.status = Subscription.STATUS_CANCELLED
+                sub.save(update_fields=["status", "updated_at"])
+                return HttpResponseRedirect(f"{web_app_url}/?payment=error&ref={sub.reference}")
+        if sub.status == Subscription.STATUS_PENDING:
+            return _render_payment_initiated_waiting_page(sub, web_app_url)
         ref = sub.reference
     else:
         activated = sync_all_recent_pending_subscriptions()
         if activated:
             ref = activated.reference
-    web_app_url = getattr(settings, "WEB_APP_URL", "https://transfert-online.site").rstrip("/")
     return HttpResponseRedirect(f"{web_app_url}/?payment=success&ref={ref}")
 
 
@@ -539,16 +545,204 @@ def redirect_error(request):
     return HttpResponseRedirect(f"{web_app_url}/?payment=error&ref={ref}")
 
 
+def _render_payment_initiated_waiting_page(sub, web_app_url: str) -> HttpResponse:
+    """Page officielle affichée juste après la saisie du numéro sur Jèko Mobile Money :
+    confirme que le paiement a bien été initié, écoute en temps réel la validation
+    finale auprès de Jèko (polling toutes les 2,5 s + bouton manuel) et redirige
+    automatiquement vers l'application Web LoueMoi dès que le paiement est finalisé."""
+    method_labels = {
+        "wave": ("Wave Mobile Money", "#1BA4D9", "#FFFFFF", "Ouvrez votre application Wave ou validez la notification reçue sur votre téléphone."),
+        "orange": ("Orange Money", "#FF7900", "#FFFFFF", "Validez le paiement sur votre téléphone (notification Orange Money ou #144#)."),
+        "mtn": ("MTN Mobile Money", "#FFCC00", "#0F172A", "Validez la transaction sur votre téléphone (notification MTN MoMo ou *133#)."),
+        "moov": ("Moov Money", "#005CA9", "#FFFFFF", "Validez la transaction sur votre téléphone via le menu Moov Money."),
+        "djamo": ("Djamo", "#111827", "#FFFFFF", "Confirmez la notification de paiement dans votre application Djamo."),
+    }
+    method_name, method_color, method_text_color, method_hint = method_labels.get(
+        sub.payment_method,
+        ("Mobile Money", "#4F46E5", "#FFFFFF", "Validez la demande de paiement sur votre téléphone."),
+    )
+    if sub.user.role == User.ROLE_BAILLEUR:
+        plan_name = "Abonnement Bailleur Certifié"
+    elif sub.user.role == User.ROLE_AGENT:
+        plan_name = "Abonnement Agent Certifié"
+    else:
+        plan_name = "Abonnement Client Certifié"
+
+    fee_amount = int(round(sub.amount * 0.015))
+    total_amount = sub.amount + fee_amount
+    check_url = f"/api/payments/jeko/return/?ref={sub.reference}&check=1"
+    success_target = f"{web_app_url}/?payment=success&ref={sub.reference}"
+    error_target = f"{web_app_url}/?payment=error&ref={sub.reference}"
+
+    html = f"""<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Paiement Mobile Money initié · LoueMoi × Jèko</title>
+    <style>
+        * {{ box-sizing: border-box; }}
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex; align-items: center; justify-content: center;
+            min-height: 100vh; margin: 0; background: #F1F5F9; padding: 20px; color: #0F172A;
+        }}
+        .card {{
+            background: #FFFFFF; border-radius: 24px; padding: 32px 26px;
+            box-shadow: 0 15px 35px rgba(15, 23, 42, 0.08);
+            max-width: 440px; width: 100%; text-align: center;
+            border-top: 6px solid {method_color};
+        }}
+        .secure-pill {{
+            display: inline-flex; align-items: center; gap: 6px;
+            background: #EEF2FF; color: #4338CA; font-size: 12px; font-weight: 700;
+            padding: 5px 14px; border-radius: 999px; margin-bottom: 18px;
+        }}
+        .op-badge {{
+            width: 68px; height: 68px; border-radius: 18px;
+            background: {method_color}; color: {method_text_color};
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; font-weight: 900; margin: 0 auto 14px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.10);
+        }}
+        h1 {{ font-size: 21px; font-weight: 800; margin: 0 0 8px; color: #0F172A; }}
+        .subtitle {{ font-size: 14px; color: #475569; line-height: 1.45; margin: 0 0 18px; }}
+        .status-box {{
+            background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 16px;
+            padding: 16px; margin-bottom: 18px; text-align: left;
+        }}
+        .step {{
+            display: flex; align-items: center; gap: 10px;
+            font-size: 13.5px; padding: 7px 0; color: #334155; font-weight: 500;
+        }}
+        .step-done {{ color: #16A34A; font-weight: 700; }}
+        .step-active {{ color: #4F46E5; font-weight: 700; }}
+        .spinner {{
+            width: 18px; height: 18px; border: 2.5px solid #C7D2FE;
+            border-top-color: #4F46E5; border-radius: 50%;
+            animation: spin 0.9s linear infinite; flex-shrink: 0;
+        }}
+        @keyframes spin {{ to {{ transform: rotate(360deg); }} }}
+        .details {{
+            background: #F8FAFC; border-radius: 14px; padding: 12px 16px;
+            margin-bottom: 20px; font-size: 13px; text-align: left;
+        }}
+        .row {{ display: flex; justify-content: space-between; padding: 5px 0; color: #64748B; }}
+        .val {{ font-weight: 700; color: #0F172A; }}
+        .btn-primary {{
+            display: block; width: 100%; background: #4F46E5; color: #FFFFFF;
+            border: none; padding: 14px 20px; border-radius: 14px;
+            font-weight: 700; font-size: 15px; cursor: pointer;
+            text-decoration: none; margin-bottom: 10px; transition: opacity 0.2s;
+        }}
+        .btn-secondary {{
+            display: block; width: 100%; background: #F1F5F9; color: #475569;
+            border: none; padding: 12px 18px; border-radius: 12px;
+            font-weight: 600; font-size: 13.5px; cursor: pointer; text-decoration: none;
+        }}
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="secure-pill">🔒 Passerelle Officielle Jèko × LoueMoi</div>
+        <div class="op-badge" id="op-badge">{method_name[:2].upper()}</div>
+        <h1 id="main-title">Paiement initié avec succès</h1>
+        <p class="subtitle" id="main-subtitle">{method_hint}<br>Cette page détecte automatiquement votre validation et vous redirige vers l'application Web.</p>
+
+        <div class="status-box">
+            <div class="step step-done">
+                <span>✅</span>
+                <span>1. Numéro renseigné &amp; transaction initiée sur Jèko</span>
+            </div>
+            <div class="step step-active" id="step-2">
+                <span class="spinner" id="step-2-icon"></span>
+                <span id="step-2-text">2. En attente de confirmation Mobile Money...</span>
+            </div>
+            <div class="step" id="step-3">
+                <span id="step-3-icon">⏳</span>
+                <span id="step-3-text">3. Activation du badge &amp; redirection vers l'application Web</span>
+            </div>
+        </div>
+
+        <div class="details">
+            <div class="row"><span>Offre :</span><span class="val">{plan_name}</span></div>
+            <div class="row"><span>Opérateur :</span><span class="val">{method_name}</span></div>
+            <div class="row"><span>Montant (frais 1,5 % inclus) :</span><span class="val">{total_amount:,} FCFA</span></div>
+            <div class="row"><span>Référence :</span><span class="val">{sub.reference}</span></div>
+        </div>
+
+        <button type="button" class="btn-primary" id="btn-check" onclick="checkNow()">
+            J'ai validé le paiement sur mon téléphone
+        </button>
+        <a href="{success_target}" class="btn-secondary">
+            Aller directement sur l'application Web LoueMoi
+        </a>
+    </div>
+
+    <script>
+        const checkUrl = "{check_url}";
+        const successTarget = "{success_target}";
+        const errorTarget = "{error_target}";
+        let redirecting = false;
+
+        async function pollStatus() {{
+            if (redirecting) return;
+            try {{
+                const resp = await fetch(checkUrl, {{ headers: {{ "Accept": "application/json" }}, cache: "no-store" }});
+                if (!resp.ok) return;
+                const data = await resp.json();
+                if (data.status === "active") {{
+                    redirecting = true;
+                    document.getElementById("main-title").textContent = "Paiement finalisé & Badge activé !";
+                    document.getElementById("main-subtitle").textContent = "Redirection automatique vers l'application Web LoueMoi...";
+                    document.getElementById("step-2").className = "step step-done";
+                    document.getElementById("step-2-icon").className = "";
+                    document.getElementById("step-2-icon").textContent = "✅";
+                    document.getElementById("step-2-text").textContent = "2. Paiement Mobile Money confirmé";
+                    document.getElementById("step-3").className = "step step-done";
+                    document.getElementById("step-3-icon").textContent = "🚀";
+                    document.getElementById("step-3-text").textContent = "3. Redirection vers LoueMoi Web...";
+                    setTimeout(() => {{ window.location.href = data.redirect_url || successTarget; }}, 900);
+                }} else if (data.status === "failed") {{
+                    redirecting = true;
+                    document.getElementById("main-title").textContent = "Paiement non abouti ou annulé";
+                    document.getElementById("main-subtitle").textContent = "La transaction Mobile Money n'a pas été validée.";
+                    setTimeout(() => {{ window.location.href = data.redirect_url || errorTarget; }}, 1500);
+                }}
+            }} catch (e) {{}}
+        }}
+
+        function checkNow() {{
+            const btn = document.getElementById("btn-check");
+            btn.textContent = "Vérification auprès de Jèko en cours...";
+            pollStatus().finally(() => {{
+                if (!redirecting) {{
+                    setTimeout(() => {{ btn.textContent = "J'ai validé le paiement sur mon téléphone"; }}, 1500);
+                }}
+            }});
+        }}
+
+        setInterval(pollStatus, 2500);
+        setTimeout(pollStatus, 800);
+    </script>
+</body>
+</html>"""
+    return HttpResponse(html)
+
+
 def jeko_return(request):
     """GET /api/payments/jeko/return/
 
-    Point de retour configurable pour le Checkout Jèko.
-    Vérifie obligatoirement le paiement auprès de l'API Jèko avant d'activer
-    l'abonnement et le badge, puis redirige l'utilisateur vers l'application web.
+    Point de retour officiel après la saisie du numéro sur Jèko Checkout :
+    - Si le paiement est déjà confirmé par Jèko : active l'abonnement + badge et redirige vers l'application Web.
+    - Si le paiement vient d'être initié (Mobile Money en attente de validation sur le téléphone) :
+      affiche la page officielle "Paiement initié" qui vérifie en temps réel la finalisation
+      et redirige automatiquement l'utilisateur vers l'application Web dès que le paiement est finalisé.
     """
     web_app_url = getattr(settings, "WEB_APP_URL", "https://transfert-online.site").rstrip("/")
     ref = request.GET.get("ref") or request.GET.get("reference") or request.GET.get("orderId") or ""
     payment_request_id = request.GET.get("id") or request.GET.get("payment_request_id") or ""
+    is_ajax_check = request.GET.get("check") == "1"
     result_param = (
         request.GET.get("result")
         or request.GET.get("payment")
@@ -564,7 +758,10 @@ def jeko_return(request):
 
     if sub:
         if sub.status == Subscription.STATUS_ACTIVE:
-            return HttpResponseRedirect(f"{web_app_url}/?payment=success&ref={sub.reference}")
+            target = f"{web_app_url}/?payment=success&ref={sub.reference}"
+            if is_ajax_check:
+                return JsonResponse({"status": "active", "redirect_url": target})
+            return HttpResponseRedirect(target)
 
         tx_status = ""
         if sub.jeko_payment_request_id:
@@ -575,23 +772,40 @@ def jeko_return(request):
         if is_jeko_status_failed(tx_status):
             sub.status = Subscription.STATUS_CANCELLED
             sub.save(update_fields=["status", "updated_at"])
-            return HttpResponseRedirect(f"{web_app_url}/?payment=error&ref={sub.reference}")
+            target = f"{web_app_url}/?payment=error&ref={sub.reference}"
+            if is_ajax_check:
+                return JsonResponse({"status": "failed", "redirect_url": target})
+            return HttpResponseRedirect(target)
 
         if is_jeko_status_success(tx_status):
             sub.activate_for_30_days()
             logger.info(
                 f"Abonnement {sub.reference} et badge activés après vérification API Jèko pour {sub.user}."
             )
-            return HttpResponseRedirect(f"{web_app_url}/?payment=success&ref={sub.reference}")
+            target = f"{web_app_url}/?payment=success&ref={sub.reference}"
+            if is_ajax_check:
+                return JsonResponse({"status": "active", "redirect_url": target})
+            return HttpResponseRedirect(target)
 
-        if result_param in ("error", "failed", "cancelled", "canceled"):
+        if result_param in ("error", "failed", "cancelled", "canceled") and not is_ajax_check:
             return HttpResponseRedirect(f"{web_app_url}/?payment=error&ref={sub.reference}")
 
-        return HttpResponseRedirect(f"{web_app_url}/?payment=pending&ref={sub.reference}")
+        if is_ajax_check:
+            return JsonResponse({"status": "pending", "reference": sub.reference})
+
+        # Paiement Mobile Money initié après saisie du numéro sur Jèko :
+        # afficher la page officielle d'attente qui redirige automatiquement vers l'app Web une fois finalisé
+        return _render_payment_initiated_waiting_page(sub, web_app_url)
     else:
         activated = sync_all_recent_pending_subscriptions()
         if activated:
-            return HttpResponseRedirect(f"{web_app_url}/?payment=success&ref={activated.reference}")
+            target = f"{web_app_url}/?payment=success&ref={activated.reference}"
+            if is_ajax_check:
+                return JsonResponse({"status": "active", "redirect_url": target})
+            return HttpResponseRedirect(target)
+
+    if is_ajax_check:
+        return JsonResponse({"status": "pending", "reference": ref})
 
     if result_param in ("error", "failed", "cancelled", "canceled"):
         return HttpResponseRedirect(f"{web_app_url}/?payment=error&ref={ref}")

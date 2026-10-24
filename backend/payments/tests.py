@@ -348,4 +348,35 @@ class PaymentAndContactRulesTestCase(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertFalse(res.data["can_contact"])
 
+    def test_jeko_mobile_money_initiated_waiting_page_and_polling_redirect(self):
+        sub = Subscription.objects.create(
+            user=self.bailleur,
+            plan=Subscription.PLAN_PRO,
+            amount=5000,
+            payment_method="orange",
+            reference="SUB-MOMO-INIT",
+            status=Subscription.STATUS_PENDING,
+        )
+
+        # 1. Après saisie du numéro sur Jèko Mobile Money, jeko_return affiche la page officielle "Paiement initié"
+        res_init = self.client.get(f"/api/payments/jeko/return/?ref={sub.reference}&result=success")
+        self.assertEqual(res_init.status_code, 200)
+        html_body = res_init.content.decode("utf-8")
+        self.assertIn("Paiement initié avec succès", html_body)
+        self.assertIn(sub.reference, html_body)
+
+        # 2. Tant que le paiement est en attente de validation sur le téléphone, check=1 retourne pending
+        res_poll_pending = self.client.get(f"/api/payments/jeko/return/?ref={sub.reference}&check=1")
+        self.assertEqual(res_poll_pending.status_code, 200)
+        self.assertEqual(res_poll_pending.json()["status"], "pending")
+
+        # 3. Dès que le paiement est finalisé (webhook ou confirmation), check=1 retourne active + redirect_url vers l'app Web
+        sub.activate_for_30_days()
+        res_poll_active = self.client.get(f"/api/payments/jeko/return/?ref={sub.reference}&check=1")
+        self.assertEqual(res_poll_active.status_code, 200)
+        data = res_poll_active.json()
+        self.assertEqual(data["status"], "active")
+        self.assertIn("https://transfert-online.site/?payment=success&ref=SUB-MOMO-INIT", data["redirect_url"])
+
+
 
