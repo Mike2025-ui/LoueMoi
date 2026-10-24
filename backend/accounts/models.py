@@ -153,6 +153,11 @@ class User(AbstractBaseUser, PermissionsMixin):
             return False
         from django.utils import timezone
         now = timezone.now()
+        # Nettoyage automatique en temps réel dès que la date de fin est dépassée
+        expired_subs = self.subscriptions.filter(status="active", expires_at__lte=now)
+        for s in expired_subs:
+            s.expire_and_revoke()
+
         if self.subscriptions.filter(status="active", expires_at__gt=now).exists():
             return True
         if self.subscriptions.filter(status="pending").exists():

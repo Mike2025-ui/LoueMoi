@@ -57,7 +57,10 @@ class UserSerializer(serializers.ModelSerializer):
         # 1. Tout utilisateur avec un abonnement actif bénéficie du badge certifié
         if hasattr(user, "subscriptions") and user.subscriptions.filter(status="active", expires_at__gt=now).exists():
             return True
-        # 2. Badge attribué aux agents ou bailleurs en base ou via leur profil
+        # 2. Si l'utilisateur a eu un abonnement qui a expiré ou a été annulé, le badge est révoqué
+        if hasattr(user, "subscriptions") and user.subscriptions.filter(status__in=["expired", "cancelled"]).exists():
+            return False
+        # 3. Badge attribué aux agents ou bailleurs en base ou via leur profil
         if user.role in (User.ROLE_AGENT, User.ROLE_BAILLEUR):
             profile = getattr(user, "agent_profile", None)
             if profile and profile.is_verified:
