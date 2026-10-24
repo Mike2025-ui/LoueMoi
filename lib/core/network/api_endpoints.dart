@@ -60,6 +60,7 @@ class ApiEndpoints {
 
   // User
   static const String profile = '/api/users/me/';
+  static const String profilePhoto = '/api/users/me/photo/';
   static const String deactivateAccount = '/api/users/me/deactivate/';
   static const String userPresence = '/api/users/presence/';
 

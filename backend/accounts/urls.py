@@ -10,6 +10,7 @@ from .views import (
     PasswordResetRequestView,
     RegisterView,
     RequestActivationView,
+    UserPhotoView,
     UserPresenceView,
 )
 
@@ -30,6 +31,7 @@ urlpatterns = [
         name="password-reset-confirm",
     ),
     path("users/me/", MeView.as_view(), name="users-me"),
+    path("users/me/photo/", UserPhotoView.as_view(), name="users-me-photo"),
     path("users/me/deactivate/", DeactivateAccountView.as_view(), name="users-me-deactivate"),
     path("users/presence/", UserPresenceView.as_view(), name="user-presence"),
 ]

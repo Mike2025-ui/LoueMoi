@@ -87,6 +87,39 @@ class User extends Equatable {
     );
   }
 
+  User copyWith({
+    String? id,
+    String? firstName,
+    String? lastName,
+    String? phone,
+    String? whatsapp,
+    String? photo,
+    bool clearPhoto = false,
+    String? token,
+    UserRole? role,
+    bool? isApproved,
+    bool? activationRequested,
+    bool? isVerified,
+    bool? hasActiveSubscription,
+    AgentProfile? agentProfile,
+  }) {
+    return User(
+      id: id ?? this.id,
+      firstName: firstName ?? this.firstName,
+      lastName: lastName ?? this.lastName,
+      phone: phone ?? this.phone,
+      whatsapp: whatsapp ?? this.whatsapp,
+      photo: clearPhoto ? null : (photo ?? this.photo),
+      token: token ?? this.token,
+      role: role ?? this.role,
+      isApproved: isApproved ?? this.isApproved,
+      activationRequested: activationRequested ?? this.activationRequested,
+      isVerified: isVerified ?? this.isVerified,
+      hasActiveSubscription: hasActiveSubscription ?? this.hasActiveSubscription,
+      agentProfile: agentProfile ?? this.agentProfile,
+    );
+  }
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'first_name': firstName,

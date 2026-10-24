@@ -1,6 +1,10 @@
 from datetime import timedelta
+import os
+import uuid
+from PIL import Image
 
 from django.contrib.auth import get_user_model
+from django.core.files.storage import default_storage
 from django.utils import timezone
 from rest_framework import generics, permissions, status
 from rest_framework.throttling import ScopedRateThrottle
@@ -98,6 +102,80 @@ class MeView(generics.RetrieveUpdateAPIView):
         except Exception:
             pass
         return user
+
+
+class UserPhotoView(APIView):
+    """POST /api/users/me/photo/ — Upload ou mise à jour de la photo de profil (multipart: photo ou image).
+    DELETE /api/users/me/photo/ — Suppression de la photo de profil."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        photo_file = request.FILES.get("photo") or request.FILES.get("image")
+        if not photo_file:
+            return Response(
+                {"photo": ["Aucun fichier reçu."]}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Taille maximale 10 Mo
+        max_size_bytes = 10 * 1024 * 1024
+        if photo_file.size > max_size_bytes:
+            return Response(
+                {"photo": ["La photo dépasse la taille maximale autorisée (10 Mo)."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validation de l'extension
+        ext = os.path.splitext(photo_file.name or "")[1].lower()
+        allowed_extensions = {".jpg", ".jpeg", ".png", ".webp"}
+        if ext not in allowed_extensions:
+            return Response(
+                {"photo": ["Format d'image non autorisé (JPG, PNG, WebP uniquement)."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Sécurité : vérification d'intégrité Pillow (anti-polyglot/anti-script)
+        try:
+            img = Image.open(photo_file)
+            img.verify()
+            photo_file.seek(0)
+        except Exception:
+            return Response(
+                {"photo": ["Fichier image corrompu ou invalide."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Nettoyage de l'ancien fichier d'avatar s'il existe dans le stockage local
+        if user.photo and "/media/avatars/" in user.photo:
+            try:
+                old_relative_path = user.photo.split("/media/", 1)[-1]
+                if default_storage.exists(old_relative_path):
+                    default_storage.delete(old_relative_path)
+            except Exception:
+                pass
+
+        safe_file_name = f"avatar_{uuid.uuid4().hex[:12]}{ext}"
+        saved_path = default_storage.save(f"avatars/{user.pk}/{safe_file_name}", photo_file)
+        url = request.build_absolute_uri(default_storage.url(saved_path))
+
+        user.photo = url
+        user.save(update_fields=["photo"])
+        return Response(UserSerializer(user).data, status=status.HTTP_200_OK)
+
+    def delete(self, request):
+        user = request.user
+        if user.photo and "/media/avatars/" in user.photo:
+            try:
+                old_relative_path = user.photo.split("/media/", 1)[-1]
+                if default_storage.exists(old_relative_path):
+                    default_storage.delete(old_relative_path)
+            except Exception:
+                pass
+
+        user.photo = None
+        user.save(update_fields=["photo"])
+        return Response(UserSerializer(user).data, status=status.HTTP_200_OK)
 
 
 class DeactivateAccountView(APIView):

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../app/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/feedback.dart';
 import '../../../core/utils/media_url.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../../payments/widgets/subscription_modal.dart';
@@ -133,12 +135,123 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  bool _uploadingPhoto = false;
+
   @override
   void initState() {
     super.initState();
     Future.microtask(() {
       ref.read(authControllerProvider.notifier).refreshProfile();
     });
+  }
+
+  Future<void> _pickAndUploadPhoto(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: source,
+        maxWidth: 1200,
+        maxHeight: 1200,
+        imageQuality: 85,
+      );
+      if (picked == null) return;
+
+      setState(() => _uploadingPhoto = true);
+      await ref.read(authControllerProvider.notifier).uploadProfilePhoto(picked);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Photo de profil mise à jour avec succès.'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      showErrorSnackbar(context, e);
+    } finally {
+      if (mounted) setState(() => _uploadingPhoto = false);
+    }
+  }
+
+  Future<void> _deletePhoto() async {
+    try {
+      setState(() => _uploadingPhoto = true);
+      await ref.read(authControllerProvider.notifier).deleteProfilePhoto();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Photo de profil supprimée.'),
+          backgroundColor: AppColors.textPrimary,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      showErrorSnackbar(context, e);
+    } finally {
+      if (mounted) setState(() => _uploadingPhoto = false);
+    }
+  }
+
+  void _showPhotoOptions(BuildContext context, bool hasPhoto) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
+      ),
+      builder: (sheetCtx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 4),
+                child: Text(
+                  'Photo de profil',
+                  style: AppTextStyles.h3,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: const Icon(Icons.camera_alt_outlined, color: AppColors.primary),
+                title: const Text('Prendre une photo'),
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  _pickAndUploadPhoto(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined, color: AppColors.primary),
+                title: const Text('Choisir dans la galerie'),
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  _pickAndUploadPhoto(ImageSource.gallery);
+                },
+              ),
+              if (hasPhoto)
+                ListTile(
+                  leading: const Icon(Icons.delete_outline, color: AppColors.danger),
+                  title: const Text('Supprimer la photo', style: TextStyle(color: AppColors.danger)),
+                  onTap: () {
+                    Navigator.pop(sheetCtx);
+                    _deletePhoto();
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -158,37 +271,73 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               const SizedBox(height: AppSpacing.md),
               const Text('Profil', style: AppTextStyles.h3),
               const SizedBox(height: AppSpacing.lg),
-              Stack(
-                children: [
-                  CircleAvatar(
-                    radius: AppSizes.avatarLg / 2,
-                    backgroundColor: AppColors.primary,
-                    backgroundImage: user?.photo != null
-                        ? NetworkImage(buildMediaUrl(user!.photo!))
-                        : null,
-                    child: user?.photo == null
-                        ? const Icon(
-                            Icons.person,
-                            size: 48,
+              GestureDetector(
+                onTap: _uploadingPhoto ? null : () => _showPhotoOptions(context, user?.photo != null),
+                child: Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: AppSizes.avatarLg / 2,
+                      backgroundColor: AppColors.primaryLight,
+                      backgroundImage: user?.photo != null
+                          ? NetworkImage(buildMediaUrl(user!.photo!))
+                          : null,
+                      child: _uploadingPhoto
+                          ? const SizedBox(
+                              width: 28,
+                              height: 28,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 3,
+                                color: AppColors.primary,
+                              ),
+                            )
+                          : (user?.photo == null
+                              ? const Icon(
+                                  Icons.person,
+                                  size: 48,
+                                  color: AppColors.primary,
+                                )
+                              : null),
+                    ),
+                    if (isVerified)
+                      const Positioned(
+                        top: 0,
+                        right: 0,
+                        child: CircleAvatar(
+                          radius: 12,
+                          backgroundColor: AppColors.primary,
+                          child: Icon(
+                            Icons.check,
+                            size: 14,
                             color: AppColors.white,
-                          )
-                        : null,
-                  ),
-                  if (isVerified)
-                    const Positioned(
+                          ),
+                        ),
+                      ),
+                    Positioned(
                       bottom: 0,
                       right: 0,
-                      child: CircleAvatar(
-                        radius: 12,
-                        backgroundColor: AppColors.primary,
-                        child: Icon(
-                          Icons.check,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppColors.white, width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.15),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.camera_alt,
                           size: 14,
                           color: AppColors.white,
                         ),
                       ),
                     ),
-                ],
+                  ],
+                ),
               ),
               const SizedBox(height: AppSpacing.md),
               Row(

@@ -1,3 +1,5 @@
+import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/api_exceptions.dart';
@@ -115,6 +117,35 @@ class ApiAuthRepository implements AuthRepository {
       ApiEndpoints.profile,
       data: changes,
     );
+    final user = User.fromJson(response.data!);
+    return user.copyWith(token: current.token);
+  }
+
+  @override
+  Future<User> uploadProfilePhoto(XFile file) async {
+    final bytes = await file.readAsBytes();
+    final filename = file.name.isNotEmpty ? file.name : 'avatar.jpg';
+    final formData = FormData.fromMap({
+      'photo': MultipartFile.fromBytes(bytes, filename: filename),
+    });
+    final response = await _apiClient.post<Map<String, dynamic>>(
+      ApiEndpoints.profilePhoto,
+      data: formData,
+    );
+    if (response.data == null) {
+      throw const UnknownApiException('Réponse du serveur vide.');
+    }
+    return User.fromJson(response.data!);
+  }
+
+  @override
+  Future<User> deleteProfilePhoto() async {
+    final response = await _apiClient.delete<Map<String, dynamic>>(
+      ApiEndpoints.profilePhoto,
+    );
+    if (response.data == null) {
+      throw const UnknownApiException('Réponse du serveur vide.');
+    }
     return User.fromJson(response.data!);
   }
 

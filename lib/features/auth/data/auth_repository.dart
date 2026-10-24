@@ -1,3 +1,4 @@
+import 'package:image_picker/image_picker.dart';
 import '../../../core/network/api_exceptions.dart';
 import '../../profile/models/agent_profile.dart';
 import '../models/user.dart';
@@ -52,6 +53,12 @@ abstract class AuthRepository {
   /// (aucun état serveur persisté) — ignoré par l'implémentation API, qui
   /// fait toujours confiance à la réponse serveur.
   Future<User> updateProfile(User current, Map<String, dynamic> changes);
+
+  /// POST /api/users/me/photo/ — Upload d'une photo de profil (multipart).
+  Future<User> uploadProfilePhoto(XFile file);
+
+  /// DELETE /api/users/me/photo/ — Suppression de la photo de profil.
+  Future<User> deleteProfilePhoto();
 }
 
 class MockAuthRepository implements AuthRepository {
@@ -176,5 +183,31 @@ class MockAuthRepository implements AuthRepository {
   Future<User> updateProfile(User current, Map<String, dynamic> changes) async {
     await Future.delayed(const Duration(milliseconds: 300));
     return User.fromJson({...current.toJson(), ...changes});
+  }
+
+  @override
+  Future<User> uploadProfilePhoto(XFile file) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    return const User(
+      id: 'user-1',
+      firstName: 'Jean',
+      lastName: 'Kouassi',
+      phone: '+22507000000',
+      whatsapp: '+22507000000',
+      photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb',
+    );
+  }
+
+  @override
+  Future<User> deleteProfilePhoto() async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    return const User(
+      id: 'user-1',
+      firstName: 'Jean',
+      lastName: 'Kouassi',
+      phone: '+22507000000',
+      whatsapp: '+22507000000',
+      photo: null,
+    );
   }
 }

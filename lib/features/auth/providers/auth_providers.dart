@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/config/env.dart';
 import '../../../core/network/api_exceptions.dart';
 import '../../../core/network/network_providers.dart';
@@ -118,6 +119,23 @@ class AuthController extends StateNotifier<AsyncValue<User?>> {
     if (current == null) return;
     final updated = await _repository.updateProfile(current, changes);
     state = AsyncValue.data(updated);
+  }
+
+  /// Upload d'une photo de profil (multipart). Met à jour immédiatement
+  /// l'utilisateur en mémoire.
+  Future<void> uploadProfilePhoto(XFile file) async {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    final updated = await _repository.uploadProfilePhoto(file);
+    state = AsyncValue.data(updated.copyWith(token: current.token));
+  }
+
+  /// Suppression de la photo de profil.
+  Future<void> deleteProfilePhoto() async {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    final updated = await _repository.deleteProfilePhoto();
+    state = AsyncValue.data(updated.copyWith(token: current.token, clearPhoto: true));
   }
 
   /// Reflète localement un AgentProfile fraîchement mis à jour (voir
