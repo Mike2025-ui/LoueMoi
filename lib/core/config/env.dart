@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 enum AppEnvironment { development, staging, production }
@@ -5,12 +6,12 @@ enum AppEnvironment { development, staging, production }
 /// Configuration par environnement (API_BASE_URL, USE_MOCK_DATA...).
 ///
 /// Choix de l'environnement au lancement :
-///   flutter run --dart-define=ENV=development   (défaut)
+///   flutter run --dart-define=ENV=development   (défaut en debug)
 ///   flutter run --dart-define=ENV=staging
-///   flutter run --dart-define=ENV=production
+///   flutter run --dart-define=ENV=production    (défaut en release)
 ///
 /// Surcharge ponctuelle sans toucher aux fichiers .env :
-///   flutter run --dart-define=API_BASE_URL=http://192.168.1.10:8000
+///   flutter run --dart-define=API_BASE_URL=https://transfert-online.site
 ///   flutter run --dart-define=USE_MOCK_DATA=true
 class Env {
   Env._();
@@ -18,7 +19,10 @@ class Env {
   static AppEnvironment _current = AppEnvironment.development;
   static AppEnvironment get current => _current;
 
-  static const String _envNameFromDefine = String.fromEnvironment('ENV', defaultValue: 'development');
+  static const String _envNameFromDefine = String.fromEnvironment(
+    'ENV',
+    defaultValue: kReleaseMode ? 'production' : 'development',
+  );
 
   static Future<void> load() async {
     _current = AppEnvironment.values.firstWhere(
