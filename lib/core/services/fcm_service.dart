@@ -43,14 +43,6 @@ class FcmService {
         sound: true,
       );
 
-      // Création du canal de notification Android haute priorité avec son et bannière tête haute (Heads-up)
-      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-        try {
-          const MethodChannel channel = MethodChannel('dexterous.com/flutter/local_notifications');
-          // Tentative d'enregistrement de canal natif si plugin présent ou canal système Android
-        } catch (_) {}
-      }
-
       final token = await _messaging.getToken();
       if (kDebugMode) {
         if (token != null) {
