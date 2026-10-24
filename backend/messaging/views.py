@@ -1,6 +1,7 @@
 from django.db.models import Count, Exists, OuterRef, Q
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import generics, permissions, serializers, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
@@ -95,8 +96,12 @@ class ConversationViewSet(viewsets.ModelViewSet):
         `unread_count` (et donc le badge de l'onglet Messages) ne redescend
         jamais, même après lecture."""
         conversation = self.get_object()
+        now = timezone.now()
         conversation.messages.filter(is_read=False).exclude(sender=request.user).update(
-            is_read=True
+            is_read=True,
+            is_delivered=True,
+            read_at=now,
+            delivered_at=now,
         )
         Notification.objects.filter(
             conversation=conversation,
@@ -122,6 +127,12 @@ class MessageListCreateView(generics.ListCreateAPIView):
         ) | Message.objects.filter(conversation__agent=self.request.user)
         if conversation_id:
             queryset = queryset.filter(conversation_id=conversation_id)
+            # Marquer automatiquement comme délivrés (2 traits gris) les messages reçus
+            Message.objects.filter(
+                conversation_id=conversation_id,
+                receiver=self.request.user,
+                is_delivered=False,
+            ).update(is_delivered=True, delivered_at=timezone.now())
         return queryset.distinct()
 
     def get_serializer_context(self):
@@ -141,7 +152,19 @@ class MessageListCreateView(generics.ListCreateAPIView):
             if not user.has_active_subscription:
                 raise PermissionDenied("Un abonnement actif est requis pour contacter ou répondre à un client.")
 
-        message = serializer.save(sender=user, receiver=receiver)
+        now = timezone.now()
+        is_delivered = False
+        delivered_at = None
+        if receiver.is_online:
+            is_delivered = True
+            delivered_at = now
+
+        message = serializer.save(
+            sender=user,
+            receiver=receiver,
+            is_delivered=is_delivered,
+            delivered_at=delivered_at,
+        )
 
         # Couvre les trois cas du cahier des charges (bailleur↔agent,
         # client→agent) avec un seul hook : `receiver` est déjà calculé

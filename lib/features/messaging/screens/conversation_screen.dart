@@ -10,6 +10,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/feedback.dart';
+import '../../../core/utils/media_url.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../models/message.dart';
 import '../providers/message_providers.dart';
@@ -46,6 +47,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     _pollTimer = Timer.periodic(const Duration(seconds: 4), (_) {
       if (mounted) {
         ref.invalidate(messagesProvider(widget.conversationId));
+        ref.invalidate(conversationsProvider);
       }
     });
   }
@@ -240,13 +242,87 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     });
 
     final messagesAsync = ref.watch(messagesProvider(widget.conversationId));
+    final conversationsAsync = ref.watch(conversationsProvider);
+    final conv = conversationsAsync.valueOrNull?.where((c) => c.id == widget.conversationId).firstOrNull;
+    final isOnline = conv?.participantIsOnline ?? false;
     final currentUserId = ref.watch(authControllerProvider).valueOrNull?.id;
     final hasText = _controller.text.trim().isNotEmpty;
     final canSend = hasText || _hasStagedAttachment;
 
+    final displayName = widget.participantName ?? conv?.participantName ?? 'Contact';
+
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: Text(widget.participantName ?? 'Agent')),
+      appBar: AppBar(
+        titleSpacing: 0,
+        title: Row(
+          children: [
+            Stack(
+              children: [
+                CircleAvatar(
+                  radius: 19,
+                  backgroundColor: AppColors.primaryLight,
+                  backgroundImage: conv?.participantPhoto != null
+                      ? NetworkImage(buildMediaUrl(conv!.participantPhoto!))
+                      : null,
+                  child: conv?.participantPhoto == null
+                      ? const Icon(Icons.person, size: 22, color: AppColors.primary)
+                      : null,
+                ),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: isOnline ? const Color(0xFF25D366) : Colors.grey.shade400,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.white, width: 2),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    displayName,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 1),
+                  Row(
+                    children: [
+                      Container(
+                        width: 7,
+                        height: 7,
+                        margin: const EdgeInsets.only(right: 5),
+                        decoration: BoxDecoration(
+                          color: isOnline ? const Color(0xFF25D366) : Colors.grey.shade400,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      Text(
+                        isOnline ? 'En ligne' : 'Hors ligne',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isOnline ? const Color(0xFF25D366) : AppColors.textSecondary,
+                          fontWeight: isOnline ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
       body: Column(
         children: [
           Expanded(

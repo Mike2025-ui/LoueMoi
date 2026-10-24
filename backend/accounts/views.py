@@ -281,3 +281,25 @@ class RequestActivationView(APIView):
         user.activation_requested_at = timezone.now()
         user.save(update_fields=["activation_requested", "activation_requested_at"])
         return Response(_auth_payload(user))
+
+
+class UserPresenceView(APIView):
+    """POST /api/users/presence/ — {"status": "online" | "offline"}
+    Permet à l'application mobile de signaler que l'utilisateur est actif dans
+    l'application (en ligne avec bouton vert) ou a quitté l'application (bouton gris).
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        status_value = request.data.get("status", "online")
+        user = request.user
+        if status_value == "offline":
+            user.last_seen = timezone.now() - timedelta(minutes=10)
+        else:
+            user.last_seen = timezone.now()
+        user.save(update_fields=["last_seen"])
+        return Response({
+            "is_online": user.is_online,
+            "last_seen": user.last_seen.isoformat() if user.last_seen else None,
+        })

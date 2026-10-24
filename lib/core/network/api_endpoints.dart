@@ -61,6 +61,7 @@ class ApiEndpoints {
   // User
   static const String profile = '/api/users/me/';
   static const String deactivateAccount = '/api/users/me/deactivate/';
+  static const String userPresence = '/api/users/presence/';
 
   // Notifications
   static const String notifications = '/api/notifications/';

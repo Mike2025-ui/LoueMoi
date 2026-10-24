@@ -98,12 +98,38 @@ class MessageBubble extends StatelessWidget {
                 style: TextStyle(color: textColor, fontSize: 15),
               ),
             const SizedBox(height: 4),
-            Text(
-              DateFormat('HH:mm').format(message.createdAt),
-              style: TextStyle(
-                fontSize: 10,
-                color: isMine ? AppColors.white.withValues(alpha: 0.7) : AppColors.textSecondary,
-              ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  DateFormat('HH:mm').format(message.createdAt),
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: isMine ? AppColors.white.withValues(alpha: 0.7) : AppColors.textSecondary,
+                  ),
+                ),
+                if (isMine) ...[
+                  const SizedBox(width: 4),
+                  if (message.isRead)
+                    const Icon(
+                      Icons.done_all,
+                      size: 15,
+                      color: Color(0xFF34B7F1), // 2 traits bleus (lu)
+                    )
+                  else if (message.isDelivered)
+                    Icon(
+                      Icons.done_all,
+                      size: 15,
+                      color: AppColors.white.withValues(alpha: 0.7), // 2 traits gris/blancs (reçu)
+                    )
+                  else
+                    Icon(
+                      Icons.check,
+                      size: 15,
+                      color: AppColors.white.withValues(alpha: 0.7), // 1 trait gris/blanc (envoyé)
+                    ),
+                ],
+              ],
             ),
           ],
         ),

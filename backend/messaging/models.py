@@ -71,7 +71,16 @@ class Message(models.Model):
     duration = models.PositiveIntegerField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
-    is_read = models.BooleanField(default=False)
+    is_delivered = models.BooleanField(
+        default=False,
+        help_text="Reçu/délivré sur l'appareil du destinataire (2 traits gris à la WhatsApp).",
+    )
+    delivered_at = models.DateTimeField(null=True, blank=True)
+    is_read = models.BooleanField(
+        default=False,
+        help_text="Lu/ouvert par le destinataire (2 traits bleus à la WhatsApp).",
+    )
+    read_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["created_at"]

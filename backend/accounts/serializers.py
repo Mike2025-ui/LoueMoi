@@ -13,6 +13,7 @@ class UserSerializer(serializers.ModelSerializer):
     agent_profile = AgentProfileSerializer(read_only=True)
     is_verified = serializers.SerializerMethodField()
     has_active_subscription = serializers.BooleanField(read_only=True)
+    is_online = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = User
@@ -30,6 +31,8 @@ class UserSerializer(serializers.ModelSerializer):
             "agent_profile",
             "is_verified",
             "has_active_subscription",
+            "is_online",
+            "last_seen",
         ]
         # Sécurité stricte : phone, role, is_verified, etc. ne sont jamais modifiables via l'API
         read_only_fields = [
@@ -41,6 +44,8 @@ class UserSerializer(serializers.ModelSerializer):
             "activation_requested",
             "activation_requested_at",
             "has_active_subscription",
+            "is_online",
+            "last_seen",
         ]
 
     def get_is_verified(self, user):

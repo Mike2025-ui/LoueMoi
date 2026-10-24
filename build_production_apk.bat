@@ -33,3 +33,4 @@ echo   Fichier: %~dp0LoueMoi-release.apk
 echo ========================================================
 echo.
 pause
+

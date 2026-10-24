@@ -34,9 +34,20 @@ class MessageSerializer(serializers.ModelSerializer):
             "duration",
             "attachment_url",
             "created_at",
+            "is_delivered",
+            "delivered_at",
             "is_read",
+            "read_at",
         ]
-        read_only_fields = ["id", "created_at", "is_read", "attachment_url"]
+        read_only_fields = [
+            "id",
+            "created_at",
+            "is_delivered",
+            "delivered_at",
+            "is_read",
+            "read_at",
+            "attachment_url",
+        ]
         extra_kwargs = {"attachment": {"write_only": True, "required": False}}
 
     def get_attachment_url(self, obj):
@@ -108,8 +119,11 @@ class MessageSerializer(serializers.ModelSerializer):
 
 
 class ConversationSerializer(serializers.ModelSerializer):
+    participant_id = serializers.SerializerMethodField()
     participant_name = serializers.SerializerMethodField()
     participant_photo = serializers.SerializerMethodField()
+    participant_is_online = serializers.SerializerMethodField()
+    participant_last_seen = serializers.SerializerMethodField()
     last_message = serializers.SerializerMethodField()
     unread_count = serializers.SerializerMethodField()
 
@@ -120,8 +134,11 @@ class ConversationSerializer(serializers.ModelSerializer):
             "client",
             "agent",
             "property",
+            "participant_id",
             "participant_name",
             "participant_photo",
+            "participant_is_online",
+            "participant_last_seen",
             "last_message",
             "unread_count",
             "created_at",
@@ -153,12 +170,22 @@ class ConversationSerializer(serializers.ModelSerializer):
         user = request.user if request else None
         return obj.agent if user == obj.client else obj.client
 
+    def get_participant_id(self, obj):
+        return str(self._other_participant(obj).id)
+
     def get_participant_name(self, obj):
         participant = self._other_participant(obj)
         return f"{participant.first_name} {participant.last_name}".strip()
 
     def get_participant_photo(self, obj):
         return self._other_participant(obj).photo
+
+    def get_participant_is_online(self, obj):
+        return bool(self._other_participant(obj).is_online)
+
+    def get_participant_last_seen(self, obj):
+        last_seen = self._other_participant(obj).last_seen
+        return last_seen.isoformat() if last_seen else None
 
     def get_last_message(self, obj):
         last = obj.messages.order_by("-created_at").first()

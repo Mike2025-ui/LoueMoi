@@ -80,6 +80,11 @@ class User(AbstractBaseUser, PermissionsMixin):
         default=False,
         help_text="Badge de certification (agents et bailleurs uniquement).",
     )
+    last_seen = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Horodatage de la dernière activité pour le statut En ligne / Hors ligne.",
+    )
     date_joined = models.DateTimeField(auto_now_add=True)
 
     objects = UserManager()
@@ -126,6 +131,14 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def is_bailleur(self):
         return self.role == self.ROLE_BAILLEUR
+
+    @property
+    def is_online(self):
+        """Indique si l'utilisateur est actuellement actif dans l'application (en ligne).
+        Considéré en ligne si sa dernière activité remonte à moins de 2 minutes."""
+        if not self.last_seen:
+            return False
+        return timezone.now() - self.last_seen < timedelta(minutes=2)
 
     @property
     def can_own_properties(self):

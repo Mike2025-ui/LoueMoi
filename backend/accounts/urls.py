@@ -10,6 +10,7 @@ from .views import (
     PasswordResetRequestView,
     RegisterView,
     RequestActivationView,
+    UserPresenceView,
 )
 
 urlpatterns = [
@@ -30,4 +31,5 @@ urlpatterns = [
     ),
     path("users/me/", MeView.as_view(), name="users-me"),
     path("users/me/deactivate/", DeactivateAccountView.as_view(), name="users-me-deactivate"),
+    path("users/presence/", UserPresenceView.as_view(), name="user-presence"),
 ]

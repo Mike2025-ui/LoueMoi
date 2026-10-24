@@ -34,7 +34,10 @@ class Message extends Equatable {
   final int? duration;
 
   final DateTime createdAt;
+  final bool isDelivered;
+  final DateTime? deliveredAt;
   final bool isRead;
+  final DateTime? readAt;
 
   const Message({
     required this.id,
@@ -46,7 +49,10 @@ class Message extends Equatable {
     this.attachmentUrl,
     this.duration,
     required this.createdAt,
+    this.isDelivered = false,
+    this.deliveredAt,
     this.isRead = false,
+    this.readAt,
   });
 
   bool get hasAttachment => attachmentUrl != null;
@@ -62,7 +68,10 @@ class Message extends Equatable {
       attachmentUrl: json['attachment_url'] as String?,
       duration: json['duration'] as int?,
       createdAt: DateTime.parse(json['created_at'] as String),
+      isDelivered: json['is_delivered'] as bool? ?? false,
+      deliveredAt: json['delivered_at'] != null ? DateTime.parse(json['delivered_at'] as String) : null,
       isRead: json['is_read'] as bool? ?? false,
+      readAt: json['read_at'] != null ? DateTime.parse(json['read_at'] as String) : null,
     );
   }
 
@@ -76,7 +85,10 @@ class Message extends Equatable {
         'attachment_url': attachmentUrl,
         'duration': duration,
         'created_at': createdAt.toIso8601String(),
+        'is_delivered': isDelivered,
+        'delivered_at': deliveredAt?.toIso8601String(),
         'is_read': isRead,
+        'read_at': readAt?.toIso8601String(),
       };
 
   @override
@@ -90,15 +102,21 @@ class Message extends Equatable {
         attachmentUrl,
         duration,
         createdAt,
+        isDelivered,
+        deliveredAt,
         isRead,
+        readAt,
       ];
 }
 
 /// Regroupe les messages d'une conversation avec un agent/utilisateur donné.
 class Conversation extends Equatable {
   final String id;
+  final String? participantId;
   final String participantName;
   final String? participantPhoto;
+  final bool participantIsOnline;
+  final DateTime? participantLastSeen;
   final Message? lastMessage;
   final int unreadCount;
 
@@ -112,8 +130,11 @@ class Conversation extends Equatable {
 
   const Conversation({
     required this.id,
+    this.participantId,
     required this.participantName,
     this.participantPhoto,
+    this.participantIsOnline = false,
+    this.participantLastSeen,
     this.lastMessage,
     this.unreadCount = 0,
     this.propertyId,
@@ -123,8 +144,13 @@ class Conversation extends Equatable {
     final lastMessageJson = json['last_message'] as Map<String, dynamic>?;
     return Conversation(
       id: json['id'].toString(),
+      participantId: json['participant_id']?.toString(),
       participantName: json['participant_name'] as String,
       participantPhoto: json['participant_photo'] as String?,
+      participantIsOnline: json['participant_is_online'] as bool? ?? false,
+      participantLastSeen: json['participant_last_seen'] != null
+          ? DateTime.tryParse(json['participant_last_seen'] as String)
+          : null,
       lastMessage: lastMessageJson != null ? Message.fromJson(lastMessageJson) : null,
       unreadCount: json['unread_count'] as int? ?? 0,
       propertyId: json['property']?.toString(),
@@ -132,6 +158,15 @@ class Conversation extends Equatable {
   }
 
   @override
-  List<Object?> get props =>
-      [id, participantName, participantPhoto, lastMessage, unreadCount, propertyId];
+  List<Object?> get props => [
+        id,
+        participantId,
+        participantName,
+        participantPhoto,
+        participantIsOnline,
+        participantLastSeen,
+        lastMessage,
+        unreadCount,
+        propertyId,
+      ];
 }

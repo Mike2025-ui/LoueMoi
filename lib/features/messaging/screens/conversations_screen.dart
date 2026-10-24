@@ -170,22 +170,77 @@ class ConversationsScreen extends ConsumerWidget {
                       );
                       ref.invalidate(conversationsProvider);
                     },
-                    leading: CircleAvatar(
-                      radius: AppSizes.avatarSm / 2,
-                      backgroundColor: AppColors.primaryLight,
-                      backgroundImage: conversation.participantPhoto != null
-                          ? NetworkImage(buildMediaUrl(conversation.participantPhoto!))
-                          : null,
-                      child: conversation.participantPhoto == null
-                          ? const Icon(Icons.person, color: AppColors.primary)
-                          : null,
+                    leading: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        CircleAvatar(
+                          radius: AppSizes.avatarSm / 2,
+                          backgroundColor: AppColors.primaryLight,
+                          backgroundImage: conversation.participantPhoto != null
+                              ? NetworkImage(buildMediaUrl(conversation.participantPhoto!))
+                              : null,
+                          child: conversation.participantPhoto == null
+                              ? const Icon(Icons.person, color: AppColors.primary)
+                              : null,
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            width: 13,
+                            height: 13,
+                            decoration: BoxDecoration(
+                              color: conversation.participantIsOnline
+                                  ? const Color(0xFF25D366)
+                                  : Colors.grey.shade400,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: AppColors.white, width: 2),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     title: Text(conversation.participantName, style: AppTextStyles.bodyMedium),
-                    subtitle: Text(
-                      _lastMessagePreview(conversation.lastMessage),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.caption,
+                    subtitle: Row(
+                      children: [
+                        if (conversation.lastMessage != null &&
+                            conversation.lastMessage!.senderId == currentUser.id) ...[
+                          if (conversation.lastMessage!.isRead)
+                            const Icon(
+                              Icons.done_all,
+                              size: 16,
+                              color: Color(0xFF34B7F1),
+                            )
+                          else if (conversation.lastMessage!.isDelivered)
+                            const Icon(
+                              Icons.done_all,
+                              size: 16,
+                              color: Colors.grey,
+                            )
+                          else
+                            const Icon(
+                              Icons.check,
+                              size: 16,
+                              color: Colors.grey,
+                            ),
+                          const SizedBox(width: 4),
+                        ],
+                        Expanded(
+                          child: Text(
+                            _lastMessagePreview(conversation.lastMessage),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.caption.copyWith(
+                              fontWeight: conversation.unreadCount > 0
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                              color: conversation.unreadCount > 0
+                                  ? AppColors.textPrimary
+                                  : AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     trailing: Column(
                       mainAxisAlignment: MainAxisAlignment.center,

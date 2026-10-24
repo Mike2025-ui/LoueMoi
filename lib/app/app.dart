@@ -8,6 +8,7 @@ import '../core/constants/app_constants.dart';
 import '../core/network/network_providers.dart';
 import '../core/services/notification_router.dart';
 import '../core/services/ota_and_remote_config_service.dart';
+import '../core/services/presence_service.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_theme.dart';
 import '../features/auth/models/user.dart';
@@ -46,6 +47,7 @@ class _LoueMoiAppState extends ConsumerState<LoueMoiApp> with WidgetsBindingObse
         final user = ref.read(authControllerProvider).valueOrNull;
         if (user != null) {
           syncDeviceTokenOnLogin(ref);
+          ref.read(presenceServiceProvider).start();
         }
       });
     }
@@ -124,7 +126,13 @@ class _LoueMoiAppState extends ConsumerState<LoueMoiApp> with WidgetsBindingObse
       final user = ref.read(authControllerProvider).valueOrNull;
       if (user != null) {
         syncDeviceTokenOnLogin(ref);
+        ref.read(presenceServiceProvider).start();
       }
+    } else if ((state == AppLifecycleState.paused ||
+            state == AppLifecycleState.inactive ||
+            state == AppLifecycleState.detached) &&
+        !Env.useMockData) {
+      ref.read(presenceServiceProvider).stop();
     }
   }
 
@@ -212,8 +220,10 @@ class _LoueMoiAppState extends ConsumerState<LoueMoiApp> with WidgetsBindingObse
       final isConnected = next.valueOrNull != null;
       if (isConnected && !wasConnected) {
         syncDeviceTokenOnLogin(ref);
+        ref.read(presenceServiceProvider).start();
       } else if (!isConnected && wasConnected) {
         deactivateDeviceTokenOnLogout(ref);
+        ref.read(presenceServiceProvider).stop();
       }
       // notificationsProvider et favoritesListProvider ne sont pas
       // autoDispose (leur contenu doit survivre à une navigation qui les
