@@ -21,9 +21,14 @@ class MessageBubble extends StatelessWidget {
   /// analyse heuristique d'un chemin absolu (qui commence aussi par "/" sur
   /// Android), seulement par ce préfixe explicite.
   bool get _isNetworkAttachment =>
-      message.attachmentUrl!.startsWith('http://') || message.attachmentUrl!.startsWith('https://');
+      message.attachmentUrl!.startsWith('http://') ||
+      message.attachmentUrl!.startsWith('https://');
 
-  Widget _buildAttachment(BuildContext context, Color iconColor, Color textColor) {
+  Widget _buildAttachment(
+    BuildContext context,
+    Color iconColor,
+    Color textColor,
+  ) {
     final url = message.attachmentUrl!;
     switch (message.attachmentType) {
       case MessageAttachmentType.image:
@@ -37,20 +42,28 @@ class MessageBubble extends StatelessWidget {
                   placeholder: (context, _) => const SizedBox(
                     width: 200,
                     height: 150,
-                    child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                    child: Center(
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
                   ),
                   errorWidget: (context, _, _) => const SizedBox(
                     width: 200,
                     height: 100,
-                    child: Icon(Icons.broken_image_outlined, color: AppColors.textHint),
+                    child: Icon(
+                      Icons.broken_image_outlined,
+                      color: AppColors.textHint,
+                    ),
                   ),
                 )
               : (kIsWeb
-                  ? Image.network(url, width: 200, fit: BoxFit.cover)
-                  : Image.file(File(url), width: 200, fit: BoxFit.cover)),
+                    ? Image.network(url, width: 200, fit: BoxFit.cover)
+                    : Image.file(File(url), width: 200, fit: BoxFit.cover)),
         );
       case MessageAttachmentType.video:
-        return VideoMessagePlayer(source: url, isLocalFile: !_isNetworkAttachment);
+        return VideoMessagePlayer(
+          source: url,
+          isLocalFile: !_isNetworkAttachment,
+        );
       case MessageAttachmentType.audio:
         return AudioMessagePlayer(
           source: url,
@@ -73,8 +86,13 @@ class MessageBubble extends StatelessWidget {
       alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 10),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: 10,
+        ),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.72,
+        ),
         decoration: BoxDecoration(
           color: isMine ? AppColors.primary : AppColors.surfaceMuted,
           borderRadius: BorderRadius.only(
@@ -105,7 +123,9 @@ class MessageBubble extends StatelessWidget {
                   DateFormat('HH:mm').format(message.createdAt),
                   style: TextStyle(
                     fontSize: 10,
-                    color: isMine ? AppColors.white.withValues(alpha: 0.7) : AppColors.textSecondary,
+                    color: isMine
+                        ? AppColors.white.withValues(alpha: 0.7)
+                        : AppColors.textSecondary,
                   ),
                 ),
                 if (isMine) ...[
@@ -120,13 +140,17 @@ class MessageBubble extends StatelessWidget {
                     Icon(
                       Icons.done_all,
                       size: 15,
-                      color: AppColors.white.withValues(alpha: 0.7), // 2 traits gris/blancs (reçu)
+                      color: AppColors.white.withValues(
+                        alpha: 0.7,
+                      ), // 2 traits gris/blancs (reçu)
                     )
                   else
                     Icon(
                       Icons.check,
                       size: 15,
-                      color: AppColors.white.withValues(alpha: 0.7), // 1 trait gris/blanc (envoyé)
+                      color: AppColors.white.withValues(
+                        alpha: 0.7,
+                      ), // 1 trait gris/blanc (envoyé)
                     ),
                 ],
               ],

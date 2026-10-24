@@ -89,6 +89,9 @@ class AgentSerializer(serializers.Serializer):
         return (profile.whatsapp if profile and profile.whatsapp else user.whatsapp) or ""
 
     def get_is_verified(self, user):
+        # Décision souveraine de l'administration : si révoqué ou désactivé, le badge est False
+        if not getattr(user, "is_verified", False):
+            return False
         # 1. Tout abonnement actif confère le badge
         if self._owner_has_active_sub(user):
             return True
@@ -96,12 +99,10 @@ class AgentSerializer(serializers.Serializer):
         if self._owner_had_any_sub(user):
             return False
         # 3. Badge administratif
-        if getattr(user, "is_verified", False):
-            return True
         profile = self._profile(user)
         if profile and profile.is_verified:
             return True
-        return False
+        return True
 
     def get_rating(self, user):
         profile = self._profile(user)

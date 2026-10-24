@@ -75,6 +75,14 @@
           <span>Avis & Notes</span>
         </a>
 
+        <div class="sidebar-heading">Finances & Abonnements</div>
+        <a href="{% url 'dashboard:subscriptions_list' %}" class="{% if active == 'subscriptions' %}active{% endif %}">
+          <span class="nav-icon grad-emerald" style="background: linear-gradient(135deg, #10B981, #059669);">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+          </span>
+          <span>Abonnements</span>
+        </a>
+
         <div class="sidebar-heading">Communications & Push</div>
         <a href="{% url 'dashboard:conversations_list' %}" class="{% if active == 'conversations' %}active{% endif %}">
           <span class="nav-icon grad-pink">

@@ -89,7 +89,7 @@
             {% endif %}
             <form method="post" action="{% url 'dashboard:toggle_certificate' u.pk %}" style="display:inline">
               {% csrf_token %}
-              <button type="submit" class="btn-action-view" style="padding:3px 7px;font-size:11px;cursor:pointer" title="Basculer la certification">
+              <button type="submit" class="btn-action-view" style="padding:3px 7px;font-size:11px;cursor:pointer" title="Basculer la certification" {% if u.is_verified %}onclick="return confirm('Retirer le badge Certifié de cet agent ? Ses abonnements actifs seront annulés.');"{% endif %}>
                 {% if u.is_verified %}Retirer{% else %}Certifier{% endif %}
               </button>
             </form>

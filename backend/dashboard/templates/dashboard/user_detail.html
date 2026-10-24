@@ -12,7 +12,7 @@
       <form method="post" action="{% url 'dashboard:toggle_certificate' obj.pk %}" style="display:inline">
         {% csrf_token %}
         {% if obj.is_verified %}
-          <button type="submit" class="btn-action-reject" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;cursor:pointer" onclick="return confirm('Voulez-vous retirer le badge Certifié de cet {{ obj.get_role_display }} ?');">
+          <button type="submit" class="btn-action-reject" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;cursor:pointer" onclick="return confirm('Voulez-vous retirer le badge Certifié de cet {{ obj.get_role_display }} ? Ses abonnements actifs seront également révoqués.');">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
             Retirer le badge Certifié
           </button>
@@ -116,7 +116,21 @@
               </form>
             {% endif %}
           {% else %}
-            <span class="cell-subtext">Non éligible (réservé aux agents et bailleurs)</span>
+            {% if obj.is_verified %}
+              <span class="badge badge-success"><span class="badge-dot"></span>Certifié</span>
+            {% else %}
+              <span class="badge badge-muted">Non certifié</span>
+            {% endif %}
+          {% endif %}
+        </div>
+      </div>
+      <div class="detail-field">
+        <div class="label">Abonnement Actif</div>
+        <div class="value">
+          {% if obj.has_active_subscription %}
+            <span class="badge badge-success"><span class="badge-dot"></span>Actif</span>
+          {% else %}
+            <span class="badge badge-muted">Aucun</span>
           {% endif %}
         </div>
       </div>
@@ -197,6 +211,67 @@
   </div>
 </div>
 {% endif %}
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">
+      <span class="section-icon" style="background: linear-gradient(135deg, #10B981, #059669);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+      </span>
+      <span>Abonnements &amp; Formules ({{ subscriptions|length }})</span>
+    </div>
+  </div>
+  {% if subscriptions %}
+  <div class="table-wrap"><table>
+    <thead><tr><th>Référence</th><th>Formule</th><th>Montant</th><th>Moyen</th><th>Statut</th><th>Période</th><th>Créé le</th><th>Actions</th></tr></thead>
+    <tbody>
+      {% for s in subscriptions %}
+      <tr>
+        <td class="cell-primary" style="font-family:monospace;font-size:12px">{{ s.reference }}</td>
+        <td>{{ s.get_plan_display }}</td>
+        <td style="font-weight:600">{{ s.amount }} FCFA</td>
+        <td><span class="badge badge-primary">{{ s.get_payment_method_display }}</span></td>
+        <td>
+          {% if s.status == 'active' %}
+            {% if s.is_currently_active %}
+              <span class="badge badge-success"><span class="badge-dot"></span>Actif</span>
+            {% else %}
+              <span class="badge badge-muted">Expiré</span>
+            {% endif %}
+          {% elif s.status == 'cancelled' %}
+            <span class="badge badge-danger"><span class="badge-dot"></span>Annulé</span>
+          {% elif s.status == 'expired' %}
+            <span class="badge badge-muted">Expiré</span>
+          {% else %}
+            <span class="badge badge-warning"><span class="badge-dot"></span>En attente</span>
+          {% endif %}
+        </td>
+        <td class="cell-subtext">
+          {% if s.started_at and s.expires_at %}
+            {{ s.started_at|date:"d/m/Y" }} → {{ s.expires_at|date:"d/m/Y H:i" }}
+          {% else %}
+            —
+          {% endif %}
+        </td>
+        <td class="cell-subtext">{{ s.created_at|date:"d/m/Y H:i" }}</td>
+        <td>
+          {% if s.status == 'active' and s.is_currently_active %}
+            <form method="post" action="{% url 'dashboard:cancel_subscription' s.pk %}" style="display:inline">
+              {% csrf_token %}
+              <button type="submit" class="btn-action-reject" style="padding:4px 8px;font-size:11px;cursor:pointer" onclick="return confirm('Confirmez-vous l\'annulation immédiate de cet abonnement ? Les accès et le badge certifié seront révoqués.');">
+                Annuler l'abonnement
+              </button>
+            </form>
+          {% else %}
+            <span class="cell-subtext">—</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<div class="empty-state">Aucun abonnement enregistré pour cet utilisateur.</div>{% endif %}
+</div>
 
 <div class="card">
   <div class="card-header">

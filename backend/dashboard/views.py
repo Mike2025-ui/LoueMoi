@@ -11,14 +11,16 @@ from django.contrib import messages
 from django.contrib.auth import views as auth_views
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Count, OuterRef, Q, Subquery
+from django.db.models import Count, OuterRef, Q, Subquery, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
+from django.utils import timezone
 
 from accounts.models import User
 from agents.models import AgentProfile
 from messaging.models import Conversation, Message
 from notifications.models import DeviceToken, Notification
+from payments.models import Subscription
 from properties.models import Property
 from reservations.models import Reservation
 from reviews.models import Review
@@ -108,6 +110,8 @@ def index(request):
         "notifications_total": Notification.objects.count(),
         "notifications_non_lues": Notification.objects.filter(is_read=False).count(),
         "reviews_total": Review.objects.count(),
+        "subscriptions_total": Subscription.objects.count(),
+        "subscriptions_active": Subscription.objects.filter(status=Subscription.STATUS_ACTIVE, expires_at__gt=timezone.now()).count(),
     }
 
     # Activité récente : fusion d'événements réellement horodatés
@@ -178,6 +182,7 @@ def user_detail(request, pk):
     reviews = Review.objects.filter(user=user).select_related("property").order_by("-created_at")[:20]
     notifications = Notification.objects.filter(recipient=user).order_by("-created_at")[:20]
     agent_profile = AgentProfile.objects.filter(user=user).first()
+    subscriptions = user.subscriptions.order_by("-created_at")[:20]
 
     return render(
         request,
@@ -187,6 +192,7 @@ def user_detail(request, pk):
             "properties": properties, "reservations": reservations,
             "conversations": conversations, "reviews": reviews,
             "notifications": notifications, "agent_profile": agent_profile,
+            "subscriptions": subscriptions,
         },
     )
 
@@ -650,6 +656,12 @@ def toggle_certificate(request, pk):
             )
             profile.save(update_fields=["is_verified", "certification_status"])
 
+        if not new_status:
+            # Révoquer et annuler immédiatement tout abonnement actif de l'utilisateur
+            # pour garantir que le badge ne subsiste pas et que l'action admin est immédiatement effective
+            for sub in user.subscriptions.filter(status=Subscription.STATUS_ACTIVE):
+                sub.cancel_and_revoke()
+
         action_label = "activé" if new_status else "retiré"
         messages.success(
             request,
@@ -747,6 +759,90 @@ def public_app_config_api(request):
             "updated_at": cfg.updated_at.isoformat() if cfg.updated_at else None,
         }
     )
+
+
+@staff_required
+def subscriptions_list(request):
+    """GET /dashboard/subscriptions/
+    Gestion complète et suivi des abonnements clients et professionnels."""
+    now = timezone.now()
+    qs = Subscription.objects.select_related("user").order_by("-created_at")
+    status = request.GET.get("status", "").strip()
+    plan = request.GET.get("plan", "").strip()
+    q = request.GET.get("q", "").strip()
+
+    if status:
+        if status == "active":
+            qs = qs.filter(status=Subscription.STATUS_ACTIVE, expires_at__gt=now)
+        elif status == "expired":
+            qs = qs.filter(
+                Q(status=Subscription.STATUS_EXPIRED)
+                | Q(status=Subscription.STATUS_ACTIVE, expires_at__lte=now)
+            )
+        else:
+            qs = qs.filter(status=status)
+    if plan:
+        qs = qs.filter(plan=plan)
+    if q:
+        qs = qs.filter(
+            Q(reference__icontains=q)
+            | Q(user__phone__icontains=q)
+            | Q(user__first_name__icontains=q)
+            | Q(user__last_name__icontains=q)
+        )
+
+    stats = {
+        "total": Subscription.objects.count(),
+        "active": Subscription.objects.filter(
+            status=Subscription.STATUS_ACTIVE, expires_at__gt=now
+        ).count(),
+        "expired": Subscription.objects.filter(
+            Q(status=Subscription.STATUS_EXPIRED)
+            | Q(status=Subscription.STATUS_ACTIVE, expires_at__lte=now)
+        ).count(),
+        "cancelled": Subscription.objects.filter(
+            status=Subscription.STATUS_CANCELLED
+        ).count(),
+        "pending": Subscription.objects.filter(
+            status=Subscription.STATUS_PENDING
+        ).count(),
+        "total_revenue": Subscription.objects.filter(
+            status__in=[Subscription.STATUS_ACTIVE, Subscription.STATUS_EXPIRED]
+        ).aggregate(total=Sum("amount"))["total"]
+        or 0,
+    }
+
+    page = _paginate(request, qs)
+    return render(
+        request,
+        "dashboard/subscriptions_list.html",
+        {
+            "page_obj": page,
+            "stats": stats,
+            "status": status,
+            "plan": plan,
+            "q": q,
+            "active": "subscriptions",
+        },
+    )
+
+
+@staff_required
+def cancel_subscription(request, pk):
+    """POST /dashboard/subscriptions/<pk>/cancel/
+    Annule immédiatement un abonnement et révoque le badge certifié associé."""
+    sub = get_object_or_404(Subscription, pk=pk)
+    if request.method == "POST":
+        sub.cancel_and_revoke()
+        messages.success(
+            request,
+            f"L'abonnement {sub.reference} ({sub.get_plan_display()}) de {sub.user} a été annulé avec succès et le badge a été révoqué.",
+        )
+    referer = request.META.get("HTTP_REFERER", "")
+    if "users/" in referer:
+        return redirect("dashboard:user_detail", pk=sub.user.pk)
+    return redirect("dashboard:subscriptions_list")
+
 
 
 

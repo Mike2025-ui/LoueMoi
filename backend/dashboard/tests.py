@@ -407,3 +407,78 @@ class DashboardDataAccuracyTests(TestCase):
         self.assertEqual(data["pricing"]["pro_fcfa"], 3500)
         self.assertEqual(data["enabled_payment_methods"], ["wave", "orange"])
 
+    def test_toggle_certificate_revokes_active_subscriptions(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        from payments.models import Subscription
+        from accounts.serializers import UserSerializer
+
+        target_agent = _make_user("0700000095", User.ROLE_AGENT)
+        profile = AgentProfile.objects.create(user=target_agent, agency_name="Super Immo")
+        target_agent.is_verified = True
+        target_agent.save()
+        profile.is_verified = True
+        profile.save()
+
+        sub = Subscription.objects.create(
+            user=target_agent,
+            plan=Subscription.PLAN_PRO,
+            amount=3000,
+            reference="SUB-TEST-REVOKE-1",
+            status=Subscription.STATUS_ACTIVE,
+            started_at=timezone.now(),
+            expires_at=timezone.now() + timedelta(days=30),
+        )
+
+        # Avant révocation : vérifié
+        self.assertTrue(UserSerializer(target_agent).data["is_verified"])
+
+        # Retrait du badge par l'administrateur
+        res = self.client.post(reverse("dashboard:toggle_certificate", args=[target_agent.pk]))
+        self.assertEqual(res.status_code, 302)
+
+        target_agent.refresh_from_db()
+        profile.refresh_from_db()
+        sub.refresh_from_db()
+
+        self.assertFalse(target_agent.is_verified)
+        self.assertFalse(profile.is_verified)
+        self.assertEqual(sub.status, Subscription.STATUS_CANCELLED)
+        self.assertFalse(UserSerializer(target_agent).data["is_verified"])
+
+    def test_subscriptions_list_view_and_cancel_action(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        from payments.models import Subscription
+
+        user = _make_user("0700000096", User.ROLE_CLIENT)
+        sub = Subscription.objects.create(
+            user=user,
+            plan=Subscription.PLAN_CLIENT,
+            amount=1000,
+            reference="SUB-TEST-LIST-1",
+            status=Subscription.STATUS_ACTIVE,
+            started_at=timezone.now(),
+            expires_at=timezone.now() + timedelta(days=30),
+        )
+        user.is_verified = True
+        user.save()
+
+        # Liste des abonnements dans le dashboard
+        res_list = self.client.get(reverse("dashboard:subscriptions_list"))
+        self.assertEqual(res_list.status_code, 200)
+        self.assertContains(res_list, "SUB-TEST-LIST-1")
+        self.assertContains(res_list, "Client (1 000 FCFA")
+
+        # Annulation directe de l'abonnement depuis le dashboard
+        res_cancel = self.client.post(reverse("dashboard:cancel_subscription", args=[sub.pk]))
+        self.assertEqual(res_cancel.status_code, 302)
+
+        sub.refresh_from_db()
+        user.refresh_from_db()
+
+        self.assertEqual(sub.status, Subscription.STATUS_CANCELLED)
+        self.assertFalse(user.is_verified)
+        self.assertFalse(user.has_active_subscription)
+
+

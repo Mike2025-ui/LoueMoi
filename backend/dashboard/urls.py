@@ -24,6 +24,8 @@ urlpatterns = [
     path("activations/", views.pending_activations, name="pending_activations"),
     path("activations/<int:pk>/activate/", views.activate_user, name="activate_user"),
     path("fcm/", views.fcm_list, name="fcm_list"),
+    path("subscriptions/", views.subscriptions_list, name="subscriptions_list"),
+    path("subscriptions/<int:pk>/cancel/", views.cancel_subscription, name="cancel_subscription"),
     path("statistics/", views.statistics, name="statistics"),
     path("app-settings/", views.app_settings_view, name="app_settings"),
 ]

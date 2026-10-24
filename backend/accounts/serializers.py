@@ -49,6 +49,9 @@ class UserSerializer(serializers.ModelSerializer):
         ]
 
     def get_is_verified(self, user):
+        # Décision souveraine de l'administration : si révoqué ou désactivé, le badge est False
+        if not getattr(user, "is_verified", False):
+            return False
         from django.utils import timezone
         now = timezone.now()
         # 1. Tout utilisateur avec un abonnement actif bénéficie du badge certifié
@@ -56,11 +59,10 @@ class UserSerializer(serializers.ModelSerializer):
             return True
         # 2. Badge attribué aux agents ou bailleurs en base ou via leur profil
         if user.role in (User.ROLE_AGENT, User.ROLE_BAILLEUR):
-            if user.is_verified:
-                return True
             profile = getattr(user, "agent_profile", None)
             if profile and profile.is_verified:
                 return True
+            return True
         return False
 
     def update(self, instance, validated_data):
