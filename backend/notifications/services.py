@@ -204,7 +204,6 @@ class NotificationService:
             android_config = firebase_messaging.AndroidConfig(
                 priority="high",
                 notification=firebase_messaging.AndroidNotification(
-                    channel_id="louemoi_important_notifications",
                     sound="default",
                     default_sound=True,
                     default_vibrate_timings=True,
@@ -288,7 +287,6 @@ class NotificationService:
                 android_config = firebase_messaging.AndroidConfig(
                     priority="high",
                     notification=firebase_messaging.AndroidNotification(
-                        channel_id="louemoi_important_notifications",
                         sound="default",
                         default_sound=True,
                         default_vibrate_timings=True,
