@@ -228,6 +228,8 @@ JEKO_STORE_ID=${JEKO_STORE_ID:-}
 JEKO_WEBHOOK_SECRET=${JEKO_WEBHOOK_SECRET:-}
 JEKO_API_URL=${JEKO_API_URL:-https://api.jeko.africa}
 JEKO_SIMULATION_MODE=${JEKO_SIMULATION_MODE:-false}
+WEB_APP_URL=https://$DOMAIN
+REDIS_URL=${REDIS_URL:-}
 
 IKODDI_API_KEY=${IKODDI_API_KEY:-}
 IKODDI_SENDER_ID=${IKODDI_SENDER_ID:-LoueMoi}
@@ -395,9 +397,9 @@ apply_nginx_config() {
     
     mkdir -p nginx/conf.d
     
-    # Remplacement des variables dans le template
-    sed "s|\${DOMAIN}|$DOM|g" nginx/conf.d/louemoi.conf.template > nginx/conf.d/louemoi.conf
-    
+    # Remplacement des variables dans le template (en supprimant tout BOM ou retour chariot Windows éventuel)
+    sed "s|\${DOMAIN}|$DOM|g" nginx/conf.d/louemoi.conf.template | sed '1s/^\xEF\xBB\xBF//' | tr -d '\r' > nginx/conf.d/louemoi.conf
+
     # Supprimer le default.conf pour éviter les conflits d'écoute
     rm -f nginx/conf.d/default.conf
     
@@ -583,8 +585,11 @@ update_project() {
 
     if [ -d .git ]; then
         log_info "Récupération des dernières modifications Git..."
+        git stash --include-untracked >/dev/null 2>&1 || true
         git fetch origin main
         git reset --hard origin/main
+        git stash pop >/dev/null 2>&1 || true
+        sed -i 's/\r$//' deploy.sh backend/entrypoint.sh 2>/dev/null || true
         chmod +x deploy.sh backend/entrypoint.sh || true
     fi
 
