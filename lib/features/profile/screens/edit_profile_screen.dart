@@ -230,6 +230,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                             backgroundImage: user?.photo != null
                                 ? NetworkImage(buildMediaUrl(user!.photo!))
                                 : null,
+                            onBackgroundImageError: user?.photo != null ? (_, __) {} : null,
                             child: _uploadingPhoto
                                 ? const SizedBox(
                                     width: 28,

@@ -281,6 +281,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       backgroundImage: user?.photo != null
                           ? NetworkImage(buildMediaUrl(user!.photo!))
                           : null,
+                      onBackgroundImageError: user?.photo != null ? (_, __) {} : null,
                       child: _uploadingPhoto
                           ? const SizedBox(
                               width: 28,

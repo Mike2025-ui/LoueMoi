@@ -193,6 +193,7 @@ class ConversationsScreen extends ConsumerWidget {
                           backgroundImage: conversation.participantPhoto != null
                               ? NetworkImage(buildMediaUrl(conversation.participantPhoto!))
                               : null,
+                          onBackgroundImageError: conversation.participantPhoto != null ? (_, __) {} : null,
                           child: conversation.participantPhoto == null
                               ? const Icon(Icons.person, color: AppColors.primary)
                               : null,

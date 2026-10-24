@@ -90,14 +90,26 @@ def _get_firebase_app():
 def _is_unregistered_token_error(exc) -> bool:
     """Détecte les erreurs FCM signifiant que le token n'est plus valide
     (application désinstallée, token expiré...) pour le désactiver."""
-    if firebase_messaging is None:
+    if exc is None:
         return False
-    return isinstance(
+    if firebase_messaging and isinstance(
         exc,
         (
-            firebase_messaging.UnregisteredError,
+            getattr(firebase_messaging, "UnregisteredError", ()),
             getattr(firebase_messaging, "SenderIdMismatchError", ()),
         ),
+    ):
+        return True
+    err_str = f"{exc} {getattr(exc, 'code', '')} {getattr(exc, 'cause', '')}".lower()
+    return any(
+        pattern in err_str
+        for pattern in (
+            "notregistered",
+            "not_found",
+            "registration-token-not-registered",
+            "invalid_argument",
+            "unregistered",
+        )
     )
 
 
