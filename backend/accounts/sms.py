@@ -95,10 +95,10 @@ class LoggingSmsProvider(SmsProvider):
 class IkoddiSmsProvider(SmsProvider):
     """Fournisseur SMS officiel IKKODI (Ikoddi).
 
-    Documentation d'intégration :
-      Endpoint : POST https://api.ikoddi.com/v1/sms/send
-      Headers  : Authorization: Bearer <API_KEY>, Content-Type: application/json
-      Body     : {"to": "+225...", "message": "...", "sender": "LoueMoi"}
+    Prend en charge :
+      - Endpoint SMS direct : POST https://api.ikoddi.com/v1/sms/send
+      - Endpoint OTP dédié : POST https://api.ikoddi.com/v1/otp/send
+      - Endpoint Groupes/Applications : POST https://api.ikoddi.com/api/v1/groups/{org_id}/...
     """
 
     DEFAULT_API_URL = "https://api.ikoddi.com/v1/sms/send"
@@ -109,16 +109,28 @@ class IkoddiSmsProvider(SmsProvider):
         api_key: str,
         sender_id: str | None = None,
         api_url: str | None = None,
+        org_id: str | None = None,
+        app_id: str | None = None,
         timeout: int = 10,
     ):
         self.api_key = api_key.strip()
         self.sender_id = (sender_id or self.DEFAULT_SENDER_ID).strip()[:11]
         self.api_url = (api_url or self.DEFAULT_API_URL).strip()
+        self.org_id = (org_id or "").strip()
+        self.app_id = (app_id or "").strip()
         self.timeout = timeout
 
     def send(self, phone: str, message: str) -> bool:
         normalized_phone = normalize_phone_number(phone)
         masked_phone = _mask_phone(normalized_phone)
+
+        # Résolution d'URL : si l'URL se termine par /groups, adapter pour l'organisation et l'application
+        target_url = self.api_url
+        if target_url.endswith("/groups") and self.org_id:
+            if self.app_id:
+                target_url = f"{target_url}/{self.org_id}/applications/{self.app_id}/otp"
+            else:
+                target_url = f"{target_url}/{self.org_id}/otp/send"
 
         payload = {
             "to": normalized_phone,
@@ -126,6 +138,12 @@ class IkoddiSmsProvider(SmsProvider):
         }
         if self.sender_id:
             payload["sender"] = self.sender_id
+        if self.app_id:
+            payload["app_id"] = self.app_id
+            payload["application_id"] = self.app_id
+        if self.org_id:
+            payload["group_id"] = self.org_id
+            payload["organization_id"] = self.org_id
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -133,11 +151,17 @@ class IkoddiSmsProvider(SmsProvider):
             "Accept": "application/json",
             "User-Agent": "LoueMoi-Backend/1.0",
         }
+        if self.org_id:
+            headers["x-group-id"] = self.org_id
+            headers["x-organization-id"] = self.org_id
+        if self.app_id:
+            headers["x-app-id"] = self.app_id
+            headers["x-application-id"] = self.app_id
 
         try:
             data = json.dumps(payload).encode("utf-8")
             req = urllib.request.Request(
-                self.api_url,
+                target_url,
                 data=data,
                 headers=headers,
                 method="POST",
@@ -157,8 +181,9 @@ class IkoddiSmsProvider(SmsProvider):
         except urllib.error.HTTPError as err:
             err_body = err.read().decode("utf-8", errors="replace") if err.fp else ""
             logger.error(
-                "Erreur HTTP lors de l'envoi SMS Ikoddi vers %s : HTTP %s — %s",
+                "Erreur HTTP lors de l'envoi SMS Ikoddi vers %s (URL: %s) : HTTP %s — %s",
                 masked_phone,
+                target_url,
                 err.code,
                 err_body[:300],
             )
@@ -167,9 +192,10 @@ class IkoddiSmsProvider(SmsProvider):
             if "sender" in payload and err.code in (400, 422, 500):
                 try:
                     logger.warning("Nouvelle tentative d'envoi SMS Ikoddi sans sender personnalisé pour %s...", masked_phone)
-                    fallback_payload = {"to": normalized_phone, "message": message}
+                    fallback_payload = dict(payload)
+                    fallback_payload.pop("sender", None)
                     req_fb = urllib.request.Request(
-                        self.api_url,
+                        target_url,
                         data=json.dumps(fallback_payload).encode("utf-8"),
                         headers=headers,
                         method="POST",
@@ -187,8 +213,9 @@ class IkoddiSmsProvider(SmsProvider):
 
         except urllib.error.URLError as err:
             logger.error(
-                "Erreur de connexion à l'API Ikoddi vers %s : %s",
+                "Erreur de connexion à l'API Ikoddi vers %s (URL: %s) : %s",
                 masked_phone,
+                target_url,
                 err.reason,
             )
             return False
@@ -232,7 +259,23 @@ def get_sms_provider() -> SmsProvider:
             or os.environ.get("IKKODI_API_URL", "")
             or IkoddiSmsProvider.DEFAULT_API_URL
         ).strip().strip('"').strip("'")
-        return IkoddiSmsProvider(api_key=api_key, sender_id=sender_id, api_url=api_url)
+        org_id = (
+            getattr(settings, "IKODDI_ORG_ID", "")
+            or os.environ.get("IKODDI_ORG_ID", "")
+            or os.environ.get("IKODDI_GROUP_ID", "")
+        ).strip().strip('"').strip("'")
+        app_id = (
+            getattr(settings, "IKODDI_OTP_APP_ID", "")
+            or os.environ.get("IKODDI_OTP_APP_ID", "")
+            or os.environ.get("IKODDI_APP_ID", "")
+        ).strip().strip('"').strip("'")
+        return IkoddiSmsProvider(
+            api_key=api_key,
+            sender_id=sender_id,
+            api_url=api_url,
+            org_id=org_id,
+            app_id=app_id,
+        )
 
     logger.warning(
         "[SMS] Aucun fournisseur SMS Ikoddi actif (IKODDI_API_KEY absente ou placeholder) -> LoggingSmsProvider utilisé."
