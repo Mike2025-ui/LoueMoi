@@ -20,7 +20,7 @@ class RemoteAppConfig {
     this.clientPriceFcfa = 1000,
     this.proPriceFcfa = 3000,
     this.enabledPaymentMethods = const ['wave', 'orange', 'mtn', 'moov'],
-    this.supportWhatsapp = '+2250700000000',
+    this.supportWhatsapp = '+2250702065206',
   });
 
   final String appVersion;
@@ -56,7 +56,7 @@ class RemoteAppConfig {
       clientPriceFcfa: (pricing['client_fcfa'] as num?)?.toInt() ?? 1000,
       proPriceFcfa: (pricing['pro_fcfa'] as num?)?.toInt() ?? 3000,
       enabledPaymentMethods: methods,
-      supportWhatsapp: json['support_whatsapp']?.toString() ?? '+2250700000000',
+      supportWhatsapp: json['support_whatsapp']?.toString() ?? '+2250702065206',
     );
   }
 }

@@ -143,11 +143,11 @@ class _WebMaintenanceScreenState extends ConsumerState<WebMaintenanceScreen> {
   }
 
   Future<void> _contactSupport({String? refCode}) async {
-    const supportPhone = '+2250700000000';
     final message = refCode != null && refCode.isNotEmpty
         ? 'Bonjour LoueMoi, je vous contacte concernant mon paiement d’abonnement (Réf : $refCode).'
         : 'Bonjour LoueMoi, je vous contacte depuis le site web en maintenance.';
-    final webUri = Uri.parse('https://wa.me/$supportPhone?text=${Uri.encodeComponent(message)}');
+    final cleanPhone = Env.supportPhone.replaceAll(RegExp(r'[^0-9]'), '');
+    final webUri = Uri.parse('https://wa.me/$cleanPhone?text=${Uri.encodeComponent(message)}');
     try {
       if (await canLaunchUrl(webUri)) {
         await launchUrl(webUri, mode: LaunchMode.externalApplication);
@@ -218,12 +218,12 @@ class _WebMaintenanceScreenState extends ConsumerState<WebMaintenanceScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Icon(Icons.headset_mic_outlined, size: 18, color: AppColors.textSecondary),
-                          SizedBox(width: 8),
+                        children: [
+                          const Icon(Icons.headset_mic_outlined, size: 18, color: AppColors.textSecondary),
+                          const SizedBox(width: 8),
                           Text(
-                            'Une question ? Contacter l’équipe LoueMoi sur WhatsApp',
-                            style: TextStyle(
+                            'Une question ? Contacter l’équipe LoueMoi sur WhatsApp (${Env.supportPhoneDisplay})',
+                            style: const TextStyle(
                               fontSize: 12.5,
                               color: AppColors.textSecondary,
                               fontWeight: FontWeight.w600,

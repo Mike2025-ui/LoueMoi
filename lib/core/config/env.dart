@@ -76,4 +76,9 @@ class Env {
     if (!dotenv.isInitialized) return true;
     return (dotenv.env['USE_MOCK_DATA'] ?? 'false').toLowerCase() == 'true';
   }
+
+  /// Numéro officiel WhatsApp & Assistance LoueMoi
+  static const String supportPhone = '+2250702065206';
+  static const String supportPhoneDisplay = '07 02 06 52 06';
+  static const String supportPhoneRaw = '0702065206';
 }

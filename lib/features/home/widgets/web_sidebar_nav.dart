@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../app/routes.dart';
+import '../../../core/config/env.dart';
 import '../../../core/constants/app_assets.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -324,6 +326,45 @@ class WebSidebarNav extends ConsumerWidget {
                         ),
                       ],
                     ),
+            ),
+            const SizedBox(height: 8),
+            InkWell(
+              onTap: () async {
+                final cleanPhone = Env.supportPhone.replaceAll(RegExp(r'[^0-9]'), '');
+                final uri = Uri.parse(
+                  'https://wa.me/$cleanPhone?text=${Uri.encodeComponent("Bonjour LoueMoi, je vous contacte depuis le site web.")}',
+                );
+                try {
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
+                } catch (_) {}
+              },
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FDF4),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFBBF7D0)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.chat, size: 14, color: Color(0xFF25D366)),
+                    SizedBox(width: 6),
+                    Text(
+                      'Contact : ${Env.supportPhoneDisplay}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF166534),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),

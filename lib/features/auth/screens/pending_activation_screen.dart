@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../app/routes.dart';
+import '../../../core/config/env.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -78,6 +80,19 @@ class _PendingActivationScreenState
         ),
       );
     }
+  }
+
+  Future<void> _contactSupport() async {
+    final user = ref.read(authControllerProvider).valueOrNull;
+    final message = 'Bonjour LoueMoi, je souhaite obtenir des informations concernant l’activation de mon compte'
+        '${user != null ? " (${user.phone})" : ""}.';
+    final cleanPhone = Env.supportPhone.replaceAll(RegExp(r'[^0-9]'), '');
+    final uri = Uri.parse('https://wa.me/$cleanPhone?text=${Uri.encodeComponent(message)}');
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    } catch (_) {}
   }
 
   Future<void> _logout() async {
@@ -320,6 +335,22 @@ class _PendingActivationScreenState
                       onPressed: _checkStatus,
                     ),
                   const SizedBox(height: AppSpacing.md),
+                  OutlinedButton.icon(
+                    onPressed: _contactSupport,
+                    icon: const Icon(
+                      Icons.chat,
+                      size: 18,
+                      color: Color(0xFF25D366),
+                    ),
+                    label: const Text(
+                      'Assistance WhatsApp (${Env.supportPhoneDisplay})',
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
                   TextButton.icon(
                     onPressed: isLoading ? null : _logout,
                     icon: const Icon(

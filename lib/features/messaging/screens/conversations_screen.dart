@@ -97,7 +97,9 @@ class ConversationsScreen extends ConsumerWidget {
         skipLoadingOnReload: true,
         data: (conversations) {
           // Filtrer les conversations sans aucun message (évite les conversations fantômes)
-          final activeConversations = conversations.where((c) => c.lastMessage != null).toList();
+          final activeConversations = conversations
+              .where((c) => c.lastMessage != null)
+              .toList();
 
           if (activeConversations.isEmpty) {
             return RefreshIndicator(
@@ -107,7 +109,10 @@ class ConversationsScreen extends ConsumerWidget {
                 children: const [
                   SizedBox(height: 120),
                   Center(
-                    child: Text('Aucune conversation', style: AppTextStyles.caption),
+                    child: Text(
+                      'Aucune conversation',
+                      style: AppTextStyles.caption,
+                    ),
                   ),
                 ],
               ),
@@ -119,7 +124,8 @@ class ConversationsScreen extends ConsumerWidget {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
               itemCount: activeConversations.length,
-              separatorBuilder: (context, index) => const Divider(height: 1, indent: 76),
+              separatorBuilder: (context, index) =>
+                  const Divider(height: 1, indent: 76),
               itemBuilder: (context, index) {
                 final conversation = activeConversations[index];
                 return Dismissible(
@@ -129,14 +135,19 @@ class ConversationsScreen extends ConsumerWidget {
                     color: AppColors.danger,
                     alignment: Alignment.centerRight,
                     padding: const EdgeInsets.only(right: AppSpacing.md),
-                    child: const Icon(Icons.delete_outline, color: AppColors.white),
+                    child: const Icon(
+                      Icons.delete_outline,
+                      color: AppColors.white,
+                    ),
                   ),
                   confirmDismiss: (direction) async {
                     return await showDialog<bool>(
                       context: context,
                       builder: (context) => AlertDialog(
                         title: const Text('Supprimer la conversation ?'),
-                        content: Text('Voulez-vous supprimer la conversation avec ${conversation.participantName} ?'),
+                        content: Text(
+                          'Voulez-vous supprimer la conversation avec ${conversation.participantName} ?',
+                        ),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.of(context).pop(false),
@@ -144,7 +155,10 @@ class ConversationsScreen extends ConsumerWidget {
                           ),
                           TextButton(
                             onPressed: () => Navigator.of(context).pop(true),
-                            child: const Text('Supprimer', style: TextStyle(color: AppColors.danger)),
+                            child: const Text(
+                              'Supprimer',
+                              style: TextStyle(color: AppColors.danger),
+                            ),
                           ),
                         ],
                       ),
@@ -152,11 +166,15 @@ class ConversationsScreen extends ConsumerWidget {
                   },
                   onDismissed: (direction) async {
                     try {
-                      await ref.read(messageRepositoryProvider).deleteConversation(conversation.id);
+                      await ref
+                          .read(messageRepositoryProvider)
+                          .deleteConversation(conversation.id);
                       ref.invalidate(conversationsProvider);
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Conversation supprimée.')),
+                          const SnackBar(
+                            content: Text('Conversation supprimée.'),
+                          ),
                         );
                       }
                     } catch (_) {
@@ -166,7 +184,8 @@ class ConversationsScreen extends ConsumerWidget {
                   child: ListTile(
                     onTap: () async {
                       if (!conversation.canAccess) {
-                        final isPro = currentUser.isAgent || currentUser.isBailleur;
+                        final isPro =
+                            currentUser.isAgent || currentUser.isBailleur;
                         final subscribed = await showSubscriptionModal(
                           context,
                           isPro: isPro,
@@ -180,7 +199,9 @@ class ConversationsScreen extends ConsumerWidget {
                       }
                       await context.push(
                         AppRoutes.conversationPath(conversation.id),
-                        extra: {'participantName': conversation.participantName},
+                        extra: {
+                          'participantName': conversation.participantName,
+                        },
                       );
                       ref.invalidate(conversationsProvider);
                     },
@@ -191,11 +212,19 @@ class ConversationsScreen extends ConsumerWidget {
                           radius: AppSizes.avatarSm / 2,
                           backgroundColor: AppColors.primaryLight,
                           backgroundImage: conversation.participantPhoto != null
-                              ? NetworkImage(buildMediaUrl(conversation.participantPhoto!))
+                              ? NetworkImage(
+                                  buildMediaUrl(conversation.participantPhoto!),
+                                )
                               : null,
-                          onBackgroundImageError: conversation.participantPhoto != null ? (exception, stackTrace) {} : null,
+                          onBackgroundImageError:
+                              conversation.participantPhoto != null
+                              ? (exception, stackTrace) {}
+                              : null,
                           child: conversation.participantPhoto == null
-                              ? const Icon(Icons.person, color: AppColors.primary)
+                              ? const Icon(
+                                  Icons.person,
+                                  color: AppColors.primary,
+                                )
                               : null,
                         ),
                         Positioned(
@@ -209,7 +238,10 @@ class ConversationsScreen extends ConsumerWidget {
                                   ? const Color(0xFF25D366)
                                   : Colors.grey.shade400,
                               shape: BoxShape.circle,
-                              border: Border.all(color: AppColors.white, width: 2),
+                              border: Border.all(
+                                color: AppColors.white,
+                                width: 2,
+                              ),
                             ),
                           ),
                         ),
@@ -227,7 +259,10 @@ class ConversationsScreen extends ConsumerWidget {
                         ),
                         if (!conversation.canAccess)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.warningBg,
                               borderRadius: BorderRadius.circular(4),
@@ -235,7 +270,11 @@ class ConversationsScreen extends ConsumerWidget {
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.lock_outline, size: 12, color: AppColors.warningText),
+                                Icon(
+                                  Icons.lock_outline,
+                                  size: 12,
+                                  color: AppColors.warningText,
+                                ),
                                 SizedBox(width: 3),
                                 Text(
                                   'Verrouillée',
@@ -253,7 +292,8 @@ class ConversationsScreen extends ConsumerWidget {
                     subtitle: Row(
                       children: [
                         if (conversation.lastMessage != null &&
-                            conversation.lastMessage!.senderId == currentUser.id) ...[
+                            conversation.lastMessage!.senderId ==
+                                currentUser.id) ...[
                           if (conversation.lastMessage!.isRead)
                             const Icon(
                               Icons.done_all,
@@ -297,19 +337,26 @@ class ConversationsScreen extends ConsumerWidget {
                       children: [
                         if (conversation.lastMessage != null)
                           Text(
-                            Formatters.relativeTime(conversation.lastMessage!.createdAt),
+                            Formatters.relativeTime(
+                              conversation.lastMessage!.createdAt,
+                            ),
                             style: AppTextStyles.small,
                           ),
                         if (conversation.unreadCount > 0) ...[
                           const SizedBox(height: 4),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.primary,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
-                              conversation.unreadCount > 99 ? '99+' : '${conversation.unreadCount}',
+                              conversation.unreadCount > 99
+                                  ? '99+'
+                                  : '${conversation.unreadCount}',
                               style: const TextStyle(
                                 color: AppColors.white,
                                 fontSize: 10,
@@ -328,7 +375,10 @@ class ConversationsScreen extends ConsumerWidget {
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => const Center(
-          child: Text('Impossible de charger les messages.', style: AppTextStyles.caption),
+          child: Text(
+            'Impossible de charger les messages.',
+            style: AppTextStyles.caption,
+          ),
         ),
       ),
     );

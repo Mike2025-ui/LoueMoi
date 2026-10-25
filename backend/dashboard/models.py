@@ -39,7 +39,7 @@ class AppConfiguration(models.Model):
         default="wave,orange,mtn,moov",
         help_text="Liste des opérateurs Mobile Money actifs séparés par une virgule.",
     )
-    support_whatsapp = models.CharField(max_length=30, default="+2250700000000", blank=True)
+    support_whatsapp = models.CharField(max_length=30, default="+2250702065206", blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

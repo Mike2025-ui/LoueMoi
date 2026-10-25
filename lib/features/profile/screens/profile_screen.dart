@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../app/routes.dart';
+import '../../../core/config/env.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -191,6 +193,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     } finally {
       if (mounted) setState(() => _uploadingPhoto = false);
     }
+  }
+
+  Future<void> _contactSupport() async {
+    const message = 'Bonjour LoueMoi, je souhaite obtenir des informations concernant mon compte.';
+    final cleanPhone = Env.supportPhone.replaceAll(RegExp(r'[^0-9]'), '');
+    final uri = Uri.parse('https://wa.me/$cleanPhone?text=${Uri.encodeComponent(message)}');
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    } catch (_) {}
   }
 
   void _showPhotoOptions(BuildContext context, bool hasPhoto) {
@@ -430,6 +443,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   label: 'Mon espace bailleur',
                   onTap: () => context.push(AppRoutes.bailleurSpace),
                 ),
+              ProfileMenuTile(
+                icon: Icons.support_agent_outlined,
+                label: 'Assistance WhatsApp (${Env.supportPhoneDisplay})',
+                onTap: _contactSupport,
+              ),
               const SizedBox(height: AppSpacing.xl),
               TextButton(
                 onPressed: () => ref
