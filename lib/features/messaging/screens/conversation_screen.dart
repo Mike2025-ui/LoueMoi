@@ -267,6 +267,12 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     final hasText = _controller.text.trim().isNotEmpty;
     final canSend = hasText || _hasStagedAttachment;
 
+    final hasForbiddenError = messagesAsync.hasError &&
+        (messagesAsync.error.toString().contains('403') ||
+            messagesAsync.error.toString().toLowerCase().contains('abonnement') ||
+            messagesAsync.error.toString().toLowerCase().contains('forbidden'));
+    final isLocked = (conv?.canAccess == false) || hasForbiddenError;
+
     final displayName =
         widget.participantName ?? conv?.participantName ?? 'Contact';
 
@@ -358,7 +364,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           ],
         ),
       ),
-      body: (conv?.canAccess == false)
+      body: isLocked
           ? Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),

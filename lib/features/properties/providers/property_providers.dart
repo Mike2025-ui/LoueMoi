@@ -185,6 +185,11 @@ Future<void> markPropertyStatus(
 }
 
 Future<void> toggleFavorite(WidgetRef ref, String propertyId) async {
+  final currentUser = ref.read(authControllerProvider).valueOrNull;
+  if (currentUser == null && !Env.useMockData) {
+    throw Exception('Veuillez vous connecter pour gérer vos favoris.');
+  }
+
   final controller = ref.read(propertiesControllerProvider.notifier);
   final currentList = ref.read(propertiesControllerProvider).valueOrNull ?? const [];
   final favList = ref.read(favoritesListProvider).valueOrNull ?? const [];
@@ -196,9 +201,11 @@ Future<void> toggleFavorite(WidgetRef ref, String propertyId) async {
       break;
     }
   }
+  wasFavorite ??= ref.read(propertyByIdProvider(propertyId)).valueOrNull?.isFavorite;
   wasFavorite ??= favList.any((p) => p.id == propertyId);
 
-  controller.applyFavoriteChange(propertyId, !wasFavorite);
+  final nextState = !wasFavorite;
+  controller.applyFavoriteChange(propertyId, nextState);
   try {
     final repository = ref.read(propertyRepositoryProvider);
     final updated = await repository.toggleFavorite(propertyId);

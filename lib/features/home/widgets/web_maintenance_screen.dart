@@ -554,61 +554,8 @@ class _WebMaintenanceScreenState extends ConsumerState<WebMaintenanceScreen> {
       ),
       child: Column(
         children: [
-          // Illustration visuelle : Ordinateur, Tablette et Clé à molette
-          Stack(
-            alignment: Alignment.center,
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                width: 90,
-                height: 90,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFFBEB),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: const Color(0xFFFDE68A),
-                    width: 2,
-                  ),
-                ),
-                child: const Center(
-                  child: Icon(
-                    Icons.construction_rounded,
-                    size: 44,
-                    color: Color(0xFFD97706),
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: -6,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD97706),
-                    borderRadius: BorderRadius.circular(AppRadius.pill),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFD97706).withValues(alpha: 0.3),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: const Text(
-                    'SITE EN MAINTENANCE',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+          // Illustration visuelle : Ordinateur et Tablette avec le logo LoueMoi en maintenance
+          const _MaintenanceDevicesIllustration(),
 
           const SizedBox(height: 24),
 
@@ -835,6 +782,261 @@ class _BenefitRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Illustration d'un ordinateur et d'une tablette arborant le logo LoueMoi
+/// avec indicateurs de maintenance.
+class _MaintenanceDevicesIllustration extends StatelessWidget {
+  const _MaintenanceDevicesIllustration();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 145,
+      width: 250,
+      child: Stack(
+        alignment: Alignment.center,
+        clipBehavior: Clip.none,
+        children: [
+          // 1. Ordinateur portable / Desktop (au centre-gauche)
+          Positioned(
+            left: 10,
+            top: 6,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Écran de l'ordinateur
+                Container(
+                  width: 146,
+                  height: 94,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E293B),
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.12),
+                        blurRadius: 14,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                    border: Border.all(color: const Color(0xFF334155), width: 1.5),
+                  ),
+                  child: Stack(
+                    children: [
+                      // Fond de l'écran avec logo LoueMoi
+                      Center(
+                        child: Container(
+                          width: 136,
+                          height: 82,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              AppLogo(iconSize: 26),
+                              SizedBox(height: 3),
+                              Text(
+                                'LoueMoi Web',
+                                style: TextStyle(
+                                  fontSize: 8.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF0F766E),
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      // Mini caméra en haut de l'ordinateur
+                      Positioned(
+                        top: 3,
+                        left: 0,
+                        right: 0,
+                        child: Center(
+                          child: Container(
+                            width: 3.5,
+                            height: 3.5,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF64748B),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Socle / Clavier de l'ordinateur
+                Container(
+                  width: 168,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFCBD5E1),
+                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(5)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Container(
+                      width: 32,
+                      height: 2.5,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF94A3B8),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // 2. Tablette (à droite, légèrement en avant)
+          Positioned(
+            right: 12,
+            top: 22,
+            child: Container(
+              width: 58,
+              height: 80,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E293B),
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.16),
+                    blurRadius: 10,
+                    offset: const Offset(2, 4),
+                  ),
+                ],
+                border: Border.all(color: const Color(0xFF334155), width: 1.5),
+              ),
+              child: Stack(
+                children: [
+                  // Écran de la tablette avec logo LoueMoi
+                  Center(
+                    child: Container(
+                      width: 50,
+                      height: 70,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          AppLogo(iconSize: 18),
+                          SizedBox(height: 2),
+                          Text(
+                            'LoueMoi',
+                            style: TextStyle(
+                              fontSize: 6.5,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF0F766E),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Barre home tablette
+                  Positioned(
+                    bottom: 2,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: Container(
+                        width: 14,
+                        height: 2,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF64748B),
+                          borderRadius: BorderRadius.circular(1),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // 3. Badge circulaire Outils & Clé à molette de maintenance
+          Positioned(
+            left: 108,
+            top: 2,
+            child: Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF59E0B),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFF59E0B).withValues(alpha: 0.4),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: const Center(
+                child: Icon(
+                  Icons.construction_rounded,
+                  size: 18,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+
+          // 4. Badge flottant "SITE EN MAINTENANCE"
+          Positioned(
+            bottom: 6,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFD97706), Color(0xFFB45309)],
+                ),
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFD97706).withValues(alpha: 0.35),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+                border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.build_circle_outlined, size: 12, color: Colors.white),
+                  SizedBox(width: 5),
+                  Text(
+                    'SITE EN MAINTENANCE',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

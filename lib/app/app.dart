@@ -170,16 +170,74 @@ class _LoueMoiAppState extends ConsumerState<LoueMoiApp> with WidgetsBindingObse
 
     final notification = message.notification;
     if (notification == null) return;
+    _scaffoldMessengerKey.currentState?.hideCurrentSnackBar();
     _scaffoldMessengerKey.currentState?.showSnackBar(
       SnackBar(
-        content: Text(notification.title ?? notification.body ?? 'Nouvelle notification'),
-        action: SnackBarAction(label: 'Voir', onPressed: () => _handleNotificationTap(message)),
+        backgroundColor: const Color(0xFF1E293B),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        duration: const Duration(seconds: 5),
+        content: InkWell(
+          onTap: () {
+            _scaffoldMessengerKey.currentState?.hideCurrentSnackBar();
+            _handleNotificationTap(message);
+          },
+          child: Row(
+            children: [
+              const Icon(
+                Icons.notifications_active_rounded,
+                color: AppColors.primary,
+                size: 22,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (notification.title != null && notification.title!.isNotEmpty)
+                      Text(
+                        notification.title!,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                          color: Colors.white,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    if (notification.body != null && notification.body!.isNotEmpty)
+                      Text(
+                        notification.body!,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFFCBD5E1),
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        action: SnackBarAction(
+          label: 'Voir',
+          textColor: AppColors.primary,
+          onPressed: () {
+            _scaffoldMessengerKey.currentState?.hideCurrentSnackBar();
+            _handleNotificationTap(message);
+          },
+        ),
       ),
     );
   }
 
   void _handleNotificationTap(RemoteMessage message) {
     try {
+      _scaffoldMessengerKey.currentState?.hideCurrentSnackBar();
       final type = message.data['type']?.toString() ?? '';
       final isMessage = type == 'new_message' || message.data.containsKey('conversation_id');
       final path = const NotificationRouter().resolvePath(type, message.data) ?? AppRoutes.notifications;

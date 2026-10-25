@@ -521,6 +521,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 AppRoutes.propertyDetailPath(property.id),
                               ),
                               onFavoriteTap: () async {
+                                final user = ref.read(authControllerProvider).valueOrNull;
+                                if (user == null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Text('Veuillez vous connecter pour gérer vos favoris.'),
+                                      backgroundColor: AppColors.primary,
+                                      action: SnackBarAction(
+                                        label: 'Se connecter',
+                                        textColor: AppColors.white,
+                                        onPressed: () => context.push(AppRoutes.login),
+                                      ),
+                                    ),
+                                  );
+                                  return;
+                                }
                                 try {
                                   await toggleFavorite(ref, property.id);
                                 } catch (e) {
