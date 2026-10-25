@@ -69,47 +69,55 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.screenPadding),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Entrez le code reçu par SMS au ${widget.phone} et votre nouveau mot de passe.',
-                  style: AppTextStyles.body,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                AppTextField(
-                  label: 'Code de vérification',
-                  hint: '',
-                  controller: _codeController,
-                  keyboardType: TextInputType.number,
-                  validator: (v) => Validators.required(v, message: 'Le code est requis'),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                AppTextField(
-                  label: 'Nouveau mot de passe',
-                  hint: '',
-                  controller: _passwordController,
-                  obscureText: true,
-                  validator: Validators.password,
-                ),
-                const SizedBox(height: AppSpacing.md),
-                AppTextField(
-                  label: 'Confirmer le mot de passe',
-                  hint: '',
-                  controller: _confirmPasswordController,
-                  obscureText: true,
-                  validator: (v) =>
-                      Validators.confirmPassword(v, _passwordController.text),
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                PrimaryButton(
-                  label: 'Réinitialiser',
-                  isLoading: _isSubmitting,
-                  onPressed: _submit,
-                ),
-              ],
+          child: AutofillGroup(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Entrez le code reçu par SMS au ${widget.phone} et votre nouveau mot de passe.',
+                    style: AppTextStyles.body,
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  AppTextField(
+                    label: 'Code de vérification OTP',
+                    hint: 'Entrez le code reçu par SMS',
+                    controller: _codeController,
+                    keyboardType: TextInputType.visiblePassword,
+                    autofillHints: const [AutofillHints.oneTimeCode],
+                    textCapitalization: TextCapitalization.characters,
+                    validator: (v) => Validators.required(v, message: 'Le code est requis'),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  AppTextField(
+                    label: 'Nouveau mot de passe',
+                    hint: 'Au moins 6 caractères alphanumériques',
+                    controller: _passwordController,
+                    keyboardType: TextInputType.visiblePassword,
+                    autofillHints: const [AutofillHints.newPassword],
+                    obscureText: true,
+                    validator: Validators.password,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  AppTextField(
+                    label: 'Confirmer le mot de passe',
+                    hint: 'Répétez votre mot de passe',
+                    controller: _confirmPasswordController,
+                    keyboardType: TextInputType.visiblePassword,
+                    autofillHints: const [AutofillHints.newPassword],
+                    obscureText: true,
+                    validator: (v) =>
+                        Validators.confirmPassword(v, _passwordController.text),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  PrimaryButton(
+                    label: 'Réinitialiser',
+                    isLoading: _isSubmitting,
+                    onPressed: _submit,
+                  ),
+                ],
+              ),
             ),
           ),
         ),

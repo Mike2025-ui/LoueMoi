@@ -219,14 +219,17 @@ class PasswordResetOTP(models.Model):
 
     def check_code(self, code):
         """Incrémente `attempts` à chaque tentative, y compris les échecs —
-        limite le brute-force sur un code à 6 chiffres (1 million de
-        combinaisons, insuffisant pour se reposer uniquement sur le
-        hachage)."""
+        limite le brute-force sur le code."""
         self.attempts += 1
         self.save(update_fields=["attempts"])
         if self.is_used or self.is_expired or self.attempts > self.MAX_ATTEMPTS:
             return False
-        return check_password(code, self.code_hash)
+        clean = str(code or "").strip()
+        return (
+            check_password(clean, self.code_hash)
+            or check_password(clean.upper(), self.code_hash)
+            or check_password(clean.lower(), self.code_hash)
+        )
 
     def mark_used(self):
         self.is_used = True

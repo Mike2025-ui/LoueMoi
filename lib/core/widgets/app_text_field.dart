@@ -21,6 +21,8 @@ class AppTextField extends StatelessWidget {
     this.enabled = true,
     this.inputFormatters,
     this.helperText,
+    this.autofillHints,
+    this.textCapitalization = TextCapitalization.none,
   });
 
   final String? label;
@@ -35,6 +37,8 @@ class AppTextField extends StatelessWidget {
   final bool enabled;
   final List<TextInputFormatter>? inputFormatters;
   final String? helperText;
+  final Iterable<String>? autofillHints;
+  final TextCapitalization textCapitalization;
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +54,8 @@ class AppTextField extends StatelessWidget {
           obscureText: obscureText,
           keyboardType: keyboardType,
           inputFormatters: inputFormatters,
+          autofillHints: autofillHints,
+          textCapitalization: textCapitalization,
           validator: validator,
           maxLines: obscureText ? 1 : maxLines,
           onChanged: onChanged,
