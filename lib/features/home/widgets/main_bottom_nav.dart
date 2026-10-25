@@ -11,7 +11,7 @@ import '../../filters/models/filter_params.dart';
 import '../../filters/providers/filter_providers.dart';
 import '../../messaging/providers/message_providers.dart';
 import '../../properties/providers/property_providers.dart';
-import 'web_header_nav.dart';
+import 'web_sidebar_nav.dart';
 
 /// Shell de navigation principal : bottom bar + FAB central "+"
 /// (Menu / Favoris / Publier / Réservations / Conversations / Profil), conforme
@@ -65,13 +65,13 @@ class MainBottomNav extends ConsumerWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktopWeb = screenWidth >= 768;
 
-    // Sur grand écran (Desktop / Tablette Web) : barre de navigation supérieure (Header) moderne
+    // Sur grand écran (Desktop / Tablette Web) : Sidebar à gauche divisée par une barre verticale avec les annonces à droite
     if (isDesktopWeb) {
       return Scaffold(
         backgroundColor: AppColors.background,
-        body: Column(
+        body: Row(
           children: [
-            WebHeaderNav(
+            WebSidebarNav(
               currentIndex: currentBranch,
               onTap: (idx) => _onTap(ref, idx),
             ),

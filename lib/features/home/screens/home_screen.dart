@@ -9,7 +9,6 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/feedback.dart';
 import '../../../core/widgets/app_logo.dart';
-import '../../../core/widgets/web_download_app_dialog.dart';
 import '../../filters/models/filter_params.dart';
 import '../../filters/providers/filter_providers.dart';
 import '../../filters/screens/filters_sheet.dart';
@@ -201,44 +200,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1320),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(
+                  child: const Padding(
+                    padding: EdgeInsets.fromLTRB(
                       AppSpacing.screenPadding,
                       AppSpacing.lg,
                       AppSpacing.screenPadding,
                       0,
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Explorez les biens disponibles',
-                              style: AppTextStyles.h2,
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              'Location et vente de logements vérifiés en Côte d’Ivoire',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ],
+                        Text(
+                          'Explorez les biens disponibles',
+                          style: AppTextStyles.h2,
                         ),
-                        OutlinedButton.icon(
-                          onPressed: () => showDownloadAppModal(context),
-                          icon: const Icon(Icons.install_mobile, size: 18),
-                          label: const Text('Installer l’APK mobile'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.primary,
-                            side: const BorderSide(color: AppColors.primary),
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(AppRadius.pill),
-                            ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Location et vente de logements vérifiés en Côte d’Ivoire',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppColors.textSecondary,
                           ),
                         ),
                       ],
@@ -490,13 +471,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       );
                     }
                     final screenWidth = MediaQuery.of(context).size.width;
+                    final availableWidth = screenWidth >= 768 ? (screenWidth - 280) : screenWidth;
                     final int crossAxisCount;
                     final double childAspectRatio;
-                    if (screenWidth >= 1200) {
+                    if (availableWidth >= 1200) {
                       crossAxisCount = 4;
-                      childAspectRatio = 0.72;
-                    } else if (screenWidth >= 768) {
+                      childAspectRatio = 0.74;
+                    } else if (availableWidth >= 800) {
                       crossAxisCount = 3;
+                      childAspectRatio = 0.72;
+                    } else if (availableWidth >= 520) {
+                      crossAxisCount = 2;
                       childAspectRatio = 0.70;
                     } else {
                       crossAxisCount = 2;
