@@ -241,9 +241,9 @@ SIMPLE_JWT = {
 # Configuration de la passerelle SMS Ikoddi pour l'envoi d'OTP
 # de réinitialisation de mot de passe ("Mot de passe oublié").
 # Les valeurs sont lues depuis l'environnement sur le serveur de production.
-IKODDI_API_KEY = os.environ.get("IKODDI_API_KEY") or os.environ.get("IKKODI_API_KEY", "")
-IKODDI_SENDER_ID = os.environ.get("IKODDI_SENDER_ID") or os.environ.get("IKKODI_SENDER_ID", "LoueMoi")
-IKODDI_API_URL = os.environ.get("IKODDI_API_URL") or os.environ.get("IKKODI_API_URL", "https://api.ikoddi.com/v1/sms/send")
+IKODDI_API_KEY = (os.environ.get("IKODDI_API_KEY") or os.environ.get("IKKODI_API_KEY", "")).strip().strip('"').strip("'")
+IKODDI_SENDER_ID = (os.environ.get("IKODDI_SENDER_ID") or os.environ.get("IKKODI_SENDER_ID", "LoueMoi")).strip().strip('"').strip("'")
+IKODDI_API_URL = (os.environ.get("IKODDI_API_URL") or os.environ.get("IKKODI_API_URL", "https://api.ikoddi.com/v1/sms/send")).strip().strip('"').strip("'")
 
 # --- Passerelle de Paiement & Abonnements (Jèko Checkout) ------------------
 # Clés API et Webhook Jèko (https://jeko.africa / https://mcp.jeko.africa)

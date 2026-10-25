@@ -1,7 +1,10 @@
 from datetime import timedelta
+import logging
 import os
 import uuid
 from PIL import Image
+
+logger = logging.getLogger(__name__)
 
 from django.contrib.auth import get_user_model
 from django.core.files.storage import default_storage
@@ -253,10 +256,20 @@ class PasswordResetRequestView(APIView):
         if not phone:
             return Response({"detail": _GENERIC_OTP_REQUEST_DETAIL})
 
-        from .sms import normalize_phone_number
+        from .sms import _mask_phone, normalize_phone_number
         normalized_phone = normalize_phone_number(phone)
-        user = User.objects.filter(phone=normalized_phone).first() or User.objects.filter(phone=phone).first()
+        candidate_phones = {p for p in (phone.strip(), normalized_phone) if p}
+        if normalized_phone.startswith("+225"):
+            candidate_phones.add(normalized_phone[4:])   # e.g. "0701020304"
+            candidate_phones.add(normalized_phone[1:])   # e.g. "2250701020304"
+
+        user = User.objects.filter(phone__in=candidate_phones).first()
         if user is None:
+            logger.warning(
+                "Demande OTP réinitialisation : aucun compte trouvé pour le numéro %s (formats testés: %s)",
+                _mask_phone(phone),
+                candidate_phones,
+            )
             return Response({"detail": _GENERIC_OTP_REQUEST_DETAIL})
 
         cooldown_start = timezone.now() - timedelta(
@@ -266,12 +279,16 @@ class PasswordResetRequestView(APIView):
             user=user, created_at__gt=cooldown_start
         ).exists()
         if recent_request:
-            # Cooldown actif : ni nouveau code, ni indice donné à l'appelant
-            # (même réponse générique) — évite le spam de SMS.
+            logger.warning(
+                "Demande OTP pour %s ignorée : cooldown anti-spam actif (%s secondes).",
+                _mask_phone(phone),
+                PasswordResetOTP.REQUEST_COOLDOWN_SECONDS,
+            )
             return Response({"detail": _GENERIC_OTP_REQUEST_DETAIL})
 
         _otp, code = PasswordResetOTP.generate_for(user)
-        target_phone = normalized_phone or phone
+        target_phone = normalized_phone or user.phone
+        logger.info("Envoi d'un nouvel OTP vers %s...", _mask_phone(target_phone))
         get_sms_provider().send(
             target_phone,
             f"Votre code LoueMoi : {code} (valide {PasswordResetOTP.VALIDITY_MINUTES} minutes).",
@@ -312,10 +329,11 @@ class PasswordResetConfirmView(APIView):
 
         from .sms import normalize_phone_number
         normalized_phone = normalize_phone_number(phone)
-        user = (
-            User.objects.filter(phone=normalized_phone).first()
-            or User.objects.filter(phone=phone).first()
-        )
+        candidate_phones = {p for p in (phone.strip(), normalized_phone) if p}
+        if normalized_phone.startswith("+225"):
+            candidate_phones.add(normalized_phone[4:])
+            candidate_phones.add(normalized_phone[1:])
+        user = User.objects.filter(phone__in=candidate_phones).first()
         otp = (
             PasswordResetOTP.objects.filter(user=user, is_used=False)
             .order_by("-created_at")

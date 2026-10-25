@@ -122,11 +122,10 @@ class IkoddiSmsProvider(SmsProvider):
 
         payload = {
             "to": normalized_phone,
-            "recipient": normalized_phone,
             "message": message,
-            "sender": self.sender_id,
-            "from": self.sender_id,
         }
+        if self.sender_id:
+            payload["sender"] = self.sender_id
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -147,10 +146,11 @@ class IkoddiSmsProvider(SmsProvider):
                 status_code = resp.status
                 body = resp.read().decode("utf-8", errors="replace")
                 logger.info(
-                    "SMS OTP Ikoddi envoyé avec succès vers %s (HTTP %s, sender=%s)",
+                    "SMS OTP Ikoddi envoyé avec succès vers %s (HTTP %s, sender=%s) : %s",
                     masked_phone,
                     status_code,
                     self.sender_id,
+                    body[:100],
                 )
                 return True
 
@@ -160,8 +160,29 @@ class IkoddiSmsProvider(SmsProvider):
                 "Erreur HTTP lors de l'envoi SMS Ikoddi vers %s : HTTP %s — %s",
                 masked_phone,
                 err.code,
-                err_body[:200],
+                err_body[:300],
             )
+            # Repli de secours : si le sender personnalisé n'est pas encore approuvé par les opérateurs,
+            # relancer immédiatement sans le champ sender (Ikoddi utilise alors son expéditeur système vérifié).
+            if "sender" in payload and err.code in (400, 422, 500):
+                try:
+                    logger.warning("Nouvelle tentative d'envoi SMS Ikoddi sans sender personnalisé pour %s...", masked_phone)
+                    fallback_payload = {"to": normalized_phone, "message": message}
+                    req_fb = urllib.request.Request(
+                        self.api_url,
+                        data=json.dumps(fallback_payload).encode("utf-8"),
+                        headers=headers,
+                        method="POST",
+                    )
+                    with urllib.request.urlopen(req_fb, timeout=self.timeout) as resp_fb:
+                        logger.info(
+                            "SMS OTP Ikoddi envoyé avec succès sans sender personnalisé vers %s (HTTP %s)",
+                            masked_phone,
+                            resp_fb.status,
+                        )
+                        return True
+                except Exception as fb_err:
+                    logger.error("Échec du repli SMS sans sender pour %s : %s", masked_phone, str(fb_err))
             return False
 
         except urllib.error.URLError as err:
@@ -191,26 +212,29 @@ def get_sms_provider() -> SmsProvider:
         getattr(settings, "IKODDI_API_KEY", "")
         or os.environ.get("IKODDI_API_KEY", "")
         or os.environ.get("IKKODI_API_KEY", "")
-    ).strip()
+    ).strip().strip('"').strip("'")
 
     # Si la clé est vide ou un placeholder d'exemple (ex: "votre_cle_..."), rester en mode logging
     is_placeholder = any(
         api_key.lower().startswith(prefix)
-        for prefix in ("votre_", "changez_", "test_", "dummy", "sample")
+        for prefix in ("votre_", "changez_", "dummy", "sample", "your_")
     )
-    if api_key and not is_placeholder and len(api_key) > 6:
+    if api_key and not is_placeholder and len(api_key) > 5:
         sender_id = (
             getattr(settings, "IKODDI_SENDER_ID", "")
             or os.environ.get("IKODDI_SENDER_ID", "")
             or os.environ.get("IKKODI_SENDER_ID", "")
             or IkoddiSmsProvider.DEFAULT_SENDER_ID
-        ).strip()
+        ).strip().strip('"').strip("'")
         api_url = (
             getattr(settings, "IKODDI_API_URL", "")
             or os.environ.get("IKODDI_API_URL", "")
             or os.environ.get("IKKODI_API_URL", "")
             or IkoddiSmsProvider.DEFAULT_API_URL
-        ).strip()
+        ).strip().strip('"').strip("'")
         return IkoddiSmsProvider(api_key=api_key, sender_id=sender_id, api_url=api_url)
 
+    logger.warning(
+        "[SMS] Aucun fournisseur SMS Ikoddi actif (IKODDI_API_KEY absente ou placeholder) -> LoggingSmsProvider utilisé."
+    )
     return LoggingSmsProvider()
