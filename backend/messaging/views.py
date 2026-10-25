@@ -44,9 +44,9 @@ def user_can_access_conversation(user, conversation):
         return bool(user_sub)
 
     # Règle Client :
-    # Le client a accès si lui-même est abonné OU si le professionnel en face possède un abonnement actif.
+    # Un client DOIT également avoir son propre abonnement Client actif pour déverrouiller toute conversation !
     if user_role == "client":
-        return bool(user_sub or other_sub)
+        return bool(user_sub)
 
     return False
 

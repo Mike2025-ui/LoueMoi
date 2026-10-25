@@ -191,8 +191,8 @@ class _SubscriptionSheetState extends ConsumerState<_SubscriptionSheet>
       planLabel = 'Abonnement Client';
       price = remoteConfig.clientPriceFcfa;
       description =
-          'Le propriétaire de ce bien n\'ayant pas d\'abonnement actif, un abonnement de $price FCFA / mois est requis pour pouvoir le contacter directement.';
-      badgePerk = 'Badge Membre certifié et accès illimité aux contacts directs.';
+          'Un abonnement de $price FCFA / mois est requis pour visiter les logements, discuter avec les propriétaires et accéder aux appels et contacts WhatsApp directs.';
+      badgePerk = 'Badge Membre certifié, visites, messagerie et contacts directs illimités pendant 30 jours.';
     }
 
     return Padding(

@@ -187,7 +187,9 @@ class _Content extends ConsumerWidget {
               if (user == null) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: const Text('Veuillez vous connecter pour gérer vos favoris.'),
+                    content: const Text(
+                      'Veuillez vous connecter pour gérer vos favoris.',
+                    ),
                     backgroundColor: AppColors.primary,
                     action: SnackBarAction(
                       label: 'Se connecter',
@@ -421,28 +423,28 @@ class _AProposTab extends ConsumerWidget {
       return true;
     }
 
-    // Les clients peuvent contacter le bailleur/agent gratuitement par messagerie interne
-    if (currentUser.isClient) {
-      return true;
-    }
-
-    // Échanges entre Pros (Bailleur et Agent) : vérification de l'abonnement
+    // Vérification de l'abonnement :
+    // Clients, Bailleurs et Agents doivent disposer d'un abonnement actif pour discuter ou visiter ce bien
+    bool hasActiveSubscription = false;
     try {
       final repository = ref.read(paymentRepositoryProvider);
       final check = await repository.checkCanContact(propertyId: property.id);
-      if (check.canContact) {
-        return true;
-      }
+      hasActiveSubscription = check.userHasActiveSubscription;
     } catch (_) {}
 
-    // Entre pros sans abonnement actif -> ouvrir le modal d'abonnement
+    if (hasActiveSubscription) {
+      return true;
+    }
+
+    // Sans abonnement actif -> ouvrir DIRECTEMENT la page / modal de paiement comme les agents et bailleurs
     if (!context.mounted) return false;
+    final isPro = currentUser.isAgent || currentUser.isBailleur;
     final subscribed = await showSubscriptionModal(
       context,
-      isPro: true,
+      isPro: isPro,
       role: currentUser.role,
       propertyId: property.id,
-      reason: 'pro_subscription_required',
+      reason: 'subscription_required',
     );
     if (subscribed == true) {
       ref.invalidate(propertyByIdProvider(property.id));
@@ -478,7 +480,7 @@ class _AProposTab extends ConsumerWidget {
       return true;
     }
 
-    // Vérifier si l'utilisateur possède un abonnement actif
+    // Vérifier si l'utilisateur possède son abonnement actif
     bool hasActiveSub = false;
     try {
       final repository = ref.read(paymentRepositoryProvider);
@@ -490,102 +492,19 @@ class _AProposTab extends ConsumerWidget {
       return true;
     }
 
-    // WhatsApp et Appel direct sont des options payantes réservées aux abonnés
+    // Sans abonnement -> ouvrir DIRECTEMENT la page / modal de paiement comme les agents et bailleurs
     if (!context.mounted) return false;
-    final choice = await showDialog<String>(
-      context: context,
-      builder: (dialogCtx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-        ),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.primaryLight,
-                borderRadius: BorderRadius.circular(AppRadius.md),
-              ),
-              child: Icon(icon, color: AppColors.primary, size: 22),
-            ),
-            const SizedBox(width: 10),
-            const Expanded(
-              child: Text(
-                'Option avec abonnement',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'L’accès direct par $channelName est une option payante réservée aux abonnés.',
-              style: const TextStyle(fontSize: 13, height: 1.4),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppColors.background,
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.check_circle_outline, color: AppColors.primary, size: 18),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Vous pouvez échanger gratuitement avec le propriétaire via la messagerie LoueMoi.',
-                      style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop('chat'),
-            child: const Text(
-              'Messagerie gratuite',
-              style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(dialogCtx).pop('subscribe'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.pill)),
-            ),
-            child: const Text('S’abonner', style: TextStyle(fontSize: 12.5)),
-          ),
-        ],
-      ),
+    final isPro = currentUser.isAgent || currentUser.isBailleur;
+    final subscribed = await showSubscriptionModal(
+      context,
+      isPro: isPro,
+      role: currentUser.role,
+      propertyId: property.id,
+      reason: 'direct_contact_required',
     );
-
-    if (choice == 'chat') {
-      if (!context.mounted) return false;
-      await _contactAgent(context, ref);
-      return false;
-    } else if (choice == 'subscribe') {
-      if (!context.mounted) return false;
-      final subscribed = await showSubscriptionModal(
-        context,
-        isPro: currentUser.isAgent || currentUser.isBailleur,
-        role: currentUser.role,
-        propertyId: property.id,
-        reason: 'direct_contact_required',
-      );
-      if (subscribed == true) {
-        ref.invalidate(propertyByIdProvider(property.id));
-        return true;
-      }
+    if (subscribed == true) {
+      ref.invalidate(propertyByIdProvider(property.id));
+      return true;
     }
     return false;
   }
