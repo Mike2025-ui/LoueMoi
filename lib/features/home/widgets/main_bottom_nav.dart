@@ -10,6 +10,7 @@ import '../../auth/providers/auth_providers.dart';
 import '../../filters/models/filter_params.dart';
 import '../../filters/providers/filter_providers.dart';
 import '../../messaging/providers/message_providers.dart';
+import '../../notifications/providers/notification_providers.dart';
 import '../../properties/providers/property_providers.dart';
 import 'web_sidebar_nav.dart';
 
@@ -52,6 +53,8 @@ class MainBottomNav extends ConsumerWidget {
       ref.read(propertiesControllerProvider.notifier).refresh();
     } else if (branchIndex == 3) {
       ref.invalidate(conversationsProvider);
+    } else if (branchIndex == 5) {
+      ref.invalidate(notificationsProvider);
     }
     navigationShell.goBranch(
       branchIndex,

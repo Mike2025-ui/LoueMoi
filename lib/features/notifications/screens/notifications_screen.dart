@@ -18,10 +18,21 @@ class NotificationsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final notificationsAsync = ref.watch(notificationsProvider);
 
+    final isDesktopWeb = MediaQuery.of(context).size.width >= 768;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Notifications'),
+        automaticallyImplyLeading: false,
+        leading: Navigator.canPop(context)
+            ? const BackButton()
+            : (!isDesktopWeb
+                ? IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () => context.go(AppRoutes.home),
+                  )
+                : null),
         actions: [
           TextButton(
             onPressed: () async {
@@ -35,18 +46,21 @@ class NotificationsScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: notificationsAsync.when(
-        data: (notifications) {
-          if (notifications.isEmpty) {
-            return const Center(
-              child: Text('Aucune notification', style: AppTextStyles.caption),
-            );
-          }
-          return ListView.separated(
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-            itemCount: notifications.length,
-            separatorBuilder: (context, index) => const Divider(height: 1, indent: 72),
-            itemBuilder: (context, index) {
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 760),
+          child: notificationsAsync.when(
+            data: (notifications) {
+              if (notifications.isEmpty) {
+                return const Center(
+                  child: Text('Aucune notification', style: AppTextStyles.caption),
+                );
+              }
+              return ListView.separated(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                itemCount: notifications.length,
+                separatorBuilder: (context, index) => const Divider(height: 1, indent: 72),
+                itemBuilder: (context, index) {
               final notification = notifications[index];
               return _NotificationTile(
                 notification: notification,
@@ -116,8 +130,10 @@ class NotificationsScreen extends ConsumerWidget {
               style: AppTextStyles.caption),
         ),
       ),
-    );
-  }
+    ),
+  ),
+);
+}
 }
 
 class _NotificationTile extends StatelessWidget {

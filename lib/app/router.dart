@@ -138,6 +138,12 @@ final routerProvider = Provider<GoRouter>((ref) {
               ],
             ),
           ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: AppRoutes.notifications,
+              builder: (context, state) => const NotificationsScreen(),
+            ),
+          ]),
         ],
       ),
       GoRoute(
@@ -255,11 +261,6 @@ final routerProvider = Provider<GoRouter>((ref) {
             participantName: extra?['participantName'] as String?,
           );
         },
-      ),
-      GoRoute(
-        path: AppRoutes.notifications,
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const NotificationsScreen(),
       ),
     ],
   );

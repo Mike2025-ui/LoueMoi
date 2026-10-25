@@ -147,7 +147,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   children: [
                     const AppLogo(),
                     InkWell(
-                      onTap: () => context.push(AppRoutes.notifications),
+                      onTap: () => context.go(AppRoutes.notifications),
                       borderRadius: BorderRadius.circular(20),
                       child: Stack(
                         clipBehavior: Clip.none,
@@ -197,210 +197,214 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               )
             else
-              Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1320),
-                  child: const Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      AppSpacing.screenPadding,
-                      AppSpacing.lg,
-                      AppSpacing.screenPadding,
-                      0,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.screenPadding,
+                  AppSpacing.md,
+                  AppSpacing.screenPadding,
+                  0,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Explorez les biens disponibles',
+                      style: TextStyle(
+                        fontSize: isDesktopWeb ? 20 : 18,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                        letterSpacing: -0.3,
+                      ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    const SizedBox(height: 3),
+                    const Text(
+                      'Location et vente de logements vérifiés en Côte d’Ivoire',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.screenPadding,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: AppSpacing.md),
+                  // Toggle Location / Vente (compact sur Web)
+                  SizedBox(
+                    width: isDesktopWeb ? 260 : double.infinity,
+                    child: Row(
                       children: [
-                        Text(
-                          'Explorez les biens disponibles',
-                          style: AppTextStyles.h2,
+                        Expanded(
+                          child: _TransactionToggleButton(
+                            label: 'Location',
+                            isActive: transactionType == TransactionType.location,
+                            isCompact: isDesktopWeb,
+                            onTap: () {
+                              ref.read(homeTransactionTypeProvider.notifier).state =
+                                  TransactionType.location;
+                              final applied = ref.read(appliedFilterParamsProvider);
+                              if (applied != null && (applied.budgetMin != null || applied.budgetMax != null)) {
+                                ref.read(appliedFilterParamsProvider.notifier).state =
+                                    applied.copyWith(clearBudgetMin: true, clearBudgetMax: true);
+                              }
+                            },
+                          ),
                         ),
-                        SizedBox(height: 4),
-                        Text(
-                          'Location et vente de logements vérifiés en Côte d’Ivoire',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: AppColors.textSecondary,
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: _TransactionToggleButton(
+                            label: 'Vente',
+                            isActive: transactionType == TransactionType.vente,
+                            isCompact: isDesktopWeb,
+                            onTap: () {
+                              ref.read(homeTransactionTypeProvider.notifier).state =
+                                  TransactionType.vente;
+                              final applied = ref.read(appliedFilterParamsProvider);
+                              if (applied != null && (applied.budgetMin != null || applied.budgetMax != null)) {
+                                ref.read(appliedFilterParamsProvider.notifier).state =
+                                    applied.copyWith(clearBudgetMin: true, clearBudgetMax: true);
+                              }
+                            },
                           ),
                         ),
                       ],
                     ),
                   ),
-                ),
-              ),
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1320),
-                child: Column(
-                  children: [
-                    const SizedBox(height: AppSpacing.md),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.screenPadding,
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: _TransactionToggleButton(
-                              label: 'Location',
-                              isActive: transactionType == TransactionType.location,
-                              onTap: () {
-                                ref.read(homeTransactionTypeProvider.notifier).state =
-                                    TransactionType.location;
-                                final applied = ref.read(appliedFilterParamsProvider);
-                                if (applied != null && (applied.budgetMin != null || applied.budgetMax != null)) {
-                                  ref.read(appliedFilterParamsProvider.notifier).state =
-                                      applied.copyWith(clearBudgetMin: true, clearBudgetMax: true);
-                                }
-                              },
+                  const SizedBox(height: AppSpacing.md),
+                  // Barre de recherche et filtres (largeur ergonomique sur Web)
+                  SizedBox(
+                    width: isDesktopWeb ? 680 : double.infinity,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            height: isDesktopWeb ? 42 : 48,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.md,
                             ),
-                          ),
-                          const SizedBox(width: AppSpacing.md),
-                          Expanded(
-                            child: _TransactionToggleButton(
-                              label: 'Vente',
-                              isActive: transactionType == TransactionType.vente,
-                              onTap: () {
-                                ref.read(homeTransactionTypeProvider.notifier).state =
-                                    TransactionType.vente;
-                                final applied = ref.read(appliedFilterParamsProvider);
-                                if (applied != null && (applied.budgetMin != null || applied.budgetMax != null)) {
-                                  ref.read(appliedFilterParamsProvider.notifier).state =
-                                      applied.copyWith(clearBudgetMin: true, clearBudgetMax: true);
-                                }
-                              },
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceMuted,
+                              borderRadius: BorderRadius.circular(AppRadius.pill),
+                              border: Border.all(color: AppColors.border),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.screenPadding,
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Container(
-                              height: 48,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.md,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.surfaceMuted,
-                                borderRadius: BorderRadius.circular(AppRadius.pill),
-                                border: Border.all(color: AppColors.border),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.search,
-                                    size: 20,
-                                    color: AppColors.textHint,
-                                  ),
-                                  const SizedBox(width: AppSpacing.sm),
-                                  Expanded(
-                                    child: TextField(
-                                      controller: _searchController,
-                                      onChanged: (v) =>
-                                          ref.read(searchQueryProvider.notifier).state =
-                                              v,
-                                      decoration: const InputDecoration(
-                                        hintText: 'Recherche...',
-                                        border: InputBorder.none,
-                                        enabledBorder: InputBorder.none,
-                                        focusedBorder: InputBorder.none,
-                                        errorBorder: InputBorder.none,
-                                        disabledBorder: InputBorder.none,
-                                        contentPadding: EdgeInsets.zero,
-                                        isDense: true,
-                                      ),
-                                    ),
-                                  ),
-                                  if (searchQuery.isNotEmpty)
-                                    InkWell(
-                                      onTap: () {
-                                        _searchController.clear();
-                                        ref.read(searchQueryProvider.notifier).state = '';
-                                      },
-                                      child: const Padding(
-                                        padding: EdgeInsets.all(4),
-                                        child: Icon(
-                                          Icons.close,
-                                          size: 18,
-                                          color: AppColors.textHint,
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          InkWell(
-                            onTap: () => showFiltersSheet(context, ref),
-                            child: Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                color: AppColors.surfaceMuted,
-                                borderRadius: BorderRadius.circular(AppRadius.pill),
-                                border: Border.all(
-                                  color: appliedFilters != null ? AppColors.primary : AppColors.border,
-                                  width: appliedFilters != null ? 1.5 : 1.0,
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.search,
+                                  size: 19,
+                                  color: AppColors.textHint,
                                 ),
-                              ),
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.tune,
-                                    size: 20,
-                                    color: appliedFilters != null ? AppColors.primary : AppColors.textPrimary,
+                                const SizedBox(width: AppSpacing.sm),
+                                Expanded(
+                                  child: TextField(
+                                    controller: _searchController,
+                                    onChanged: (v) =>
+                                        ref.read(searchQueryProvider.notifier).state =
+                                            v,
+                                    decoration: const InputDecoration(
+                                      hintText: 'Recherche...',
+                                      border: InputBorder.none,
+                                      enabledBorder: InputBorder.none,
+                                      focusedBorder: InputBorder.none,
+                                      errorBorder: InputBorder.none,
+                                      disabledBorder: InputBorder.none,
+                                      contentPadding: EdgeInsets.zero,
+                                      isDense: true,
+                                    ),
                                   ),
-                                  if (appliedFilters != null)
-                                    Positioned(
-                                      top: 10,
-                                      right: 10,
-                                      child: Container(
-                                        width: 8,
-                                        height: 8,
-                                        decoration: const BoxDecoration(
-                                          color: AppColors.primary,
-                                          shape: BoxShape.circle,
-                                        ),
+                                ),
+                                if (searchQuery.isNotEmpty)
+                                  InkWell(
+                                    onTap: () {
+                                      _searchController.clear();
+                                      ref.read(searchQueryProvider.notifier).state = '';
+                                    },
+                                    child: const Padding(
+                                      padding: EdgeInsets.all(4),
+                                      child: Icon(
+                                        Icons.close,
+                                        size: 18,
+                                        color: AppColors.textHint,
                                       ),
                                     ),
-                                ],
-                              ),
+                                  ),
+                              ],
                             ),
                           ),
-                          const SizedBox(width: AppSpacing.sm),
-                          InkWell(
-                            onTap: () => context.push(AppRoutes.propertyMap),
-                            child: Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                color: AppColors.surfaceMuted,
-                                borderRadius: BorderRadius.circular(AppRadius.pill),
-                                border: Border.all(color: AppColors.border),
-                              ),
-                              child: const Icon(
-                                Icons.map_outlined,
-                                size: 20,
-                                color: AppColors.textPrimary,
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        InkWell(
+                          onTap: () => showFiltersSheet(context, ref),
+                          child: Container(
+                            width: isDesktopWeb ? 42 : 48,
+                            height: isDesktopWeb ? 42 : 48,
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceMuted,
+                              borderRadius: BorderRadius.circular(AppRadius.pill),
+                              border: Border.all(
+                                color: appliedFilters != null ? AppColors.primary : AppColors.border,
+                                width: appliedFilters != null ? 1.5 : 1.0,
                               ),
                             ),
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Icon(
+                                  Icons.tune,
+                                  size: 19,
+                                  color: appliedFilters != null ? AppColors.primary : AppColors.textPrimary,
+                                ),
+                                if (appliedFilters != null)
+                                  Positioned(
+                                    top: 8,
+                                    right: 8,
+                                    child: Container(
+                                      width: 7,
+                                      height: 7,
+                                      decoration: const BoxDecoration(
+                                        color: AppColors.primary,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        InkWell(
+                          onTap: () => context.push(AppRoutes.propertyMap),
+                          child: Container(
+                            width: isDesktopWeb ? 42 : 48,
+                            height: isDesktopWeb ? 42 : 48,
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceMuted,
+                              borderRadius: BorderRadius.circular(AppRadius.pill),
+                              border: Border.all(color: AppColors.border),
+                            ),
+                            child: const Icon(
+                              Icons.map_outlined,
+                              size: 19,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: AppSpacing.sm),
-                    const _BudgetQuickChips(),
-                    const SizedBox(height: AppSpacing.xs),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  SizedBox(
+                    width: isDesktopWeb ? 720 : double.infinity,
+                    child: const _BudgetQuickChips(),
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                ],
               ),
             ),
             Expanded(
@@ -471,13 +475,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       );
                     }
                     final screenWidth = MediaQuery.of(context).size.width;
-                    final availableWidth = screenWidth >= 768 ? (screenWidth - 280) : screenWidth;
+                    final sidebarWidth = screenWidth < 1024 ? 220.0 : 240.0;
+                    final availableWidth = screenWidth >= 768 ? (screenWidth - sidebarWidth) : screenWidth;
                     final int crossAxisCount;
                     final double childAspectRatio;
-                    if (availableWidth >= 1200) {
+                    if (availableWidth >= 1280) {
                       crossAxisCount = 4;
                       childAspectRatio = 0.74;
-                    } else if (availableWidth >= 800) {
+                    } else if (availableWidth >= 880) {
                       crossAxisCount = 3;
                       childAspectRatio = 0.72;
                     } else if (availableWidth >= 520) {
@@ -490,7 +495,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
                     return Center(
                       child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 1320),
+                        constraints: const BoxConstraints(maxWidth: 1240),
                         child: GridView.builder(
                           controller: _scrollController,
                           physics: const AlwaysScrollableScrollPhysics(),
@@ -559,11 +564,13 @@ class _TransactionToggleButton extends StatelessWidget {
     required this.label,
     required this.isActive,
     required this.onTap,
+    this.isCompact = false,
   });
 
   final String label;
   final bool isActive;
   final VoidCallback onTap;
+  final bool isCompact;
 
   @override
   Widget build(BuildContext context) {
@@ -571,7 +578,7 @@ class _TransactionToggleButton extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppRadius.pill),
       child: Container(
-        height: AppSizes.buttonHeight,
+        height: isCompact ? 36 : AppSizes.buttonHeight,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: isActive ? AppColors.primary : AppColors.white,
@@ -583,7 +590,7 @@ class _TransactionToggleButton extends StatelessWidget {
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 16,
+            fontSize: isCompact ? 13 : 16,
             fontWeight: FontWeight.w600,
             color: isActive ? AppColors.white : AppColors.textPrimary,
           ),
