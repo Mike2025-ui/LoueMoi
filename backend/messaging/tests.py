@@ -249,6 +249,7 @@ class MessageContentTypeTests(APITestCase):
         self.bailleur = _make_bailleur("+2250711116020")
         self.agent = _make_agent("+2250711116021")
         _subscribe(self.agent)
+        _subscribe(self.bailleur)
         self.conversation = Conversation.objects.create(client=self.bailleur, agent=self.agent)
         self.client.force_authenticate(user=self.bailleur)
 
@@ -332,6 +333,7 @@ class MessageAttachmentSecurityTests(APITestCase):
         self.bailleur = _make_bailleur("+2250711116030")
         self.agent = _make_agent("+2250711116031")
         _subscribe(self.agent)
+        _subscribe(self.bailleur)
         self.outsider = _make_client("+2250711116032")
         self.conversation = Conversation.objects.create(client=self.bailleur, agent=self.agent)
         self.client.force_authenticate(user=self.bailleur)
@@ -413,4 +415,16 @@ class ConversationSubscriptionAccessTests(APITestCase):
         self.client.force_authenticate(user=self.client_user)
         response = self.client.post(f"/api/conversations/{self.conversation.id}/mark-read/")
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_unsubscribed_bailleur_cannot_access_even_if_client_subscribed(self):
+        _subscribe(self.client_user)
+        self.client.force_authenticate(user=self.agent_user)
+        response = self.client.get("/api/conversations/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        results = response.data.get("results", response.data)
+        self.assertEqual(len(results), 1)
+        self.assertFalse(results[0]["can_access"])
+
+        msg_resp = self.client.get(f"/api/messages/?conversation={self.conversation.id}")
+        self.assertEqual(msg_resp.status_code, status.HTTP_403_FORBIDDEN)
 

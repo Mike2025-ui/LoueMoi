@@ -93,9 +93,9 @@ class _WhatsAppFloatingButtonState extends State<WhatsAppFloatingButton>
       animation: _glowAnimation,
       builder: (context, child) {
         final progress = _glowAnimation.value;
-        final blur = 14.0 + (progress * 10.0);
-        final spread = 2.0 + (progress * 4.0);
-        final glowAlpha = 0.50 + (progress * 0.25);
+        final blur = 10.0 + (progress * 6.0);
+        final spread = 1.5 + (progress * 2.5);
+        final glowAlpha = 0.45 + (progress * 0.20);
 
         return Container(
           decoration: BoxDecoration(
@@ -129,8 +129,8 @@ class _WhatsAppFloatingButtonState extends State<WhatsAppFloatingButton>
             splashColor: Colors.white.withValues(alpha: 0.3),
             highlightColor: Colors.white.withValues(alpha: 0.15),
             child: Ink(
-              width: 58,
-              height: 58,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: const LinearGradient(
@@ -149,7 +149,7 @@ class _WhatsAppFloatingButtonState extends State<WhatsAppFloatingButton>
               ),
               child: Center(
                 child: CustomPaint(
-                  size: const Size(32, 32),
+                  size: const Size(26, 26),
                   painter: _WhatsAppLogoPainter(),
                 ),
               ),

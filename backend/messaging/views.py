@@ -36,19 +36,18 @@ def user_can_access_conversation(user, conversation):
     user_sub = hasattr(user, "subscriptions") and user.subscriptions.filter(status="active", expires_at__gt=now).exists()
     other_sub = other_party and hasattr(other_party, "subscriptions") and other_party.subscriptions.filter(status="active", expires_at__gt=now).exists()
 
-    # Si l'un des deux a un abonnement actif, autorisé d'office
-    if user_sub or other_sub:
-        return True
-
-    # Si l'un est un client et l'autre est un bailleur/agent : le client peut échanger gratuitement par messagerie interne
     user_role = getattr(user, "role", "")
-    other_role = getattr(other_party, "role", "") if other_party else ""
 
-    is_client_to_pro = (user_role == "client" and other_role in ("agent", "bailleur")) or (other_role == "client" and user_role in ("agent", "bailleur"))
-    if is_client_to_pro:
-        return True
+    # Règle Pro (Agent ou Bailleur) :
+    # Un agent ou bailleur DOIT impérativement avoir son propre abonnement Pro actif pour déverrouiller toute conversation !
+    if user_role in ("agent", "bailleur"):
+        return bool(user_sub)
 
-    # Échanges Pro à Pro sans abonnement : verrouillé !
+    # Règle Client :
+    # Le client a accès si lui-même est abonné OU si le professionnel en face possède un abonnement actif.
+    if user_role == "client":
+        return bool(user_sub or other_sub)
+
     return False
 
 

@@ -296,23 +296,20 @@ class CanContactView(APIView):
         if is_owner_himself:
             can_contact = True
             reason = "self"
-        # 2. Échanges entre Pros (Bailleur et Agent, Agent et Agent, Bailleur et Bailleur) :
-        #    La conversation reste verrouillée et n'est activée QUE par un abonnement actif !
-        elif user and getattr(user, "role", "") in ("agent", "bailleur") and owner and getattr(owner, "role", "") in ("agent", "bailleur"):
-            if user_subscribed or owner_subscribed:
+        # 2. Si le propriétaire du bien (agent ou bailleur) a un abonnement actif :
+        #    Contact GRATUIT pour TOUS (même si le client n'est pas abonné) !
+        elif owner_subscribed:
+            can_contact = True
+            reason = "owner_subscribed"
+        # 3. Si l'utilisateur connecté a un abonnement actif :
+        elif user_subscribed:
+            if getattr(user, "role", "") in ("agent", "bailleur"):
                 can_contact = True
                 reason = "pro_subscribed"
             else:
-                can_contact = False
-                reason = "pro_subscription_required"
-        # 3. Un client qui contacte le bailleur ou l'agent : autorisé par messagerie interne !
-        elif user and getattr(user, "role", "") == "client":
-            can_contact = True
-            reason = "client_allowed"
-        # 4. Abonnement actif du propriétaire ou de l'utilisateur
-        elif owner_subscribed or user_subscribed:
-            can_contact = True
-            reason = "subscribed"
+                can_contact = True
+                reason = "client_subscribed"
+        # 4. Ni le propriétaire ni le client n'ont d'abonnement actif => Contact bloqué
         else:
             can_contact = False
             reason = "subscription_required"
