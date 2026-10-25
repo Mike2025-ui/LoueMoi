@@ -172,9 +172,9 @@ class IkoddiSmsProvider(SmsProvider):
                 "countryNumberCode": "225",
                 "messageType": 1,
             }
-        # 3. Mode de secours direct
+        # 3. Mode personnalisé direct (si ni org_id ni app_id ne sont fournis)
         else:
-            target_url = f"https://api.ikoddi.com/api/v1/groups"
+            target_url = self.api_url
             payload = {
                 "to": normalized_phone,
                 "message": message,
