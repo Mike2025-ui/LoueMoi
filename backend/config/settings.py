@@ -265,11 +265,14 @@ JEKO_SIMULATION_MODE = os.environ.get("JEKO_SIMULATION_MODE", "").strip().lower(
 # --- CORS --------------------------------------------------------------
 # Dev uniquement : l'app mobile n'a pas d'origine web à restreindre.
 CORS_ALLOW_ALL_ORIGINS = DEBUG
-CORS_ALLOWED_ORIGINS = [
-    origin
-    for origin in os.environ.get("DJANGO_CORS_ALLOWED_ORIGINS", "").split(",")
-    if origin
-]
+_raw_cors = os.environ.get("DJANGO_CORS_ALLOWED_ORIGINS", "").strip()
+if _raw_cors:
+    CORS_ALLOWED_ORIGINS = [origin.strip() for origin in _raw_cors.split(",") if origin.strip()]
+else:
+    CORS_ALLOWED_ORIGINS = [
+        "https://transfert-online.site",
+        "https://www.transfert-online.site",
+    ]
 
 # --- Sécurité & Reverse Proxy (Nginx / SSL) ------------------------------
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")

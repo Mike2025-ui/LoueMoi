@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -66,6 +67,12 @@ class _FixedSessionAuthRepository implements AuthRepository {
   @override
   Future<User> updateProfile(User current, Map<String, dynamic> changes) =>
       throw UnimplementedError();
+
+  @override
+  Future<User> uploadProfilePhoto(XFile file) => throw UnimplementedError();
+
+  @override
+  Future<User> deleteProfilePhoto() => throw UnimplementedError();
 }
 
 /// Régression : le bouton "Annuler" d'une réservation en cours doit toujours

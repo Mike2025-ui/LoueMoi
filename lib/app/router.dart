@@ -50,7 +50,10 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       if (kIsWeb) {
         if (state.matchedLocation != AppRoutes.maintenance) {
-          return AppRoutes.maintenance;
+          final query = state.uri.query;
+          return query.isNotEmpty
+              ? '${AppRoutes.maintenance}?$query'
+              : AppRoutes.maintenance;
         }
         return null;
       }
@@ -69,7 +72,10 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: AppRoutes.maintenance,
-        builder: (context, state) => const WebMaintenanceScreen(),
+        builder: (context, state) => WebMaintenanceScreen(
+          paymentStatus: state.uri.queryParameters['payment'],
+          reference: state.uri.queryParameters['ref'],
+        ),
       ),
       GoRoute(path: AppRoutes.splash, builder: (context, state) => const SplashScreen()),
       GoRoute(
