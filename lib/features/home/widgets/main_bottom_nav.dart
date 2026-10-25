@@ -15,6 +15,7 @@ import '../../notifications/providers/notification_providers.dart';
 import '../../properties/providers/property_providers.dart';
 import 'web_maintenance_screen.dart';
 import 'web_sidebar_nav.dart';
+import '../../../core/widgets/whatsapp_floating_button.dart';
 
 /// Shell de navigation principal : bottom bar + FAB central "+"
 /// (Menu / Favoris / Publier / Réservations / Conversations / Profil), conforme
@@ -69,6 +70,7 @@ class MainBottomNav extends ConsumerWidget {
     final currentBranch = navigationShell.currentIndex;
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktopWeb = screenWidth >= 768;
+    final isFiltersOpen = ref.watch(isFiltersSheetOpenProvider);
 
     // Sur l'application Web (kIsWeb) : afficher exclusivement la page de maintenance
     if (kIsWeb) {
@@ -79,13 +81,23 @@ class MainBottomNav extends ConsumerWidget {
     if (isDesktopWeb) {
       return Scaffold(
         backgroundColor: AppColors.background,
-        body: Row(
+        body: Stack(
           children: [
-            WebSidebarNav(
-              currentIndex: currentBranch,
-              onTap: (idx) => _onTap(ref, idx),
+            Row(
+              children: [
+                WebSidebarNav(
+                  currentIndex: currentBranch,
+                  onTap: (idx) => _onTap(ref, idx),
+                ),
+                Expanded(child: navigationShell),
+              ],
             ),
-            Expanded(child: navigationShell),
+            if (currentBranch == 0 && !isFiltersOpen)
+              const Positioned(
+                right: 24,
+                bottom: 24,
+                child: WhatsAppFloatingButton(),
+              ),
           ],
         ),
       );
@@ -93,7 +105,6 @@ class MainBottomNav extends ConsumerWidget {
 
     final canPublish = ref.watch(authControllerProvider).valueOrNull?.canOwnProperties ?? false;
     final unreadMessages = ref.watch(totalUnreadConversationsCountProvider);
-    final isFiltersOpen = ref.watch(isFiltersSheetOpenProvider);
     final showPublishFab = canPublish && currentBranch == 0 && !isFiltersOpen;
 
     Widget navButton(int branchIndex) {
@@ -113,7 +124,17 @@ class MainBottomNav extends ConsumerWidget {
     }
 
     return Scaffold(
-      body: navigationShell,
+      body: Stack(
+        children: [
+          navigationShell,
+          if (currentBranch == 0 && !isFiltersOpen)
+            const Positioned(
+              right: 16,
+              bottom: 16,
+              child: WhatsAppFloatingButton(),
+            ),
+        ],
+      ),
       floatingActionButton: showPublishFab
           ? FloatingActionButton(
               heroTag: 'publish_property_fab',

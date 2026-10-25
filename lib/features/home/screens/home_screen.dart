@@ -9,7 +9,6 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/feedback.dart';
 import '../../../core/widgets/app_logo.dart';
-import '../../../core/widgets/whatsapp_floating_button.dart';
 import '../../filters/models/filter_params.dart';
 import '../../filters/providers/filter_providers.dart';
 import '../../filters/screens/filters_sheet.dart';
@@ -81,8 +80,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      floatingActionButton: const WhatsAppFloatingButton(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: SafeArea(
         child: Column(
           children: [
