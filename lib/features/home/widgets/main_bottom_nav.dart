@@ -11,6 +11,7 @@ import '../../filters/models/filter_params.dart';
 import '../../filters/providers/filter_providers.dart';
 import '../../messaging/providers/message_providers.dart';
 import '../../properties/providers/property_providers.dart';
+import 'web_header_nav.dart';
 
 /// Shell de navigation principal : bottom bar + FAB central "+"
 /// (Menu / Favoris / Publier / Réservations / Conversations / Profil), conforme
@@ -61,6 +62,25 @@ class MainBottomNav extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentBranch = navigationShell.currentIndex;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktopWeb = screenWidth >= 768;
+
+    // Sur grand écran (Desktop / Tablette Web) : barre de navigation supérieure (Header) moderne
+    if (isDesktopWeb) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: Column(
+          children: [
+            WebHeaderNav(
+              currentIndex: currentBranch,
+              onTap: (idx) => _onTap(ref, idx),
+            ),
+            Expanded(child: navigationShell),
+          ],
+        ),
+      );
+    }
+
     final canPublish = ref.watch(authControllerProvider).valueOrNull?.canOwnProperties ?? false;
     final unreadMessages = ref.watch(totalUnreadConversationsCountProvider);
     final isFiltersOpen = ref.watch(isFiltersSheetOpenProvider);

@@ -284,7 +284,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                   backgroundImage: conv?.participantPhoto != null
                       ? NetworkImage(buildMediaUrl(conv!.participantPhoto!))
                       : null,
-                  onBackgroundImageError: conv?.participantPhoto != null ? (_, __) {} : null,
+                  onBackgroundImageError: conv?.participantPhoto != null ? (exception, stackTrace) {} : null,
                   child: conv?.participantPhoto == null
                       ? const Icon(
                           Icons.person,

@@ -9,6 +9,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/feedback.dart';
 import '../../../core/widgets/app_logo.dart';
+import '../../../core/widgets/web_download_app_dialog.dart';
 import '../../filters/models/filter_params.dart';
 import '../../filters/providers/filter_providers.dart';
 import '../../filters/screens/filters_sheet.dart';
@@ -75,6 +76,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final unreadCount =
         ref.watch(unreadNotificationsCountProvider).valueOrNull ?? 0;
     final remoteConfig = ref.watch(remoteAppConfigProvider).valueOrNull;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktopWeb = screenWidth >= 768;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -132,234 +135,293 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ],
                 ),
               ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.screenPadding,
-                AppSpacing.md,
-                AppSpacing.screenPadding,
-                0,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const AppLogo(),
-                  InkWell(
-                    onTap: () => context.push(AppRoutes.notifications),
-                    borderRadius: BorderRadius.circular(20),
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: AppColors.border),
+            if (!isDesktopWeb)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.screenPadding,
+                  AppSpacing.md,
+                  AppSpacing.screenPadding,
+                  0,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const AppLogo(),
+                    InkWell(
+                      onTap: () => context.push(AppRoutes.notifications),
+                      borderRadius: BorderRadius.circular(20),
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: AppColors.border),
+                            ),
+                            child: const Icon(
+                              Icons.notifications_none,
+                              size: 20,
+                              color: AppColors.textPrimary,
+                            ),
                           ),
-                          child: const Icon(
-                            Icons.notifications_none,
-                            size: 20,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        if (unreadCount > 0)
-                          Positioned(
-                            top: -2,
-                            right: -2,
-                            child: Container(
-                              padding: const EdgeInsets.all(3),
-                              decoration: const BoxDecoration(
-                                color: AppColors.danger,
-                                shape: BoxShape.circle,
-                              ),
-                              constraints: const BoxConstraints(
-                                minWidth: 16,
-                                minHeight: 16,
-                              ),
-                              child: Text(
-                                '$unreadCount',
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  color: AppColors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
+                          if (unreadCount > 0)
+                            Positioned(
+                              top: -2,
+                              right: -2,
+                              child: Container(
+                                padding: const EdgeInsets.all(3),
+                                decoration: const BoxDecoration(
+                                  color: AppColors.danger,
+                                  shape: BoxShape.circle,
+                                ),
+                                constraints: const BoxConstraints(
+                                  minWidth: 16,
+                                  minHeight: 16,
+                                ),
+                                child: Text(
+                                  '$unreadCount',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: AppColors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                               ),
                             ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1320),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.screenPadding,
+                      AppSpacing.lg,
+                      AppSpacing.screenPadding,
+                      0,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Explorez les biens disponibles',
+                              style: AppTextStyles.h2,
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'Location et vente de logements vérifiés en Côte d’Ivoire',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: () => showDownloadAppModal(context),
+                          icon: const Icon(Icons.install_mobile, size: 18),
+                          label: const Text('Installer l’APK mobile'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.primary,
+                            side: const BorderSide(color: AppColors.primary),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(AppRadius.pill),
+                            ),
                           ),
+                        ),
                       ],
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.screenPadding,
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _TransactionToggleButton(
-                      label: 'Location',
-                      isActive: transactionType == TransactionType.location,
-                      onTap: () {
-                        ref.read(homeTransactionTypeProvider.notifier).state =
-                            TransactionType.location;
-                        final applied = ref.read(appliedFilterParamsProvider);
-                        if (applied != null && (applied.budgetMin != null || applied.budgetMax != null)) {
-                          ref.read(appliedFilterParamsProvider.notifier).state =
-                              applied.copyWith(clearBudgetMin: true, clearBudgetMax: true);
-                        }
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: _TransactionToggleButton(
-                      label: 'Vente',
-                      isActive: transactionType == TransactionType.vente,
-                      onTap: () {
-                        ref.read(homeTransactionTypeProvider.notifier).state =
-                            TransactionType.vente;
-                        final applied = ref.read(appliedFilterParamsProvider);
-                        if (applied != null && (applied.budgetMin != null || applied.budgetMax != null)) {
-                          ref.read(appliedFilterParamsProvider.notifier).state =
-                              applied.copyWith(clearBudgetMin: true, clearBudgetMax: true);
-                        }
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.screenPadding,
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      height: 48,
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1320),
+                child: Column(
+                  children: [
+                    const SizedBox(height: AppSpacing.md),
+                    Padding(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceMuted,
-                        borderRadius: BorderRadius.circular(AppRadius.pill),
-                        border: Border.all(color: AppColors.border),
+                        horizontal: AppSpacing.screenPadding,
                       ),
                       child: Row(
                         children: [
-                          const Icon(
-                            Icons.search,
-                            size: 20,
-                            color: AppColors.textHint,
+                          Expanded(
+                            child: _TransactionToggleButton(
+                              label: 'Location',
+                              isActive: transactionType == TransactionType.location,
+                              onTap: () {
+                                ref.read(homeTransactionTypeProvider.notifier).state =
+                                    TransactionType.location;
+                                final applied = ref.read(appliedFilterParamsProvider);
+                                if (applied != null && (applied.budgetMin != null || applied.budgetMax != null)) {
+                                  ref.read(appliedFilterParamsProvider.notifier).state =
+                                      applied.copyWith(clearBudgetMin: true, clearBudgetMax: true);
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: _TransactionToggleButton(
+                              label: 'Vente',
+                              isActive: transactionType == TransactionType.vente,
+                              onTap: () {
+                                ref.read(homeTransactionTypeProvider.notifier).state =
+                                    TransactionType.vente;
+                                final applied = ref.read(appliedFilterParamsProvider);
+                                if (applied != null && (applied.budgetMin != null || applied.budgetMax != null)) {
+                                  ref.read(appliedFilterParamsProvider.notifier).state =
+                                      applied.copyWith(clearBudgetMin: true, clearBudgetMax: true);
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.screenPadding,
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              height: 48,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.md,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceMuted,
+                                borderRadius: BorderRadius.circular(AppRadius.pill),
+                                border: Border.all(color: AppColors.border),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.search,
+                                    size: 20,
+                                    color: AppColors.textHint,
+                                  ),
+                                  const SizedBox(width: AppSpacing.sm),
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _searchController,
+                                      onChanged: (v) =>
+                                          ref.read(searchQueryProvider.notifier).state =
+                                              v,
+                                      decoration: const InputDecoration(
+                                        hintText: 'Recherche...',
+                                        border: InputBorder.none,
+                                        enabledBorder: InputBorder.none,
+                                        focusedBorder: InputBorder.none,
+                                        errorBorder: InputBorder.none,
+                                        disabledBorder: InputBorder.none,
+                                        contentPadding: EdgeInsets.zero,
+                                        isDense: true,
+                                      ),
+                                    ),
+                                  ),
+                                  if (searchQuery.isNotEmpty)
+                                    InkWell(
+                                      onTap: () {
+                                        _searchController.clear();
+                                        ref.read(searchQueryProvider.notifier).state = '';
+                                      },
+                                      child: const Padding(
+                                        padding: EdgeInsets.all(4),
+                                        child: Icon(
+                                          Icons.close,
+                                          size: 18,
+                                          color: AppColors.textHint,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
                           ),
                           const SizedBox(width: AppSpacing.sm),
-                          Expanded(
-                            child: TextField(
-                              controller: _searchController,
-                              onChanged: (v) =>
-                                  ref.read(searchQueryProvider.notifier).state =
-                                      v,
-                              decoration: const InputDecoration(
-                                hintText: 'Recherche...',
-                                border: InputBorder.none,
-                                enabledBorder: InputBorder.none,
-                                focusedBorder: InputBorder.none,
-                                errorBorder: InputBorder.none,
-                                disabledBorder: InputBorder.none,
-                                contentPadding: EdgeInsets.zero,
-                                isDense: true,
+                          InkWell(
+                            onTap: () => showFiltersSheet(context, ref),
+                            child: Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceMuted,
+                                borderRadius: BorderRadius.circular(AppRadius.pill),
+                                border: Border.all(
+                                  color: appliedFilters != null ? AppColors.primary : AppColors.border,
+                                  width: appliedFilters != null ? 1.5 : 1.0,
+                                ),
+                              ),
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.tune,
+                                    size: 20,
+                                    color: appliedFilters != null ? AppColors.primary : AppColors.textPrimary,
+                                  ),
+                                  if (appliedFilters != null)
+                                    Positioned(
+                                      top: 10,
+                                      right: 10,
+                                      child: Container(
+                                        width: 8,
+                                        height: 8,
+                                        decoration: const BoxDecoration(
+                                          color: AppColors.primary,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                    ),
+                                ],
                               ),
                             ),
                           ),
-                          if (searchQuery.isNotEmpty)
-                            InkWell(
-                              onTap: () {
-                                _searchController.clear();
-                                ref.read(searchQueryProvider.notifier).state = '';
-                              },
-                              child: const Padding(
-                                padding: EdgeInsets.all(4),
-                                child: Icon(
-                                  Icons.close,
-                                  size: 18,
-                                  color: AppColors.textHint,
-                                ),
+                          const SizedBox(width: AppSpacing.sm),
+                          InkWell(
+                            onTap: () => context.push(AppRoutes.propertyMap),
+                            child: Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceMuted,
+                                borderRadius: BorderRadius.circular(AppRadius.pill),
+                                border: Border.all(color: AppColors.border),
+                              ),
+                              child: const Icon(
+                                Icons.map_outlined,
+                                size: 20,
+                                color: AppColors.textPrimary,
                               ),
                             ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  InkWell(
-                    onTap: () => showFiltersSheet(context, ref),
-                    child: Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceMuted,
-                        borderRadius: BorderRadius.circular(AppRadius.pill),
-                        border: Border.all(
-                          color: appliedFilters != null ? AppColors.primary : AppColors.border,
-                          width: appliedFilters != null ? 1.5 : 1.0,
-                        ),
-                      ),
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Icon(
-                            Icons.tune,
-                            size: 20,
-                            color: appliedFilters != null ? AppColors.primary : AppColors.textPrimary,
                           ),
-                          if (appliedFilters != null)
-                            Positioned(
-                              top: 10,
-                              right: 10,
-                              child: Container(
-                                width: 8,
-                                height: 8,
-                                decoration: const BoxDecoration(
-                                  color: AppColors.primary,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ),
                         ],
                       ),
                     ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  InkWell(
-                    onTap: () => context.push(AppRoutes.propertyMap),
-                    child: Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceMuted,
-                        borderRadius: BorderRadius.circular(AppRadius.pill),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: const Icon(
-                        Icons.map_outlined,
-                        size: 20,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                  ),
-                ],
+                    const SizedBox(height: AppSpacing.sm),
+                    const _BudgetQuickChips(),
+                    const SizedBox(height: AppSpacing.xs),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: AppSpacing.sm),
-            const _BudgetQuickChips(),
-            const SizedBox(height: AppSpacing.xs),
             Expanded(
               child: RefreshIndicator(
                 color: AppColors.primary,
@@ -427,41 +489,60 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ],
                       );
                     }
-                    return GridView.builder(
-                      controller: _scrollController,
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.screenPadding,
-                        0,
-                        AppSpacing.screenPadding,
-                        100,
-                      ),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: AppSpacing.md,
-                            mainAxisSpacing: AppSpacing.lg,
-                            childAspectRatio: 0.68,
+                    final screenWidth = MediaQuery.of(context).size.width;
+                    final int crossAxisCount;
+                    final double childAspectRatio;
+                    if (screenWidth >= 1200) {
+                      crossAxisCount = 4;
+                      childAspectRatio = 0.72;
+                    } else if (screenWidth >= 768) {
+                      crossAxisCount = 3;
+                      childAspectRatio = 0.70;
+                    } else {
+                      crossAxisCount = 2;
+                      childAspectRatio = 0.68;
+                    }
+
+                    return Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 1320),
+                        child: GridView.builder(
+                          controller: _scrollController,
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.fromLTRB(
+                            AppSpacing.screenPadding,
+                            AppSpacing.sm,
+                            AppSpacing.screenPadding,
+                            100,
                           ),
-                      itemCount: properties.length,
-                      itemBuilder: (context, index) {
-                        final property = properties[index];
-                        return PropertyCard(
-                          property: property,
-                          onTap: () => context.push(
-                            AppRoutes.propertyDetailPath(property.id),
-                          ),
-                          onFavoriteTap: () async {
-                            try {
-                              await toggleFavorite(ref, property.id);
-                            } catch (e) {
-                              if (context.mounted) {
-                                showErrorSnackbar(context, e);
-                              }
-                            }
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: crossAxisCount,
+                                crossAxisSpacing: AppSpacing.md,
+                                mainAxisSpacing: AppSpacing.lg,
+                                childAspectRatio: childAspectRatio,
+                              ),
+                          itemCount: properties.length,
+                          itemBuilder: (context, index) {
+                            final property = properties[index];
+                            return PropertyCard(
+                              property: property,
+                              onTap: () => context.push(
+                                AppRoutes.propertyDetailPath(property.id),
+                              ),
+                              onFavoriteTap: () async {
+                                try {
+                                  await toggleFavorite(ref, property.id);
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    showErrorSnackbar(context, e);
+                                  }
+                                }
+                              },
+                            );
                           },
-                        );
-                      },
+                        ),
+                      ),
                     );
                   },
                   loading: () =>

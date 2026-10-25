@@ -42,7 +42,7 @@ class BailleurSpaceScreen extends ConsumerWidget {
                       backgroundImage: user?.photo != null
                           ? NetworkImage(buildMediaUrl(user!.photo!))
                           : null,
-                      onBackgroundImageError: user?.photo != null ? (_, __) {} : null,
+                      onBackgroundImageError: user?.photo != null ? (exception, stackTrace) {} : null,
                       child: user?.photo == null
                           ? const Icon(Icons.person, size: 36, color: AppColors.primary)
                           : null,
