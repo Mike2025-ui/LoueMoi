@@ -4,7 +4,9 @@ import '../services/auth_storage.dart';
 import 'api_client.dart';
 
 final authStorageProvider = Provider<AuthStorage>((ref) {
-  return AuthStorage(const FlutterSecureStorage());
+  return AuthStorage(const FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  ));
 });
 
 /// Incrémenté quand une session expire (401 + refresh KO) pour que l'UI

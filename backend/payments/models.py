@@ -95,6 +95,34 @@ class Subscription(models.Model):
     def __str__(self):
         return f"{self.user} - {self.get_plan_display()} ({self.get_status_display()})"
 
+    def save(self, *args, **kwargs):
+        now = timezone.now()
+        # Si annulé, couper immédiatement la date d'expiration
+        if self.status == self.STATUS_CANCELLED and self.expires_at and self.expires_at > now:
+            self.expires_at = now
+            if kwargs.get("update_fields") is not None:
+                update_fields = set(kwargs["update_fields"])
+                update_fields.add("expires_at")
+                kwargs["update_fields"] = list(update_fields)
+
+        super().save(*args, **kwargs)
+
+        # Si l'abonnement n'est plus actif, révoquer automatiquement le badge
+        # sauf si l'utilisateur possède un autre abonnement encore actif
+        if self.status in (self.STATUS_CANCELLED, self.STATUS_EXPIRED) and self.user_id:
+            user = self.user
+            has_other_active = user.subscriptions.filter(
+                status=self.STATUS_ACTIVE,
+                expires_at__gt=now,
+            ).exclude(pk=self.pk).exists()
+            if not has_other_active:
+                if getattr(user, "is_verified", False):
+                    user.is_verified = False
+                    user.save(update_fields=["is_verified"])
+                if hasattr(user, "agent_profile") and getattr(user.agent_profile, "is_verified", False):
+                    user.agent_profile.is_verified = False
+                    user.agent_profile.save(update_fields=["is_verified"])
+
     @property
     def is_currently_active(self):
         now = timezone.now()

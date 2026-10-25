@@ -27,8 +27,8 @@ class BailleurSearchSerializer(serializers.Serializer):
         # 1. Tout abonnement actif confère automatiquement le badge vérifié
         if hasattr(user, "subscriptions") and user.subscriptions.filter(status="active", expires_at__gt=now).exists():
             return True
-        # 2. Après expiration d'un abonnement, le badge est révoqué
-        if hasattr(user, "subscriptions") and user.subscriptions.filter(status__in=["active", "expired"]).exists():
+        # 2. Après expiration ou annulation d'un abonnement, le badge est révoqué
+        if hasattr(user, "subscriptions") and user.subscriptions.filter(status__in=["active", "expired", "cancelled"]).exists():
             return False
         # 3. Badge administratif
         return bool(getattr(user, "is_verified", False))

@@ -65,7 +65,7 @@ class UserSerializer(serializers.ModelSerializer):
             profile = getattr(user, "agent_profile", None)
             if profile and profile.is_verified:
                 return True
-            return True
+            return False
         return False
 
     def update(self, instance, validated_data):

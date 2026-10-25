@@ -184,10 +184,15 @@ class MessageListCreateView(generics.ListCreateAPIView):
             ).update(is_delivered=True, delivered_at=timezone.now())
             return Message.objects.filter(conversation_id=conversation_id).distinct()
 
-        queryset = Message.objects.filter(
-            conversation__client=self.request.user
-        ) | Message.objects.filter(conversation__agent=self.request.user)
-        return queryset.distinct()
+        # Filtrer strictement les conversations autorisées par la politique d'abonnement
+        accessible_conv_ids = [
+            c.id
+            for c in Conversation.objects.filter(
+                Q(client=self.request.user) | Q(agent=self.request.user)
+            ).select_related("client", "agent")
+            if user_can_access_conversation(self.request.user, c)
+        ]
+        return Message.objects.filter(conversation_id__in=accessible_conv_ids).distinct()
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -251,6 +256,8 @@ class MessageAttachmentDownloadView(APIView):
         if request.user and request.user.is_authenticated:
             if request.user not in (conversation.client, conversation.agent):
                 raise PermissionDenied("Vous ne faites pas partie de cette conversation.")
+            if not user_can_access_conversation(request.user, conversation):
+                raise PermissionDenied("Un abonnement actif est requis pour télécharger cette pièce jointe.")
         else:
             sig = request.query_params.get("sig", "")
             if not sig:

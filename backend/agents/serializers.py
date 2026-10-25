@@ -63,7 +63,7 @@ class AgentSearchSerializer(serializers.Serializer):
         now = timezone.now()
         if hasattr(user, "subscriptions") and user.subscriptions.filter(status="active", expires_at__gt=now).exists():
             return True
-        if hasattr(user, "subscriptions") and user.subscriptions.filter(status__in=["active", "expired"]).exists():
+        if hasattr(user, "subscriptions") and user.subscriptions.filter(status__in=["active", "expired", "cancelled"]).exists():
             return False
         profile = self._profile(user)
         return bool(profile and profile.is_verified)

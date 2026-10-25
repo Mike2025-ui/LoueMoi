@@ -28,7 +28,7 @@ final totalUnreadConversationsCountProvider = Provider.autoDispose<int>((ref) {
 });
 
 final messagesProvider =
-    FutureProvider.family<List<Message>, String>((ref, conversationId) async {
+    FutureProvider.autoDispose.family<List<Message>, String>((ref, conversationId) async {
   final repository = ref.watch(messageRepositoryProvider);
   return repository.fetchMessages(conversationId);
 });
