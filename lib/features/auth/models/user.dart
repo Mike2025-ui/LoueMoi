@@ -40,6 +40,7 @@ class User extends Equatable {
 
   bool get isAgent => role == UserRole.agent;
   bool get isBailleur => role == UserRole.bailleur;
+  bool get isClient => role == UserRole.client;
 
   /// Badge de certification : accordé automatiquement à tout utilisateur abonné
   /// (client, bailleur, agent) ou certifié en base.

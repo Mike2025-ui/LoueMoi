@@ -20,9 +20,10 @@ def user_can_access_conversation(user, conversation):
 
     Règles métier LoueMoi :
     - Staff / Admin : toujours autorisé.
-    - Si l'utilisateur connecté possède un abonnement actif : autorisé.
-    - Si l'autre interlocuteur (agent ou bailleur) possède un abonnement actif : le client peut échanger gratuitement.
-    - Si ni l'utilisateur connecté ni le professionnel n'ont d'abonnement actif : bloqué.
+    - Échanges Pro à Pro (Bailleur <-> Agent, Agent <-> Agent, Bailleur <-> Bailleur) :
+      Verrouillé tant qu'aucun des deux n'a d'abonnement actif.
+    - Échanges Client <-> Bailleur/Agent :
+      Le client peut contacter et échanger avec le bailleur/agent par messagerie interne.
     """
     if not user or not getattr(user, "is_authenticated", False):
         return False
@@ -30,16 +31,24 @@ def user_can_access_conversation(user, conversation):
         return True
 
     now = timezone.now()
-    # 1. L'utilisateur connecté possède-t-il un abonnement actif ?
-    if hasattr(user, "subscriptions") and user.subscriptions.filter(status="active", expires_at__gt=now).exists():
+    other_party = conversation.agent if user == conversation.client else conversation.client
+
+    user_sub = hasattr(user, "subscriptions") and user.subscriptions.filter(status="active", expires_at__gt=now).exists()
+    other_sub = other_party and hasattr(other_party, "subscriptions") and other_party.subscriptions.filter(status="active", expires_at__gt=now).exists()
+
+    # Si l'un des deux a un abonnement actif, autorisé d'office
+    if user_sub or other_sub:
         return True
 
-    # 2. L'autre interlocuteur (agent ou bailleur) possède-t-il un abonnement actif ?
-    other_party = conversation.agent if user == conversation.client else conversation.client
-    if other_party and getattr(other_party, "role", "") in ("agent", "bailleur"):
-        if hasattr(other_party, "subscriptions") and other_party.subscriptions.filter(status="active", expires_at__gt=now).exists():
-            return True
+    # Si l'un est un client et l'autre est un bailleur/agent : le client peut échanger gratuitement par messagerie interne
+    user_role = getattr(user, "role", "")
+    other_role = getattr(other_party, "role", "") if other_party else ""
 
+    is_client_to_pro = (user_role == "client" and other_role in ("agent", "bailleur")) or (other_role == "client" and user_role in ("agent", "bailleur"))
+    if is_client_to_pro:
+        return True
+
+    # Échanges Pro à Pro sans abonnement : verrouillé !
     return False
 
 

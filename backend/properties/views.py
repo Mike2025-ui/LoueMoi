@@ -198,7 +198,9 @@ class PropertyViewSet(viewsets.ModelViewSet):
         favorite, created = Favorite.objects.get_or_create(user=request.user, property=property_obj)
         if not created:
             favorite.delete()
+            property_obj._is_favorited = False
         else:
+            property_obj._is_favorited = True
             # Notifier uniquement le propriétaire (agent/bailleur) de l'annonce, et rien d'autre
             if property_obj.agent and request.user != property_obj.agent:
                 try:

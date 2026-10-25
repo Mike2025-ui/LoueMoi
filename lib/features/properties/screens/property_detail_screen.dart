@@ -406,7 +406,12 @@ class _AProposTab extends ConsumerWidget {
       return true;
     }
 
-    // Vérification dynamique systématique en temps réel auprès du serveur (source de vérité absolue)
+    // Les clients peuvent contacter le bailleur/agent gratuitement par messagerie interne
+    if (currentUser.isClient) {
+      return true;
+    }
+
+    // Échanges entre Pros (Bailleur et Agent) : vérification de l'abonnement
     try {
       final repository = ref.read(paymentRepositoryProvider);
       final check = await repository.checkCanContact(propertyId: property.id);
@@ -415,20 +420,159 @@ class _AProposTab extends ConsumerWidget {
       }
     } catch (_) {}
 
-    // Ni le propriétaire ni l'utilisateur n'ont d'abonnement actif valide -> ouvrir le modal adapté au rôle
+    // Entre pros sans abonnement actif -> ouvrir le modal d'abonnement
     if (!context.mounted) return false;
-    final isPro = currentUser.isAgent || currentUser.isBailleur;
     final subscribed = await showSubscriptionModal(
       context,
-      isPro: isPro,
+      isPro: true,
       role: currentUser.role,
       propertyId: property.id,
-      reason: 'subscription_required',
+      reason: 'pro_subscription_required',
     );
     if (subscribed == true) {
       ref.invalidate(propertyByIdProvider(property.id));
     }
     return subscribed == true;
+  }
+
+  Future<bool> _ensureCanDirectContact(
+    BuildContext context,
+    WidgetRef ref, {
+    required String channelName,
+    required IconData icon,
+  }) async {
+    final currentUser = ref.read(authControllerProvider).valueOrNull;
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Veuillez vous connecter pour contacter le propriétaire.',
+          ),
+          backgroundColor: AppColors.primary,
+          action: SnackBarAction(
+            label: 'Se connecter',
+            textColor: AppColors.white,
+            onPressed: () => context.push(AppRoutes.login),
+          ),
+        ),
+      );
+      return false;
+    }
+
+    if (currentUser.id == property.agent.id) {
+      return true;
+    }
+
+    // Vérifier si l'utilisateur possède un abonnement actif
+    bool hasActiveSub = false;
+    try {
+      final repository = ref.read(paymentRepositoryProvider);
+      final check = await repository.checkCanContact(propertyId: property.id);
+      hasActiveSub = check.userHasActiveSubscription;
+    } catch (_) {}
+
+    if (hasActiveSub) {
+      return true;
+    }
+
+    // WhatsApp et Appel direct sont des options payantes réservées aux abonnés
+    if (!context.mounted) return false;
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+              child: Icon(icon, color: AppColors.primary, size: 22),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text(
+                'Option avec abonnement',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'L’accès direct par $channelName est une option payante réservée aux abonnés.',
+              style: const TextStyle(fontSize: 13, height: 1.4),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.check_circle_outline, color: AppColors.primary, size: 18),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Vous pouvez échanger gratuitement avec le propriétaire via la messagerie LoueMoi.',
+                      style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop('chat'),
+            child: const Text(
+              'Messagerie gratuite',
+              style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(dialogCtx).pop('subscribe'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.pill)),
+            ),
+            child: const Text('S’abonner', style: TextStyle(fontSize: 12.5)),
+          ),
+        ],
+      ),
+    );
+
+    if (choice == 'chat') {
+      if (!context.mounted) return false;
+      await _contactAgent(context, ref);
+      return false;
+    } else if (choice == 'subscribe') {
+      if (!context.mounted) return false;
+      final subscribed = await showSubscriptionModal(
+        context,
+        isPro: currentUser.isAgent || currentUser.isBailleur,
+        role: currentUser.role,
+        propertyId: property.id,
+        reason: 'direct_contact_required',
+      );
+      if (subscribed == true) {
+        ref.invalidate(propertyByIdProvider(property.id));
+        return true;
+      }
+    }
+    return false;
   }
 
   Future<void> _contactAgent(BuildContext context, WidgetRef ref) async {
@@ -456,7 +600,12 @@ class _AProposTab extends ConsumerWidget {
     WidgetRef ref,
     String rawPhone,
   ) async {
-    final canProceed = await _ensureCanContact(context, ref);
+    final canProceed = await _ensureCanDirectContact(
+      context,
+      ref,
+      channelName: 'appel téléphonique',
+      icon: Icons.phone_in_talk_rounded,
+    );
     if (!canProceed) return;
 
     var phoneToUse = rawPhone;
@@ -497,7 +646,12 @@ class _AProposTab extends ConsumerWidget {
     String rawPhone,
     String propertyTitle,
   ) async {
-    final canProceed = await _ensureCanContact(context, ref);
+    final canProceed = await _ensureCanDirectContact(
+      context,
+      ref,
+      channelName: 'WhatsApp',
+      icon: Icons.chat_rounded,
+    );
     if (!canProceed) return;
 
     var phoneToUse = rawPhone;

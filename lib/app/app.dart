@@ -179,26 +179,43 @@ class _LoueMoiAppState extends ConsumerState<LoueMoiApp> with WidgetsBindingObse
   }
 
   void _handleNotificationTap(RemoteMessage message) {
-    final type = message.data['type']?.toString() ?? '';
-    final isMessage = type == 'new_message' || message.data.containsKey('conversation_id');
-    final path = const NotificationRouter().resolvePath(type, message.data);
-    if (path != null) ref.read(routerProvider).push(path);
+    try {
+      final type = message.data['type']?.toString() ?? '';
+      final isMessage = type == 'new_message' || message.data.containsKey('conversation_id');
+      final path = const NotificationRouter().resolvePath(type, message.data) ?? AppRoutes.notifications;
 
-    if (isMessage) {
-      ref.invalidate(conversationsProvider);
-      return;
+      final isShellBranch = path == AppRoutes.home ||
+          path == AppRoutes.favorites ||
+          path == AppRoutes.reservationsList ||
+          path == AppRoutes.messages ||
+          path == AppRoutes.profile ||
+          path == AppRoutes.notifications;
+
+      final router = ref.read(routerProvider);
+      if (isShellBranch) {
+        router.go(path);
+      } else {
+        router.push(path);
+      }
+
+      if (isMessage) {
+        ref.invalidate(conversationsProvider);
+        return;
+      }
+
+      // Marquage-lu jamais bloquant pour la navigation : best-effort en arrière-plan
+      final notificationId = message.data['notification_id']?.toString();
+      if (notificationId != null) {
+        markNotificationAsRead(ref, notificationId).catchError((_) {});
+      }
+
+      ref.invalidate(notificationsProvider);
+      ref.invalidate(unreadNotificationsCountProvider);
+    } catch (_) {
+      try {
+        ref.read(routerProvider).go(AppRoutes.notifications);
+      } catch (_) {}
     }
-
-    // Marquage-lu jamais bloquant pour la navigation (même principe que
-    // l'écran Notifications in-app) : best-effort, en arrière-plan, une
-    // erreur réseau ne doit jamais empêcher d'atteindre la source.
-    final notificationId = message.data['notification_id']?.toString();
-    if (notificationId != null) {
-      markNotificationAsRead(ref, notificationId).catchError((_) {});
-    }
-
-    ref.invalidate(notificationsProvider);
-    ref.invalidate(unreadNotificationsCountProvider);
   }
 
   @override
