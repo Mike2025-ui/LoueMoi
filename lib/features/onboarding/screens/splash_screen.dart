@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -28,6 +29,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     // temps nécessaire à la restauration de session si elle est plus longue.
     await Future.wait([minSplashDelay, authReady]);
     if (!mounted) return;
+
+    if (kIsWeb) {
+      context.go(AppRoutes.maintenance);
+      return;
+    }
 
     final user = ref.read(authControllerProvider).valueOrNull;
     if (user != null) {

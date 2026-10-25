@@ -68,4 +68,6 @@ class AppRoutes {
   static const String messages = '/messages';
   static const String conversation = '/messages/:id';
   static String conversationPath(String id) => '/messages/$id';
+
+  static const String maintenance = '/maintenance';
 }

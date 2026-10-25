@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,6 +13,7 @@ import '../features/gallery/screens/gallery_screen.dart';
 import '../features/gallery/screens/photo_viewer_screen.dart';
 import '../features/home/screens/home_screen.dart';
 import '../features/home/widgets/main_bottom_nav.dart';
+import '../features/home/widgets/web_maintenance_screen.dart';
 import '../features/map/screens/property_map_screen.dart';
 import '../features/messaging/screens/conversation_screen.dart';
 import '../features/messaging/screens/conversations_screen.dart';
@@ -46,6 +48,13 @@ final routerProvider = Provider<GoRouter>((ref) {
     navigatorKey: _rootNavigatorKey,
     initialLocation: AppRoutes.splash,
     redirect: (context, state) {
+      if (kIsWeb) {
+        if (state.matchedLocation != AppRoutes.maintenance) {
+          return AppRoutes.maintenance;
+        }
+        return null;
+      }
+
       final user = ref.read(authControllerProvider).valueOrNull;
       final location = state.matchedLocation;
       if (user != null && user.needsActivation) {
@@ -58,6 +67,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
+      GoRoute(
+        path: AppRoutes.maintenance,
+        builder: (context, state) => const WebMaintenanceScreen(),
+      ),
       GoRoute(path: AppRoutes.splash, builder: (context, state) => const SplashScreen()),
       GoRoute(
         path: AppRoutes.onboarding,

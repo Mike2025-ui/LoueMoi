@@ -13,7 +13,7 @@ import '../../filters/providers/filter_providers.dart';
 import '../../messaging/providers/message_providers.dart';
 import '../../notifications/providers/notification_providers.dart';
 import '../../properties/providers/property_providers.dart';
-import 'web_mobile_maintenance_screen.dart';
+import 'web_maintenance_screen.dart';
 import 'web_sidebar_nav.dart';
 
 /// Shell de navigation principal : bottom bar + FAB central "+"
@@ -70,9 +70,9 @@ class MainBottomNav extends ConsumerWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktopWeb = screenWidth >= 768;
 
-    // Sur Web mobile (navigateur sur smartphone) : afficher la page de maintenance
-    if (kIsWeb && !isDesktopWeb) {
-      return const WebMobileMaintenanceScreen();
+    // Sur l'application Web (kIsWeb) : afficher exclusivement la page de maintenance
+    if (kIsWeb) {
+      return const WebMaintenanceScreen();
     }
 
     // Sur grand écran (Desktop / Tablette Web) : Sidebar à gauche divisée par une barre verticale avec les annonces à droite
