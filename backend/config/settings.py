@@ -245,7 +245,9 @@ IKODDI_API_KEY = (os.environ.get("IKODDI_API_KEY") or os.environ.get("IKKODI_API
 IKODDI_ORG_ID = (os.environ.get("IKODDI_ORG_ID") or os.environ.get("IKODDI_GROUP_ID", "")).strip().strip('"').strip("'")
 IKODDI_OTP_APP_ID = (os.environ.get("IKODDI_OTP_APP_ID") or os.environ.get("IKODDI_APP_ID", "")).strip().strip('"').strip("'")
 IKODDI_SENDER_ID = (os.environ.get("IKODDI_SENDER_ID") or os.environ.get("IKKODI_SENDER_ID", "LoueMoi")).strip().strip('"').strip("'")
-IKODDI_API_URL = (os.environ.get("IKODDI_API_URL") or os.environ.get("IKKODI_API_URL", "https://api.ikoddi.com/v1/sms/send")).strip().strip('"').strip("'")
+IKODDI_API_URL = (os.environ.get("IKODDI_API_URL") or os.environ.get("IKKODI_API_URL", "https://api.ikoddi.com/api/v1/groups")).strip().strip('"').strip("'")
+if "sms/send" in IKODDI_API_URL:
+    IKODDI_API_URL = "https://api.ikoddi.com/api/v1/groups"
 
 # --- Passerelle de Paiement & Abonnements (Jèko Checkout) ------------------
 # Clés API et Webhook Jèko (https://jeko.africa / https://mcp.jeko.africa)

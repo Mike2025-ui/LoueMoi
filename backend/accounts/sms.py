@@ -95,13 +95,12 @@ class LoggingSmsProvider(SmsProvider):
 class IkoddiSmsProvider(SmsProvider):
     """Fournisseur SMS officiel IKKODI (Ikoddi).
 
-    Prend en charge :
-      - Endpoint SMS direct : POST https://api.ikoddi.com/v1/sms/send
-      - Endpoint OTP dédié : POST https://api.ikoddi.com/v1/otp/send
-      - Endpoint Groupes/Applications : POST https://api.ikoddi.com/api/v1/groups/{org_id}/...
+    Endpoints officiels selon l'architecture NestJS d'Ikoddi :
+      - Service OTP : POST https://api.ikoddi.com/api/v1/groups/{groupId}/otp/{otpAppId}/sms/{identity}
+      - Service SMS groupe : POST https://api.ikoddi.com/api/v1/groups/{groupId}/sms
     """
 
-    DEFAULT_API_URL = "https://api.ikoddi.com/v1/sms/send"
+    DEFAULT_API_URL = "https://api.ikoddi.com/api/v1/groups"
     DEFAULT_SENDER_ID = "LoueMoi"
 
     def __init__(
@@ -115,7 +114,11 @@ class IkoddiSmsProvider(SmsProvider):
     ):
         self.api_key = api_key.strip()
         self.sender_id = (sender_id or self.DEFAULT_SENDER_ID).strip()[:11]
-        self.api_url = (api_url or self.DEFAULT_API_URL).strip()
+        raw_url = (api_url or self.DEFAULT_API_URL).strip()
+        # Correction automatique de l'ancienne URL /v1/sms/send qui renvoie une 404
+        if "sms/send" in raw_url:
+            raw_url = "https://api.ikoddi.com/api/v1/groups"
+        self.api_url = raw_url
         self.org_id = (org_id or "").strip()
         self.app_id = (app_id or "").strip()
         self.timeout = timeout
@@ -123,27 +126,8 @@ class IkoddiSmsProvider(SmsProvider):
     def send(self, phone: str, message: str) -> bool:
         normalized_phone = normalize_phone_number(phone)
         masked_phone = _mask_phone(normalized_phone)
-
-        # Résolution d'URL : si l'URL se termine par /groups, adapter pour l'organisation et l'application
-        target_url = self.api_url
-        if target_url.endswith("/groups") and self.org_id:
-            if self.app_id:
-                target_url = f"{target_url}/{self.org_id}/applications/{self.app_id}/otp"
-            else:
-                target_url = f"{target_url}/{self.org_id}/otp/send"
-
-        payload = {
-            "to": normalized_phone,
-            "message": message,
-        }
-        if self.sender_id:
-            payload["sender"] = self.sender_id
-        if self.app_id:
-            payload["app_id"] = self.app_id
-            payload["application_id"] = self.app_id
-        if self.org_id:
-            payload["group_id"] = self.org_id
-            payload["organization_id"] = self.org_id
+        # Identifiant destination sans le + (format attendu par Ikoddi : 2250701020304)
+        clean_identity = normalized_phone.lstrip("+")
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -157,6 +141,45 @@ class IkoddiSmsProvider(SmsProvider):
         if self.app_id:
             headers["x-app-id"] = self.app_id
             headers["x-application-id"] = self.app_id
+
+        # 1. Si Application OTP configurée (Service OTP d'Ikoddi)
+        # Endpoint officiel Swagger : POST /api/v1/groups/{groupId}/otp/{otpAppId}/sms/{identity}
+        if self.org_id and self.app_id:
+            base = self.api_url.rstrip("/")
+            if not base.endswith("/groups"):
+                base = "https://api.ikoddi.com/api/v1/groups"
+            target_url = f"{base}/{self.org_id}/otp/{self.app_id}/sms/{clean_identity}"
+            payload = {
+                "message": message,
+            }
+        # 2. Si uniquement Organisation / Groupe configuré (Service SMS Groupes)
+        # Endpoint officiel Swagger : POST /api/v1/groups/{groupId}/sms
+        elif self.org_id:
+            base = self.api_url.rstrip("/")
+            if not base.endswith("/groups"):
+                base = "https://api.ikoddi.com/api/v1/groups"
+            target_url = f"{base}/{self.org_id}/sms"
+            payload = {
+                "sentTo": [clean_identity],
+                "message": message,
+                "from": self.sender_id,
+                "cost": "10",
+                "smsBroadCast": "LoueMoi OTP",
+                "isOtp": True,
+                "isInternational": False,
+                "status": "SendingOKNoReport",
+                "countryStringCode": "CI",
+                "countryNumberCode": "225",
+                "messageType": 1,
+            }
+        # 3. Mode de secours direct
+        else:
+            target_url = f"https://api.ikoddi.com/api/v1/groups"
+            payload = {
+                "to": normalized_phone,
+                "message": message,
+                "sender": self.sender_id,
+            }
 
         try:
             data = json.dumps(payload).encode("utf-8")
@@ -189,11 +212,11 @@ class IkoddiSmsProvider(SmsProvider):
             )
             # Repli de secours : si le sender personnalisé n'est pas encore approuvé par les opérateurs,
             # relancer immédiatement sans le champ sender (Ikoddi utilise alors son expéditeur système vérifié).
-            if "sender" in payload and err.code in (400, 422, 500):
+            if "from" in payload and err.code in (400, 422, 500):
                 try:
                     logger.warning("Nouvelle tentative d'envoi SMS Ikoddi sans sender personnalisé pour %s...", masked_phone)
                     fallback_payload = dict(payload)
-                    fallback_payload.pop("sender", None)
+                    fallback_payload["from"] = "Ikoddi"
                     req_fb = urllib.request.Request(
                         target_url,
                         data=json.dumps(fallback_payload).encode("utf-8"),
