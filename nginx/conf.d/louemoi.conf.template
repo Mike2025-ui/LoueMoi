@@ -37,6 +37,22 @@ server {
     ssl_session_cache shared:SSL:10m;
     ssl_session_tickets off;
 
+    # Compression Gzip haute performance (accélération API JSON et web)
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_min_length 256;
+    gzip_types
+        text/plain
+        text/css
+        text/xml
+        application/json
+        application/javascript
+        application/x-javascript
+        text/javascript
+        image/svg+xml;
+
     # Taille maximale des requêtes (uploads photos et vidéos jusqu'à 55 Mo)
     client_max_body_size 60M;
 

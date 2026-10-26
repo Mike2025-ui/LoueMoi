@@ -386,13 +386,13 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                     ),
                     const SizedBox(height: AppSpacing.lg),
                     const Text(
-                      'Discussion verrouillée',
+                      'Mise en relation immobilière',
                       style: AppTextStyles.h3,
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     const Text(
-                      'Un abonnement actif est requis pour consulter cette conversation et lire vos messages.',
+                      'Un forfait actif est requis pour planifier des visites physiques sur le terrain et échanger avec votre interlocuteur.',
                       style: AppTextStyles.bodyMedium,
                       textAlign: TextAlign.center,
                     ),
@@ -413,7 +413,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                         }
                       },
                       icon: const Icon(Icons.workspace_premium, size: 18),
-                      label: const Text('Débloquer mes messages'),
+                      label: const Text('Activer mon forfait visites'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: AppColors.white,
@@ -471,7 +471,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                                 const Icon(Icons.lock_outline, size: 40, color: AppColors.primary),
                                 const SizedBox(height: 12),
                                 const Text(
-                                  'Abonnement requis pour lire les messages',
+                                  'Forfait requis pour la planification des visites',
                                   style: AppTextStyles.h3,
                                   textAlign: TextAlign.center,
                                 ),
@@ -491,7 +491,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                                       ref.invalidate(messagesProvider(widget.conversationId));
                                     }
                                   },
-                                  child: const Text('S\'abonner'),
+                                  child: const Text('Activer mon forfait'),
                                 ),
                               ],
                             ),

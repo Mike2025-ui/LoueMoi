@@ -146,7 +146,7 @@ class _SubscriptionSheetState extends ConsumerState<_SubscriptionSheet>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Abonnement confirmé avec succès ! Vos accès et votre badge sont activés.'),
+            content: Text('Forfait activé avec succès ! Vous pouvez planifier vos visites et contacter les propriétaires.'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -176,23 +176,23 @@ class _SubscriptionSheetState extends ConsumerState<_SubscriptionSheet>
     final String badgePerk;
 
     if (effectiveRole == UserRole.bailleur) {
-      planLabel = 'Abonnement Bailleur';
+      planLabel = 'Pack Bailleur - Visites & Baux';
       price = remoteConfig.proPriceFcfa;
       description =
-          'En tant que bailleur, un abonnement actif est requis pour contacter et échanger directement avec vos locataires. Vos locataires peuvent réserver vos biens gratuitement.';
-      badgePerk = 'Badge Bailleur certifié inclus sur votre profil et vos annonces.';
+          'En tant que propriétaire ou bailleur, ce forfait professionnel couvre la mise en relation avec les candidats locataires, la planification des visites physiques de vos biens et la finalisation des baux.';
+      badgePerk = 'Badge Bailleur certifié, planification de visites et gestion locative.';
     } else if (effectiveRole == UserRole.agent) {
-      planLabel = 'Abonnement Agent Immobilier';
+      planLabel = 'Pack Agent - Visites & Mandats';
       price = remoteConfig.proPriceFcfa;
       description =
-          'En tant qu\'agent immobilier, un abonnement actif est requis pour contacter et échanger directement avec les clients. Vos clients peuvent vous contacter gratuitement.';
-      badgePerk = 'Badge Agent certifié inclus sur votre profil et vos annonces.';
+          'En tant qu\'agent immobilier, ce forfait professionnel couvre l\'organisation des visites sur le terrain avec les clients et l\'intermédiation pour la conclusion des baux.';
+      badgePerk = 'Badge Agent certifié, diffusion d\'annonces et visites de biens.';
     } else {
-      planLabel = 'Abonnement Client';
+      planLabel = 'Pass Visites & Mise en Relation';
       price = remoteConfig.clientPriceFcfa;
       description =
-          'Un abonnement de $price FCFA / mois est requis pour visiter les logements, discuter avec les propriétaires et accéder aux appels et contacts WhatsApp directs.';
-      badgePerk = 'Badge Membre certifié, visites, messagerie et contacts directs illimités pendant 30 jours.';
+          'Ce forfait vous permet de planifier des visites physiques des logements sur le terrain, d\'échanger directement avec les propriétaires et d\'accéder aux contacts pour votre emménagement.';
+      badgePerk = 'Visites de biens sur le terrain et mise en relation directe illimitées pendant 30 jours.';
     }
 
     return Padding(

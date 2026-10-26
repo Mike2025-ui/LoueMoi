@@ -138,11 +138,26 @@ class UserPhotoView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Sécurité : vérification d'intégrité Pillow (anti-polyglot/anti-script)
+        # Sécurité & Optimisation : vérification d'intégrité et redimensionnement avatar (max 500px, JPEG 85%)
+        import io
+        from django.core.files.base import ContentFile
+
         try:
             img = Image.open(photo_file)
             img.verify()
             photo_file.seek(0)
+
+            img = Image.open(photo_file)
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+            max_dim = 500
+            if img.width > max_dim or img.height > max_dim:
+                img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+
+            out_io = io.BytesIO()
+            img.save(out_io, format="JPEG", quality=85, optimize=True)
+            photo_to_save = ContentFile(out_io.getvalue())
+            ext = ".jpg"
         except Exception:
             return Response(
                 {"photo": ["Fichier image corrompu ou invalide."]},
@@ -159,7 +174,7 @@ class UserPhotoView(APIView):
                 pass
 
         safe_file_name = f"avatar_{uuid.uuid4().hex[:12]}{ext}"
-        saved_path = default_storage.save(f"avatars/{user.pk}/{safe_file_name}", photo_file)
+        saved_path = default_storage.save(f"avatars/{user.pk}/{safe_file_name}", photo_to_save)
         url = request.build_absolute_uri(default_storage.url(saved_path))
 
         user.photo = url

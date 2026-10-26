@@ -23,7 +23,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _navigateWhenReady() async {
-    final minSplashDelay = Future<void>.delayed(const Duration(milliseconds: 1400));
+    final minSplashDelay = Future<void>.delayed(const Duration(milliseconds: 300));
     final authReady = ref.read(authControllerProvider.notifier).ready;
     // Le splash reste visible au moins 1400ms (identité visuelle), et le
     // temps nécessaire à la restauration de session si elle est plus longue.

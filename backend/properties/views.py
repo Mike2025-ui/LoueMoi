@@ -329,11 +329,26 @@ class PropertyViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # Sécurité : vérification d'intégrité de l'image avec Pillow (anti-script / polyglot)
+            # Sécurité & Optimisation : vérification d'intégrité et compression (max 1600px, JPEG 82%)
+            import io
+            from django.core.files.base import ContentFile
+
             try:
                 img = Image.open(image_file)
                 img.verify()
                 image_file.seek(0)
+
+                img = Image.open(image_file)
+                if img.mode in ("RGBA", "P"):
+                    img = img.convert("RGB")
+                max_dim = 1600
+                if img.width > max_dim or img.height > max_dim:
+                    img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+
+                out_io = io.BytesIO()
+                img.save(out_io, format="JPEG", quality=82, optimize=True)
+                file_to_save = ContentFile(out_io.getvalue())
+                ext = ".jpg"
             except Exception:
                 return Response(
                     {"image": ["Fichier image corrompu ou invalide."]},
@@ -349,7 +364,7 @@ class PropertyViewSet(viewsets.ModelViewSet):
             safe_file_name = f"{prefix}{uuid.uuid4().hex[:12]}{ext}"
 
             saved_path = default_storage.save(
-                f"properties/{property_obj.pk}/{safe_file_name}", image_file
+                f"properties/{property_obj.pk}/{safe_file_name}", file_to_save
             )
             url = request.build_absolute_uri(default_storage.url(saved_path))
 

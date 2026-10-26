@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -30,7 +31,8 @@ Future<void> main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  await _initializeFirebase();
+  // Initialisation asynchrone non-bloquante de Firebase pour un affichage immédiat de l'UI
+  unawaited(_initializeFirebase());
   runApp(const ProviderScope(child: LoueMoiApp()));
 }
 

@@ -418,8 +418,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ProfileMenuTile(
                 icon: Icons.workspace_premium_outlined,
                 label: (user?.hasActiveSubscription ?? false)
-                    ? 'Mon abonnement (Actif)'
-                    : 'Abonnement LoueMoi',
+                    ? 'Mon forfait visites (Actif)'
+                    : 'Forfait visites & mise en relation',
                 onTap: () async {
                   await showSubscriptionModal(
                     context,
