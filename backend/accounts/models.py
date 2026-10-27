@@ -1,3 +1,4 @@
+import re
 import secrets
 import string
 from datetime import timedelta
@@ -205,7 +206,9 @@ class PasswordResetOTP(models.Model):
         # pseudo-aléatoire prévisible (Mersenne Twister), impropre à un
         # code de sécurité — secrets.choice() utilise l'aléatoire
         # cryptographique du système d'exploitation.
-        code = "".join(secrets.choice(string.digits) for _ in range(6))
+        # Code OTP alphanumérique (lettres majuscules + chiffres) généré cryptographiquement
+        chars = string.ascii_uppercase + string.digits
+        code = "".join(secrets.choice(chars) for _ in range(6))
         otp = cls.objects.create(
             user=user,
             code_hash=make_password(code),
@@ -224,10 +227,14 @@ class PasswordResetOTP(models.Model):
         self.save(update_fields=["attempts"])
         if self.is_used or self.is_expired or self.attempts > self.MAX_ATTEMPTS:
             return False
-        clean = re.sub(r"\D", "", str(code or "").strip())
+        clean = re.sub(r"[^a-zA-Z0-9]", "", str(code or "").strip())
+        raw_clean = str(code or "").strip()
         return (
             check_password(clean, self.code_hash)
-            or check_password(str(code or "").strip(), self.code_hash)
+            or check_password(clean.upper(), self.code_hash)
+            or check_password(clean.lower(), self.code_hash)
+            or check_password(raw_clean, self.code_hash)
+            or check_password(raw_clean.upper(), self.code_hash)
         )
 
     def mark_used(self):

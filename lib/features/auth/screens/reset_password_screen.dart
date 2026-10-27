@@ -44,7 +44,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     setState(() => _isSubmitting = true);
     try {
       final repository = ref.read(authRepositoryProvider);
-      final cleanCode = _codeController.text.replaceAll(RegExp(r'\D'), '');
+      final cleanCode = _codeController.text.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').trim();
       await repository.confirmPasswordReset(
         phone: widget.phone,
         code: cleanCode.isNotEmpty ? cleanCode : _codeController.text.trim(),
@@ -83,9 +83,10 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                   const SizedBox(height: AppSpacing.lg),
                   AppTextField(
                     label: 'Code de vérification OTP',
-                    hint: 'Entrez le code à 6 chiffres',
+                    hint: 'Entrez le code alphanumérique reçu',
                     controller: _codeController,
-                    keyboardType: TextInputType.number,
+                    keyboardType: TextInputType.text,
+                    textCapitalization: TextCapitalization.characters,
                     autofillHints: const [AutofillHints.oneTimeCode],
                     validator: (v) => Validators.required(v, message: 'Le code est requis'),
                   ),

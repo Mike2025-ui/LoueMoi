@@ -160,7 +160,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       if (picked == null) return;
 
       setState(() => _uploadingPhoto = true);
-      await ref.read(authControllerProvider.notifier).uploadProfilePhoto(picked);
+      await ref
+          .read(authControllerProvider.notifier)
+          .uploadProfilePhoto(picked);
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -197,9 +199,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _contactSupport() async {
-    const message = 'Bonjour LoueMoi, je souhaite obtenir des informations concernant mon compte.';
+    const message =
+        'Bonjour LoueMoi, je souhaite obtenir des informations concernant mon compte.';
     final cleanPhone = Env.supportPhone.replaceAll(RegExp(r'[^0-9]'), '');
-    final uri = Uri.parse('https://wa.me/$cleanPhone?text=${Uri.encodeComponent(message)}');
+    final uri = Uri.parse(
+      'https://wa.me/$cleanPhone?text=${Uri.encodeComponent(message)}',
+    );
     try {
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -229,15 +234,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
               ),
               const Padding(
-                padding: EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 4),
-                child: Text(
-                  'Photo de profil',
-                  style: AppTextStyles.h3,
+                padding: EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: 4,
                 ),
+                child: Text('Photo de profil', style: AppTextStyles.h3),
               ),
               const SizedBox(height: 8),
               ListTile(
-                leading: const Icon(Icons.camera_alt_outlined, color: AppColors.primary),
+                leading: const Icon(
+                  Icons.camera_alt_outlined,
+                  color: AppColors.primary,
+                ),
                 title: const Text('Prendre une photo'),
                 onTap: () {
                   Navigator.pop(sheetCtx);
@@ -245,7 +253,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.photo_library_outlined, color: AppColors.primary),
+                leading: const Icon(
+                  Icons.photo_library_outlined,
+                  color: AppColors.primary,
+                ),
                 title: const Text('Choisir dans la galerie'),
                 onTap: () {
                   Navigator.pop(sheetCtx);
@@ -254,8 +265,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
               if (hasPhoto)
                 ListTile(
-                  leading: const Icon(Icons.delete_outline, color: AppColors.danger),
-                  title: const Text('Supprimer la photo', style: TextStyle(color: AppColors.danger)),
+                  leading: const Icon(
+                    Icons.delete_outline,
+                    color: AppColors.danger,
+                  ),
+                  title: const Text(
+                    'Supprimer la photo',
+                    style: TextStyle(color: AppColors.danger),
+                  ),
                   onTap: () {
                     Navigator.pop(sheetCtx);
                     _deletePhoto();
@@ -286,7 +303,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               const Text('Profil', style: AppTextStyles.h3),
               const SizedBox(height: AppSpacing.lg),
               GestureDetector(
-                onTap: _uploadingPhoto ? null : () => _showPhotoOptions(context, user?.photo != null),
+                onTap: _uploadingPhoto
+                    ? null
+                    : () => _showPhotoOptions(context, user?.photo != null),
                 child: Stack(
                   children: [
                     CircleAvatar(
@@ -295,7 +314,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       backgroundImage: user?.photo != null
                           ? NetworkImage(buildMediaUrl(user!.photo!))
                           : null,
-                      onBackgroundImageError: user?.photo != null ? (exception, stackTrace) {} : null,
+                      onBackgroundImageError: user?.photo != null
+                          ? (exception, stackTrace) {}
+                          : null,
                       child: _uploadingPhoto
                           ? const SizedBox(
                               width: 28,
@@ -306,12 +327,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               ),
                             )
                           : (user?.photo == null
-                              ? const Icon(
-                                  Icons.person,
-                                  size: 48,
-                                  color: AppColors.primary,
-                                )
-                              : null),
+                                ? const Icon(
+                                    Icons.person,
+                                    size: 48,
+                                    color: AppColors.primary,
+                                  )
+                                : null),
                     ),
                     if (isVerified)
                       const Positioned(
