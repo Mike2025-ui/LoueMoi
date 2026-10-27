@@ -98,6 +98,20 @@ class ApiAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await _apiClient.post<Map<String, dynamic>>(
+      ApiEndpoints.changePassword,
+      data: {
+        'current_password': currentPassword,
+        'new_password': newPassword,
+      },
+    );
+  }
+
+  @override
   Future<User?> restoreSession() async {
     final access = await _authStorage.getAccessToken();
     if (access == null) return null;

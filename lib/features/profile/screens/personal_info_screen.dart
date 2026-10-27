@@ -9,6 +9,7 @@ import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../auth/models/user_role.dart';
 import '../../auth/providers/auth_providers.dart';
+import '../widgets/change_password_dialog.dart';
 
 String _roleLabel(UserRole? role) => switch (role) {
       UserRole.agent => 'Agent immobilier',
@@ -87,6 +88,20 @@ class PersonalInfoScreen extends ConsumerWidget {
             PrimaryButton(
               label: 'Modifier le profil',
               onPressed: () => context.push(AppRoutes.editProfile),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            OutlinedButton.icon(
+              onPressed: () => showChangePasswordDialog(context, ref),
+              icon: const Icon(Icons.lock_outline, size: 18),
+              label: const Text('Modifier mon mot de passe'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                side: const BorderSide(color: AppColors.primary),
+                minimumSize: const Size.fromHeight(48),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+              ),
             ),
           ],
         ),

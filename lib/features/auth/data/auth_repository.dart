@@ -41,6 +41,12 @@ abstract class AuthRepository {
     required String newPassword,
   });
 
+  /// Modifie le mot de passe d'un utilisateur connecté (POST /api/auth/change-password/).
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  });
+
   /// Restaure la session depuis le token persisté, s'il est encore valide.
   /// Retourne `null` si aucune session (ou session expirée).
   Future<User?> restoreSession();
@@ -173,6 +179,17 @@ class MockAuthRepository implements AuthRepository {
     await Future.delayed(const Duration(milliseconds: 400));
     if (code != '123456') {
       throw const ValidationException('Code invalide ou expiré.');
+    }
+  }
+
+  @override
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 400));
+    if (currentPassword.isEmpty) {
+      throw const ValidationException('Mot de passe actuel incorrect.');
     }
   }
 

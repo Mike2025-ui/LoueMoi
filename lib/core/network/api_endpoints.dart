@@ -15,6 +15,7 @@ class ApiEndpoints {
   static const String logout = '/api/auth/logout/';
   static const String passwordResetRequest = '/api/auth/password-reset/request/';
   static const String passwordResetConfirm = '/api/auth/password-reset/confirm/';
+  static const String changePassword = '/api/auth/change-password/';
 
   // Properties
   static const String properties = '/api/properties/';

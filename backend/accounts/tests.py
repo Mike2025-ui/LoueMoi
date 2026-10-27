@@ -647,3 +647,47 @@ class UserPhotoTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
+class ChangePasswordTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            phone="+2250788880099",
+            first_name="Alice",
+            last_name="Kouame",
+            password="oldpassword123",
+        )
+        self.client.force_authenticate(user=self.user)
+
+    def test_change_password_success(self):
+        response = self.client.post(
+            "/api/auth/change-password/",
+            {"current_password": "oldpassword123", "new_password": "newpassword456"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("newpassword456"))
+
+    def test_change_password_wrong_current(self):
+        response = self.client.post(
+            "/api/auth/change-password/",
+            {"current_password": "wrongpassword", "new_password": "newpassword456"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("incorrect", response.data["detail"].lower())
+
+    def test_change_password_too_short(self):
+        response = self.client.post(
+            "/api/auth/change-password/",
+            {"current_password": "oldpassword123", "new_password": "123"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_unauthenticated_cannot_change_password(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.post(
+            "/api/auth/change-password/",
+            {"current_password": "oldpassword123", "new_password": "newpassword456"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+

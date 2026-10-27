@@ -224,11 +224,10 @@ class PasswordResetOTP(models.Model):
         self.save(update_fields=["attempts"])
         if self.is_used or self.is_expired or self.attempts > self.MAX_ATTEMPTS:
             return False
-        clean = str(code or "").strip()
+        clean = re.sub(r"\D", "", str(code or "").strip())
         return (
             check_password(clean, self.code_hash)
-            or check_password(clean.upper(), self.code_hash)
-            or check_password(clean.lower(), self.code_hash)
+            or check_password(str(code or "").strip(), self.code_hash)
         )
 
     def mark_used(self):

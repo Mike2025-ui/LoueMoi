@@ -110,6 +110,16 @@ class AuthController extends StateNotifier<AsyncValue<User?>> {
     state = const AsyncValue.data(null);
   }
 
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await _repository.changePassword(
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+    );
+  }
+
   /// PATCH /api/users/me/ — "Modification du profil". Met à jour l'état
   /// d'authentification avec la réponse serveur (source de vérité), pour
   /// que tous les écrans qui lisent authControllerProvider (bell, écrans

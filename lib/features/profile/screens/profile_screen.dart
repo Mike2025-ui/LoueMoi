@@ -13,6 +13,7 @@ import '../../../core/utils/media_url.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../../payments/widgets/subscription_modal.dart';
 import '../widgets/profile_menu_tile.dart';
+import '../widgets/change_password_dialog.dart';
 
 /// Flux "Supprimer mon compte" (décision métier : désactivation, jamais de
 /// suppression physique — voir AuthController.deactivateAccount) :
@@ -414,6 +415,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 icon: Icons.person_add_alt_outlined,
                 label: 'Informations personnelles',
                 onTap: () => context.push(AppRoutes.personalInfo),
+              ),
+              ProfileMenuTile(
+                icon: Icons.lock_outline,
+                label: 'Modifier mon mot de passe',
+                onTap: () => showChangePasswordDialog(context, ref),
               ),
               ProfileMenuTile(
                 icon: Icons.workspace_premium_outlined,

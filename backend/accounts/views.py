@@ -373,6 +373,48 @@ class PasswordResetConfirmView(APIView):
         return Response({"detail": "Mot de passe réinitialisé avec succès."})
 
 
+class ChangePasswordView(APIView):
+    """POST /api/auth/change-password/ — {"current_password": "...", "new_password": "..."}
+    Permet à un utilisateur connecté de modifier son mot de passe."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        current_password = request.data.get("current_password", "")
+        new_password = request.data.get("new_password", "")
+
+        if not current_password or not new_password:
+            return Response(
+                {"detail": "Le mot de passe actuel et le nouveau mot de passe sont requis."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user = request.user
+        if not user.check_password(current_password):
+            return Response(
+                {"detail": "Mot de passe actuel incorrect."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if len(new_password) < 6:
+            return Response(
+                {"detail": "Le nouveau mot de passe doit contenir au moins 6 caractères."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user.set_password(new_password)
+        user.save(update_fields=["password"])
+
+        try:
+            from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+            for token in OutstandingToken.objects.filter(user=user):
+                BlacklistedToken.objects.get_or_create(token=token)
+        except Exception:
+            pass
+
+        return Response({"detail": "Mot de passe modifié avec succès."})
+
+
 class RequestActivationView(APIView):
     """POST /api/auth/request-activation/
     Permet à un bailleur ou un agent de soumettre une demande d'activation
