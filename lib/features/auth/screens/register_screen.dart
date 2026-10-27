@@ -5,6 +5,7 @@ import '../../../app/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/feedback.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/primary_button.dart';
@@ -65,9 +66,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       },
       loading: () {},
       error: (e, _) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
-        );
+        showErrorSnackbar(context, e);
       },
     );
   }
@@ -141,11 +140,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ),
                 const SizedBox(height: AppSpacing.md),
                 AppTextField(
-                  label: 'Numéro WhatsApp',
+                  label: _selectedRole == UserRole.client
+                      ? 'Numéro WhatsApp (optionnel)'
+                      : 'Numéro WhatsApp',
                   hint: '+225 07 08 09 10 11',
                   controller: _whatsappController,
                   keyboardType: TextInputType.phone,
-                  validator: Validators.phone,
+                  validator: _selectedRole == UserRole.client
+                      ? Validators.optionalPhone
+                      : Validators.phone,
                 ),
                 const SizedBox(height: AppSpacing.md),
                 AppTextField(

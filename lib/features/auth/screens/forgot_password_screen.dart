@@ -35,7 +35,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    final phone = _phoneController.text.trim();
+    final phone = _phoneController.text.replaceAll(RegExp(r'\s+'), '').trim();
     setState(() => _isSubmitting = true);
     try {
       final repository = ref.read(authRepositoryProvider);

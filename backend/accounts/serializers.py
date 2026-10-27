@@ -140,7 +140,9 @@ class RegisterSerializer(serializers.ModelSerializer):
         # Les comptes agent et bailleur doivent être activés par un administrateur
         if user.role in (User.ROLE_AGENT, User.ROLE_BAILLEUR):
             user.is_approved = False
-            user.activation_requested = False
+            user.activation_requested = True
+            from django.utils import timezone
+            user.activation_requested_at = timezone.now()
         else:
             user.is_approved = True
         user.save()

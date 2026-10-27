@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +8,7 @@ import '../../../core/config/env.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/feedback.dart';
 import '../../../core/widgets/app_logo.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../models/user_role.dart';
@@ -21,9 +23,58 @@ class PendingActivationScreen extends ConsumerStatefulWidget {
 }
 
 class _PendingActivationScreenState
-    extends ConsumerState<PendingActivationScreen> {
+    extends ConsumerState<PendingActivationScreen>
+    with WidgetsBindingObserver {
   bool _isRequesting = false;
   bool _isChecking = false;
+  Timer? _pollingTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _startPolling();
+  }
+
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkStatusSilent();
+    }
+  }
+
+  void _startPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 12), (_) {
+      _checkStatusSilent();
+    });
+  }
+
+  Future<void> _checkStatusSilent() async {
+    if (!mounted || _isChecking) return;
+    try {
+      await ref.read(authControllerProvider.notifier).refreshProfile();
+      if (!mounted) return;
+      final user = ref.read(authControllerProvider).valueOrNull;
+      if (user != null && user.isApproved) {
+        _pollingTimer?.cancel();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Félicitations ! Votre compte a été activé."),
+            backgroundColor: Colors.green,
+          ),
+        );
+        context.go(AppRoutes.home);
+      }
+    } catch (_) {}
+  }
 
   Future<void> _handleRequestActivation() async {
     setState(() => _isRequesting = true);
@@ -38,16 +89,9 @@ class _PendingActivationScreenState
           backgroundColor: AppColors.primary,
         ),
       );
+      _startPolling();
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            e.toString().replaceFirst('Exception: ', ''),
-          ),
-          backgroundColor: Colors.red.shade700,
-        ),
-      );
+      if (mounted) showErrorSnackbar(context, e);
     } finally {
       if (mounted) setState(() => _isRequesting = false);
     }
@@ -63,6 +107,7 @@ class _PendingActivationScreenState
 
     final user = ref.read(authControllerProvider).valueOrNull;
     if (user != null && user.isApproved) {
+      _pollingTimer?.cancel();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Félicitations ! Votre compte a été activé."),
@@ -96,6 +141,7 @@ class _PendingActivationScreenState
   }
 
   Future<void> _logout() async {
+    _pollingTimer?.cancel();
     await ref.read(authControllerProvider.notifier).logout();
     if (!mounted) return;
     context.go(AppRoutes.login);

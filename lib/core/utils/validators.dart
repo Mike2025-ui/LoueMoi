@@ -13,6 +13,17 @@ class Validators {
     return null;
   }
 
+  static String? optionalPhone(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return null;
+    }
+    final digits = value.replaceAll(RegExp(r'\D'), '');
+    if (digits.length < 8) {
+      return 'Numéro de téléphone invalide';
+    }
+    return null;
+  }
+
   static String? password(String? value) {
     if (value == null || value.isEmpty) {
       return 'Le mot de passe est requis';

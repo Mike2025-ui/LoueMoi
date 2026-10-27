@@ -6,6 +6,7 @@ import '../../../core/constants/app_assets.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/feedback.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_logo.dart';
 import '../../../core/widgets/app_text_field.dart';
@@ -51,9 +52,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       },
       loading: () {},
       error: (e, _) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
-        );
+        showErrorSnackbar(context, e);
       },
     );
   }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -30,13 +31,56 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _isSubmitting = false;
+  bool _isResending = false;
+  int _countdownSeconds = 0;
+  Timer? _timer;
 
   @override
   void dispose() {
+    _timer?.cancel();
     _codeController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  void _startCountdown() {
+    _timer?.cancel();
+    setState(() => _countdownSeconds = 60);
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_countdownSeconds <= 1) {
+        timer.cancel();
+        setState(() => _countdownSeconds = 0);
+      } else {
+        setState(() => _countdownSeconds--);
+      }
+    });
+  }
+
+  Future<void> _resendCode() async {
+    if (_countdownSeconds > 0 || _isResending) return;
+    setState(() => _isResending = true);
+    try {
+      final repository = ref.read(authRepositoryProvider);
+      final cleanPhone = widget.phone.replaceAll(RegExp(r'\s+'), '').trim();
+      await repository.requestPasswordReset(cleanPhone);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Un nouveau code de vérification a été envoyé par SMS.'),
+          backgroundColor: AppColors.primary,
+        ),
+      );
+      _startCountdown();
+    } catch (e) {
+      if (mounted) showErrorSnackbar(context, e);
+    } finally {
+      if (mounted) setState(() => _isResending = false);
+    }
   }
 
   Future<void> _submit() async {
@@ -44,9 +88,10 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     setState(() => _isSubmitting = true);
     try {
       final repository = ref.read(authRepositoryProvider);
+      final cleanPhone = widget.phone.replaceAll(RegExp(r'\s+'), '').trim();
       final cleanCode = _codeController.text.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').trim();
       await repository.confirmPasswordReset(
-        phone: widget.phone,
+        phone: cleanPhone,
         code: cleanCode.isNotEmpty ? cleanCode : _codeController.text.trim(),
         newPassword: _passwordController.text,
       );
@@ -90,7 +135,25 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                     autofillHints: const [AutofillHints.oneTimeCode],
                     validator: (v) => Validators.required(v, message: 'Le code est requis'),
                   ),
-                  const SizedBox(height: AppSpacing.md),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: (_countdownSeconds > 0 || _isResending) ? null : _resendCode,
+                      child: Text(
+                        _isResending
+                            ? 'Envoi en cours...'
+                            : _countdownSeconds > 0
+                                ? 'Renvoyer dans ${_countdownSeconds}s'
+                                : 'Renvoyer le code SMS',
+                        style: TextStyle(
+                          color: _countdownSeconds > 0 ? AppColors.textSecondary : AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
                   AppTextField(
                     label: 'Nouveau mot de passe',
                     hint: 'Au moins 6 caractères alphanumériques',
