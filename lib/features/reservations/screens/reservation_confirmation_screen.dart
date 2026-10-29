@@ -33,7 +33,7 @@ class _ReservationConfirmationScreenState
             Icon(Icons.check_circle_outline, color: AppColors.success, size: 72),
             SizedBox(height: AppSpacing.md),
             Text(
-              'Commande validée !',
+              'Réservation enregistrée !',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,

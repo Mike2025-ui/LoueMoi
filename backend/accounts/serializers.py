@@ -48,6 +48,13 @@ class UserSerializer(serializers.ModelSerializer):
             "last_seen",
         ]
 
+    def validate_whatsapp(self, value):
+        if not value:
+            return ""
+        from accounts.sms import normalize_phone_number
+        normalized = normalize_phone_number(value)
+        return normalized or value.strip()
+
     def get_is_verified(self, user):
         # Décision souveraine de l'administration : si révoqué ou désactivé, le badge est False
         if not getattr(user, "is_verified", False):

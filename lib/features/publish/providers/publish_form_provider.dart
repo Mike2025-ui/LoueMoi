@@ -213,6 +213,51 @@ class PublishFormState {
 
   /// Pré-remplit le formulaire à partir d'une annonce existante (édition).
   factory PublishFormState.fromProperty(Property property) {
+    String chambres = '';
+    String sallesDeBain = '';
+    String superficie = '';
+    String typeTerrain = '';
+    final remainingCharacteristics = <String>{};
+
+    final allTraits = [...property.features, ...property.amenities];
+    final chambreRegex = RegExp(r'^(\d+)\s*chambre', caseSensitive: false);
+    final salleRegex = RegExp(r'^(\d+)\s*salle', caseSensitive: false);
+    final superficieRegex = RegExp(
+      r'^(\d+(?:[.,]\d+)?)\s*m²',
+      caseSensitive: false,
+    );
+
+    for (final trait in allTraits) {
+      final t = trait.trim();
+      final chMatch = chambreRegex.firstMatch(t);
+      if (chMatch != null && chambres.isEmpty) {
+        chambres = chMatch.group(1) ?? '';
+        continue;
+      }
+      final sMatch = salleRegex.firstMatch(t);
+      if (sMatch != null && sallesDeBain.isEmpty) {
+        sallesDeBain = sMatch.group(1) ?? '';
+        continue;
+      }
+      final supMatch = superficieRegex.firstMatch(t);
+      if (supMatch != null && superficie.isEmpty) {
+        superficie = supMatch.group(1) ?? '';
+        continue;
+      }
+      if (property.type == PropertyType.terrain &&
+          (t.toLowerCase().contains('terrain') ||
+              t.toLowerCase().contains('agricole') ||
+              t.toLowerCase().contains('bâtir') ||
+              t.toLowerCase().contains('residentiel') ||
+              t.toLowerCase().contains('commercial'))) {
+        if (typeTerrain.isEmpty) {
+          typeTerrain = t;
+          continue;
+        }
+      }
+      remainingCharacteristics.add(t);
+    }
+
     return PublishFormState(
       transactionType: property.transactionType,
       propertyType: property.type,
@@ -227,13 +272,17 @@ class PublishFormState {
           : '',
       deposit: property.deposit != null ? _fmt(property.deposit!) : '',
       advance: property.advance != null ? _fmt(property.advance!) : '',
+      chambres: chambres,
+      sallesDeBain: sallesDeBain,
+      superficie: superficie,
+      typeTerrain: typeTerrain,
       city: property.city,
       commune: property.commune,
       district: property.district,
       address: property.address,
       latitude: property.latitude,
       longitude: property.longitude,
-      characteristics: {...property.features, ...property.amenities},
+      characteristics: remainingCharacteristics,
       existingImages: property.images,
       existingVideoUrl: property.video,
     );

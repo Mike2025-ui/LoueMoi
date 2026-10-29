@@ -253,8 +253,21 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(messagesProvider(widget.conversationId), (_, next) {
-      _scrollToBottom();
+    ref.listen(messagesProvider(widget.conversationId), (previous, next) {
+      final prevList = previous?.valueOrNull ?? [];
+      final nextList = next.valueOrNull ?? [];
+      // Ne défiler automatiquement tout en bas que si de nouveaux messages sont arrivés
+      // et que l'utilisateur est déjà en bas ou qu'il s'agit de son propre message.
+      if (nextList.length > prevList.length) {
+        final lastMsg = nextList.last;
+        final currentUserId = ref.read(authControllerProvider).valueOrNull?.id;
+        final isMine = lastMsg.senderId == currentUserId;
+        final isNearBottom = !_scrollController.hasClients ||
+            (_scrollController.position.maxScrollExtent - _scrollController.position.pixels < 150);
+        if (isMine || isNearBottom) {
+          _scrollToBottom();
+        }
+      }
     });
 
     final messagesAsync = ref.watch(messagesProvider(widget.conversationId));

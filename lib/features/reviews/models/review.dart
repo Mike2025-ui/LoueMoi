@@ -24,13 +24,16 @@ class Review extends Equatable {
   factory Review.fromJson(Map<String, dynamic> json) {
     return Review(
       id: json['id'].toString(),
-      propertyId: json['property_id'].toString(),
-      userId: json['user_id'].toString(),
-      userName: json['user_name'] as String,
+      propertyId: json['property_id']?.toString() ?? '',
+      userId: json['user_id']?.toString() ?? '',
+      userName: json['user_name'] as String? ?? 'Utilisateur',
       userPhoto: json['user_photo'] as String?,
-      rating: (json['rating'] as num).toDouble(),
-      comment: json['comment'] as String,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      rating: (json['rating'] as num?)?.toDouble() ??
+          (num.tryParse(json['rating']?.toString() ?? '')?.toDouble() ?? 5.0),
+      comment: json['comment'] as String? ?? '',
+      createdAt: json['created_at'] != null
+          ? (DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now())
+          : DateTime.now(),
     );
   }
 

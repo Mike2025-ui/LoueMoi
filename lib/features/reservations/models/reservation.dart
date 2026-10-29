@@ -81,14 +81,19 @@ class Reservation extends Equatable {
     final clientJson = json['client'] as Map<String, dynamic>?;
     return Reservation(
       id: json['id'].toString(),
-      propertyId: json['property_id'].toString(),
-      userId: json['user_id'].toString(),
+      propertyId: json['property_id']?.toString() ?? '',
+      userId: json['user_id']?.toString() ?? '',
       client: clientJson == null ? null : ReservationClient.fromJson(clientJson),
-      rent: (json['rent'] as num).toDouble(),
-      deposit: (json['deposit'] as num).toDouble(),
-      advance: (json['advance'] as num).toDouble(),
-      status: ReservationStatus.fromString(json['status'] as String),
-      createdAt: DateTime.parse(json['created_at'] as String),
+      rent: (json['rent'] as num?)?.toDouble() ??
+          (num.tryParse(json['rent']?.toString() ?? '')?.toDouble() ?? 0.0),
+      deposit: (json['deposit'] as num?)?.toDouble() ??
+          (num.tryParse(json['deposit']?.toString() ?? '')?.toDouble() ?? 0.0),
+      advance: (json['advance'] as num?)?.toDouble() ??
+          (num.tryParse(json['advance']?.toString() ?? '')?.toDouble() ?? 0.0),
+      status: ReservationStatus.fromString(json['status']?.toString() ?? 'enCours'),
+      createdAt: json['created_at'] != null
+          ? (DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now())
+          : DateTime.now(),
     );
   }
 

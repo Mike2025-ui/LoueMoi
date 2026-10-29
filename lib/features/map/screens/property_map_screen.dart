@@ -9,10 +9,12 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/feedback.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_map_view.dart';
+import '../../../core/widgets/property_image.dart';
+import '../../../core/widgets/status_badge.dart';
 import '../../properties/models/property.dart';
 import '../../properties/providers/property_providers.dart';
-import '../../properties/widgets/property_card.dart';
 import '../providers/map_providers.dart';
 
 const List<double> _radiusOptionsKm = [0, 5, 10, 20];
@@ -62,29 +64,114 @@ class _PropertyMapScreenState extends ConsumerState<PropertyMapScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
       ),
-      builder: (sheetContext) => Padding(
-        padding: const EdgeInsets.all(AppSpacing.screenPadding),
-        child: SizedBox(
-          height: 260,
-          child: Align(
-            alignment: Alignment.topLeft,
-            child: SizedBox(
-              width: 170,
-              child: PropertyCard(
-                property: property,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.screenPadding),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              InkWell(
                 onTap: () {
                   Navigator.of(sheetContext).pop();
                   context.push(AppRoutes.propertyDetailPath(property.id));
                 },
-                onFavoriteTap: () async {
-                  try {
-                    await toggleFavorite(ref, property.id);
-                  } catch (e) {
-                    if (sheetContext.mounted) showErrorSnackbar(sheetContext, e);
-                  }
-                },
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      child: PropertyImage(
+                        property.coverImage,
+                        width: 105,
+                        height: 105,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              StatusBadge.category(property.type.label),
+                              IconButton(
+                                icon: Icon(
+                                  property.isFavorite
+                                      ? Icons.favorite
+                                      : Icons.favorite_border,
+                                  color: property.isFavorite
+                                      ? AppColors.danger
+                                      : AppColors.textSecondary,
+                                  size: 20,
+                                ),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                onPressed: () async {
+                                  try {
+                                    await toggleFavorite(ref, property.id);
+                                  } catch (e) {
+                                    if (sheetContext.mounted) {
+                                      showErrorSnackbar(sheetContext, e);
+                                    }
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            property.title,
+                            style: AppTextStyles.h3.copyWith(fontSize: 15),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.location_on,
+                                size: 14,
+                                color: AppColors.primary,
+                              ),
+                              const SizedBox(width: 2),
+                              Expanded(
+                                child: Text(
+                                  property.locationLabel,
+                                  style: AppTextStyles.caption,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            Formatters.price(property.price),
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),

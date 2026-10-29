@@ -147,36 +147,46 @@ class Property extends Equatable {
 
     return Property(
       id: json['id'].toString(),
-      title: json['title'] as String,
+      title: json['title'] as String? ?? '',
       description: json['description'] as String? ?? '',
-      type: PropertyType.fromString(json['type'] as String),
-      category: json['category'] as String,
+      type: PropertyType.fromString(json['type']?.toString() ?? ''),
+      category: json['category'] as String? ?? '',
       transactionType:
-          TransactionType.fromString(json['transaction_type'] as String),
-      price: (json['price'] as num).toDouble(),
-      deposit: (json['deposit'] as num?)?.toDouble(),
-      advance: (json['advance'] as num?)?.toDouble(),
+          TransactionType.fromString(json['transaction_type']?.toString() ?? ''),
+      price: (json['price'] as num?)?.toDouble() ??
+          (num.tryParse(json['price']?.toString() ?? '')?.toDouble() ?? 0.0),
+      deposit: (json['deposit'] as num?)?.toDouble() ??
+          num.tryParse(json['deposit']?.toString() ?? '')?.toDouble(),
+      advance: (json['advance'] as num?)?.toDouble() ??
+          num.tryParse(json['advance']?.toString() ?? '')?.toDouble(),
       city: json['city'] as String? ?? '',
-      commune: json['commune'] as String,
-      district: json['district'] as String,
+      commune: json['commune'] as String? ?? '',
+      district: json['district'] as String? ?? '',
       address: json['address'] as String? ?? '',
-      latitude: (json['latitude'] as num?)?.toDouble(),
-      longitude: (json['longitude'] as num?)?.toDouble(),
+      latitude: (json['latitude'] as num?)?.toDouble() ??
+          num.tryParse(json['latitude']?.toString() ?? '')?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble() ??
+          num.tryParse(json['longitude']?.toString() ?? '')?.toDouble(),
       status: resolvedStatus,
       isFuture: json['is_future'] as bool? ?? false,
       isFavorite: json['is_favorite'] as bool? ?? false,
-      images: (json['images'] as List).map((e) => e as String).toList(),
-      coverImage: json['cover_image'] as String,
+      images: (json['images'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      coverImage: json['cover_image'] as String? ?? '',
       video: _resolveVideoUrl(json['video'] as String?),
-      features: (json['features'] as List).map((e) => e as String).toList(),
-      amenities: (json['amenities'] as List).map((e) => e as String).toList(),
-      agent: Agent.fromJson(json['agent'] as Map<String, dynamic>),
+      features: (json['features'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      amenities: (json['amenities'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      agent: Agent.fromJson(json['agent'] as Map<String, dynamic>? ?? const {}),
       viewsCount: json['views_count'] as int? ?? 0,
       favoritesCount: json['favorites_count'] as int? ?? 0,
       ownerHasActiveSubscription: json['owner_has_active_subscription'] as bool? ?? false,
-      distanceKm: (json['distance_km'] as num?)?.toDouble(),
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      distanceKm: (json['distance_km'] as num?)?.toDouble() ??
+          num.tryParse(json['distance_km']?.toString() ?? '')?.toDouble(),
+      createdAt: json['created_at'] != null
+          ? (DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now())
+          : DateTime.now(),
+      updatedAt: json['updated_at'] != null
+          ? (DateTime.tryParse(json['updated_at'].toString()) ?? DateTime.now())
+          : DateTime.now(),
     );
   }
 

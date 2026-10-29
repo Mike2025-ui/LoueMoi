@@ -423,16 +423,18 @@ class _AProposTab extends ConsumerWidget {
       return true;
     }
 
-    // Vérification de l'abonnement :
-    // Clients, Bailleurs et Agents doivent disposer d'un abonnement actif pour discuter ou visiter ce bien
-    bool hasActiveSubscription = false;
+    // Vérification de l'autorisation de contact :
+    // - Si le propriétaire a un abonnement Pro actif : contact GRATUIT pour tous les clients.
+    // - Sinon : le client doit disposer de son abonnement actif.
+    // Le backend calcule cette règle souveraine via check.canContact.
+    bool canProceed = false;
     try {
       final repository = ref.read(paymentRepositoryProvider);
       final check = await repository.checkCanContact(propertyId: property.id);
-      hasActiveSubscription = check.userHasActiveSubscription;
+      canProceed = check.canContact;
     } catch (_) {}
 
-    if (hasActiveSubscription) {
+    if (canProceed) {
       return true;
     }
 
@@ -480,15 +482,15 @@ class _AProposTab extends ConsumerWidget {
       return true;
     }
 
-    // Vérifier si l'utilisateur possède son abonnement actif
-    bool hasActiveSub = false;
+    // Vérifier l'autorisation de contact direct selon la règle backend (check.canContact)
+    bool canDirectContact = false;
     try {
       final repository = ref.read(paymentRepositoryProvider);
       final check = await repository.checkCanContact(propertyId: property.id);
-      hasActiveSub = check.userHasActiveSubscription;
+      canDirectContact = check.canContact;
     } catch (_) {}
 
-    if (hasActiveSub) {
+    if (canDirectContact) {
       return true;
     }
 
