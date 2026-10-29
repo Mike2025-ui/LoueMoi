@@ -146,7 +146,7 @@ class _SubscriptionSheetState extends ConsumerState<_SubscriptionSheet>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Forfait activé avec succès ! Vous pouvez planifier vos visites et contacter les propriétaires.'),
+            content: Text('Pass Visites activé avec succès ! Vous pouvez planifier vos visites sur place et contacter les propriétaires.'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -176,23 +176,23 @@ class _SubscriptionSheetState extends ConsumerState<_SubscriptionSheet>
     final String badgePerk;
 
     if (effectiveRole == UserRole.bailleur) {
-      planLabel = 'Pack Bailleur - Visites & Baux';
+      planLabel = 'Pack Bailleur — Visites & Baux';
       price = remoteConfig.proPriceFcfa;
       description =
-          'En tant que propriétaire ou bailleur, ce forfait professionnel couvre la mise en relation avec les candidats locataires, la planification des visites physiques de vos biens et la finalisation des baux.';
-      badgePerk = 'Badge Bailleur certifié, planification de visites et gestion locative.';
+          'En tant que propriétaire ou bailleur, ce forfait professionnel couvre la gestion des demandes de visite physique, la mise en relation avec les candidats locataires et le suivi des baux sur le terrain.';
+      badgePerk = 'Badge Bailleur certifié, planification de visites physiques et baux.';
     } else if (effectiveRole == UserRole.agent) {
-      planLabel = 'Pack Agent - Visites & Mandats';
+      planLabel = 'Pack Agent — Visites & Mandats';
       price = remoteConfig.proPriceFcfa;
       description =
           'En tant qu\'agent immobilier, ce forfait professionnel couvre l\'organisation des visites sur le terrain avec les clients et l\'intermédiation pour la conclusion des baux.';
       badgePerk = 'Badge Agent certifié, diffusion d\'annonces et visites de biens.';
     } else {
-      planLabel = 'Pass Visites & Mise en Relation';
+      planLabel = 'Pass Visites & Services Immobiliers';
       price = remoteConfig.clientPriceFcfa;
       description =
-          'Ce forfait vous permet de planifier des visites physiques des logements sur le terrain, d\'échanger directement avec les propriétaires et d\'accéder aux contacts pour votre emménagement.';
-      badgePerk = 'Visites de biens sur le terrain et mise en relation directe illimitées pendant 30 jours.';
+          'Ce forfait couvre l\'organisation et la programmation des visites physiques des logements sur le terrain à Abidjan, ainsi que les frais de dossier de mise en relation directe avec les propriétaires légitimes.';
+      badgePerk = 'Programmation de visites physiques et mise en relation directe illimitées (30 jours).';
     }
 
     return Padding(
@@ -362,11 +362,23 @@ class _SubscriptionSheetState extends ConsumerState<_SubscriptionSheet>
             const SizedBox(height: AppSpacing.xl),
             if (!_hasLaunchedPayment) ...[
               PrimaryButton(
-                label: 'Payer',
+                label: 'Régler mon Pass Visites ($price FCFA)',
                 backgroundColor: _selectedMethod.brandColor,
                 textColor: _selectedMethod.brandTextColor,
                 isLoading: _isLoading,
                 onPressed: _initiatePayment,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              const Center(
+                child: Text(
+                  'Prestation de services immobiliers physiques et organisation de visites sur le terrain (exempté de Google Play Billing).',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                    height: 1.3,
+                  ),
+                ),
               ),
             ] else ...[
               Container(
