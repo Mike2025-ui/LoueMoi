@@ -18,37 +18,17 @@ from .serializers import ConversationSerializer, MessageSerializer
 def user_can_access_conversation(user, conversation):
     """Détermine si l'utilisateur est autorisé à consulter/lire les messages d'une conversation.
 
-    Règles métier LoueMoi :
+    Règles métier LoueMoi (Modèle 100% gratuit & centralisé) :
     - Staff / Admin : toujours autorisé.
-    - Échanges Pro à Pro (Bailleur <-> Agent, Agent <-> Agent, Bailleur <-> Bailleur) :
-      Verrouillé tant qu'aucun des deux n'a d'abonnement actif.
-    - Échanges Client <-> Bailleur/Agent :
-      Le client peut contacter et échanger avec le bailleur/agent par messagerie interne.
+    - Tout participant (client, agent, propriétaire) faisant partie de la conversation
+      est autorisé à lire et envoyer des messages sans restriction d'abonnement.
     """
     if not user or not getattr(user, "is_authenticated", False):
         return False
     if getattr(user, "is_staff", False):
         return True
 
-    now = timezone.now()
-    other_party = conversation.agent if user == conversation.client else conversation.client
-
-    user_sub = hasattr(user, "subscriptions") and user.subscriptions.filter(status="active", expires_at__gt=now).exists()
-    other_sub = other_party and hasattr(other_party, "subscriptions") and other_party.subscriptions.filter(status="active", expires_at__gt=now).exists()
-
-    user_role = getattr(user, "role", "")
-
-    # Règle Pro (Agent ou Bailleur) :
-    # Un agent ou bailleur DOIT impérativement avoir son propre abonnement Pro actif pour déverrouiller toute conversation !
-    if user_role in ("agent", "bailleur"):
-        return bool(user_sub)
-
-    # Règle Client :
-    # Un client DOIT également avoir son propre abonnement Client actif pour déverrouiller toute conversation !
-    if user_role == "client":
-        return bool(user_sub)
-
-    return False
+    return user in (conversation.client, conversation.agent)
 
 
 class ConversationViewSet(viewsets.ModelViewSet):

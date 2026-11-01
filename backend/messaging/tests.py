@@ -367,8 +367,8 @@ class MessageAttachmentSecurityTests(APITestCase):
 
 
 class ConversationSubscriptionAccessTests(APITestCase):
-    """Verrouillage des conversations lorsque ni l'utilisateur ni le pro
-    ne possède d'abonnement actif."""
+    """Accès aux conversations dans le modèle 100% gratuit :
+    tout participant (client ou agent/admin) a un accès direct sans abonnement."""
 
     def setUp(self):
         self.client_user = _make_client("+2250711116060")
@@ -384,16 +384,7 @@ class ConversationSubscriptionAccessTests(APITestCase):
             content="Historique d'anciens messages",
         )
 
-    def test_unsubscribed_user_can_list_conversations_with_can_access_false(self):
-        self.client.force_authenticate(user=self.client_user)
-        response = self.client.get("/api/conversations/")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        results = response.data.get("results", response.data)
-        self.assertEqual(len(results), 1)
-        self.assertFalse(results[0]["can_access"])
-
-    def test_subscribed_user_sees_can_access_true(self):
-        _subscribe(self.client_user)
+    def test_participant_user_sees_can_access_true(self):
         self.client.force_authenticate(user=self.client_user)
         response = self.client.get("/api/conversations/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -401,30 +392,29 @@ class ConversationSubscriptionAccessTests(APITestCase):
         self.assertEqual(len(results), 1)
         self.assertTrue(results[0]["can_access"])
 
-    def test_unsubscribed_cannot_read_messages(self):
+    def test_user_can_read_messages(self):
         self.client.force_authenticate(user=self.client_user)
         response = self.client.get(f"/api/messages/?conversation={self.conversation.id}")
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    def test_unsubscribed_cannot_retrieve_conversation_details(self):
+    def test_user_can_retrieve_conversation_details(self):
         self.client.force_authenticate(user=self.client_user)
         response = self.client.get(f"/api/conversations/{self.conversation.id}/")
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    def test_unsubscribed_cannot_mark_conversation_read(self):
+    def test_user_can_mark_conversation_read(self):
         self.client.force_authenticate(user=self.client_user)
         response = self.client.post(f"/api/conversations/{self.conversation.id}/mark-read/")
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    def test_unsubscribed_bailleur_cannot_access_even_if_client_subscribed(self):
-        _subscribe(self.client_user)
+    def test_agent_can_access_conversation_directly(self):
         self.client.force_authenticate(user=self.agent_user)
         response = self.client.get("/api/conversations/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         results = response.data.get("results", response.data)
         self.assertEqual(len(results), 1)
-        self.assertFalse(results[0]["can_access"])
+        self.assertTrue(results[0]["can_access"])
 
         msg_resp = self.client.get(f"/api/messages/?conversation={self.conversation.id}")
-        self.assertEqual(msg_resp.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(msg_resp.status_code, status.HTTP_200_OK)
 

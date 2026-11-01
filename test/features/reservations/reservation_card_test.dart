@@ -65,6 +65,13 @@ class _FixedSessionAuthRepository implements AuthRepository {
       throw UnimplementedError();
 
   @override
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) =>
+      throw UnimplementedError();
+
+  @override
   Future<User> updateProfile(User current, Map<String, dynamic> changes) =>
       throw UnimplementedError();
 

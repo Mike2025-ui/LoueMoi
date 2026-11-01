@@ -10,7 +10,7 @@ import '../../../core/theme/app_text_styles.dart';
 class SubmitPropertyScreen extends StatelessWidget {
   const SubmitPropertyScreen({super.key});
 
-  Future<void> _openWhatsAppSupport() async {
+  Future<void> _openWhatsAppSupport(BuildContext context) async {
     final cleanPhone = Env.supportPhone.replaceAll(RegExp(r'[^0-9]'), '');
     const message =
         'Bonjour LoueMoi, je suis propriétaire et je souhaite vous confier un bien immobilier pour mise en location / vente.';
@@ -23,20 +23,39 @@ class SubmitPropertyScreen extends StatelessWidget {
     try {
       if (await canLaunchUrl(appUri)) {
         await launchUrl(appUri, mode: LaunchMode.externalApplication);
+        return;
       } else if (await canLaunchUrl(webUri)) {
         await launchUrl(webUri, mode: LaunchMode.externalApplication);
+        return;
       }
     } catch (_) {}
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Impossible d'ouvrir WhatsApp sur cet appareil."),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+    }
   }
 
-  Future<void> _callSupport() async {
+  Future<void> _callSupport(BuildContext context) async {
     final cleanPhone = Env.supportPhone.replaceAll(RegExp(r'[^0-9+]'), '');
     final uri = Uri(scheme: 'tel', path: cleanPhone);
     try {
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri);
+        return;
       }
     } catch (_) {}
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Impossible d'effectuer l'appel."),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+    }
   }
 
   @override
@@ -121,7 +140,7 @@ class SubmitPropertyScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.xxl),
               ElevatedButton.icon(
-                onPressed: _openWhatsAppSupport,
+                onPressed: () => _openWhatsAppSupport(context),
                 icon: const Icon(Icons.chat, color: AppColors.white, size: 20),
                 label: const Text(
                   'Nous contacter sur WhatsApp',
@@ -142,7 +161,7 @@ class SubmitPropertyScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.md),
               OutlinedButton.icon(
-                onPressed: _callSupport,
+                onPressed: () => _callSupport(context),
                 icon: const Icon(Icons.phone, size: 20, color: AppColors.primary),
                 label: Text(
                   'Appeler le standard (${Env.supportPhoneDisplay})',

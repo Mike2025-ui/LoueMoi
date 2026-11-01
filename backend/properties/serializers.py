@@ -51,42 +51,18 @@ class AgentSerializer(serializers.Serializer):
         return res
 
     def _can_view_contact(self, owner):
-        """Protège les numéros personnels (téléphone/WhatsApp) côté serveur :
-        visibles uniquement si le propriétaire est abonné, ou si le visiteur
-        connecté est le propriétaire lui-même, un admin, ou possède un abonnement actif."""
-        if self._owner_has_active_sub(owner):
-            return True
-        request = self.context.get("request")
-        req_user = getattr(request, "user", None) if request else None
-        if req_user and getattr(req_user, "is_authenticated", False):
-            if req_user.id == owner.id or getattr(req_user, "is_staff", False):
-                return True
-            cached_req_sub = getattr(request, "_cached_req_user_has_sub", None)
-            if cached_req_sub is None:
-                from django.utils import timezone
-                now = timezone.now()
-                cached_req_sub = bool(
-                    hasattr(req_user, "subscriptions")
-                    and req_user.subscriptions.filter(status="active", expires_at__gt=now).exists()
-                )
-                try:
-                    setattr(request, "_cached_req_user_has_sub", cached_req_sub)
-                except Exception:
-                    pass
-            if cached_req_sub:
-                return True
-        return False
+        """Dans le modèle centralisé 100% gratuit, les coordonnées LoueMoi
+        associées aux annonces sont toujours accessibles pour permettre les appels
+        et contacts WhatsApp directs."""
+        return True
 
     def get_phone(self, user):
-        if not self._can_view_contact(user):
-            return ""
-        return user.phone or ""
+        return user.phone or "+2250702065206"
 
     def get_whatsapp(self, user):
-        if not self._can_view_contact(user):
-            return ""
         profile = self._profile(user)
-        return (profile.whatsapp if profile and profile.whatsapp else user.whatsapp) or ""
+        wa = (profile.whatsapp if profile and profile.whatsapp else user.whatsapp) or user.phone
+        return wa or "+2250702065206"
 
     def get_is_verified(self, user):
         # Décision souveraine de l'administration : si révoqué ou désactivé, le badge est False
