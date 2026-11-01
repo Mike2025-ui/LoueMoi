@@ -1505,6 +1505,14 @@ class _VideoPickerSectionState extends ConsumerState<_VideoPickerSection> {
           }
           return;
         }
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _processing = false;
+            _error = 'Format de vidéo non supporté ou fichier illisible.';
+          });
+        }
+        return;
       } finally {
         await controller.dispose();
       }

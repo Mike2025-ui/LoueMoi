@@ -211,14 +211,35 @@ Future<void> toggleFavorite(WidgetRef ref, String propertyId) async {
 
   final nextState = !wasFavorite;
   controller.applyFavoriteChange(propertyId, nextState);
+  final cachedBefore = ref.read(homePropertiesCacheProvider);
+  if (cachedBefore.any((p) => p.id == propertyId)) {
+    ref.read(homePropertiesCacheProvider.notifier).state = [
+      for (final p in cachedBefore)
+        if (p.id == propertyId) p.copyWith(isFavorite: nextState) else p
+    ];
+  }
   try {
     final repository = ref.read(propertyRepositoryProvider);
     final updated = await repository.toggleFavorite(propertyId);
     controller.applyFavoriteChange(propertyId, updated.isFavorite);
+    final cachedAfter = ref.read(homePropertiesCacheProvider);
+    if (cachedAfter.any((p) => p.id == propertyId)) {
+      ref.read(homePropertiesCacheProvider.notifier).state = [
+        for (final p in cachedAfter)
+          if (p.id == propertyId) p.copyWith(isFavorite: updated.isFavorite) else p
+      ];
+    }
     ref.invalidate(favoritesListProvider);
     ref.invalidate(propertyByIdProvider(propertyId));
   } catch (e) {
     controller.applyFavoriteChange(propertyId, wasFavorite);
+    final cachedRevert = ref.read(homePropertiesCacheProvider);
+    if (cachedRevert.any((p) => p.id == propertyId)) {
+      ref.read(homePropertiesCacheProvider.notifier).state = [
+        for (final p in cachedRevert)
+          if (p.id == propertyId) p.copyWith(isFavorite: wasFavorite) else p
+      ];
+    }
     rethrow;
   }
 }

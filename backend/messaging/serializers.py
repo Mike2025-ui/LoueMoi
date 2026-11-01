@@ -152,18 +152,19 @@ class ConversationSerializer(serializers.ModelSerializer):
         validators = []
 
     def validate_agent(self, value):
-        # Le "destinataire agent" d'une conversation doit être un
-        # propriétaire d'annonce (agent OU bailleur — même paire de rôles
-        # que Property.agent.limit_choices_to, colonne "agent" conservée
-        # pour compatibilité mais jamais restreinte à ce seul rôle). Sans
-        # ça, "Contacter l'agent" échouait pour TOUTE annonce publiée par un
-        # bailleur (property.agent est alors un bailleur), et "Rechercher un
-        # propriétaire" (contacter un bailleur trouvé via /api/bailleurs/)
-        # aurait échoué de la même façon. Empêche seulement de créer une
-        # conversation avec un simple client placé dans ce slot.
-        if value.role not in (User.ROLE_AGENT, User.ROLE_BAILLEUR):
+        # Le destinataire d'une conversation peut être un agent, un bailleur,
+        # un membre du staff / administrateur LoueMoi, ou tout utilisateur
+        # propriétaire d'une annonce immobilière sur la plateforme.
+        from properties.models import Property
+
+        is_allowed = (
+            value.role in (User.ROLE_AGENT, User.ROLE_BAILLEUR)
+            or value.is_staff
+            or Property.objects.filter(agent=value).exists()
+        )
+        if not is_allowed:
             raise serializers.ValidationError(
-                "Ce destinataire n'est pas un agent immobilier ou un bailleur."
+                "Ce destinataire n'est pas un agent immobilier, un bailleur ou un administrateur LoueMoi."
             )
         return value
 

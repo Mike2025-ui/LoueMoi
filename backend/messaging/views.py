@@ -106,7 +106,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
 
     def perform_destroy(self, instance):
         user = self.request.user
-        if user not in (instance.client, instance.agent):
+        if user not in (instance.client, instance.agent) and not user.is_staff:
             raise PermissionDenied("Vous ne faites pas partie de cette conversation.")
         instance.delete()
 

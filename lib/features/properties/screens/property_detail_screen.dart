@@ -454,10 +454,21 @@ class _AProposTab extends ConsumerWidget {
     final canProceed = await _ensureCanContact(context, ref);
     if (!canProceed) return;
 
+    final agentId = property.agent.id.trim();
+    if (agentId.isEmpty) {
+      if (context.mounted) {
+        showErrorSnackbar(
+          context,
+          "Les coordonnées directes de cette annonce ne sont pas disponibles. Contactez l'assistance LoueMoi.",
+        );
+      }
+      return;
+    }
+
     try {
       final repository = ref.read(messageRepositoryProvider);
       final conversationId = await repository.getOrCreateConversationId(
-        agentId: property.agent.id,
+        agentId: agentId,
         propertyId: property.id,
       );
       if (!context.mounted) return;
@@ -597,13 +608,13 @@ class _AProposTab extends ConsumerWidget {
       builder: (sheetContext) => _VisitRequestSheet(
         property: property,
         onConfirm: (date, slot, note) async {
-          Navigator.of(sheetContext).pop();
           try {
             HapticFeedback.lightImpact();
             final dateStr = DateFormat('dd/MM/yyyy').format(date);
             final repository = ref.read(messageRepositoryProvider);
+            final agentId = property.agent.id.trim();
             final conversationId = await repository.getOrCreateConversationId(
-              agentId: property.agent.id,
+              agentId: agentId.isNotEmpty ? agentId : '1',
               propertyId: property.id,
             );
             final visitMessage =
@@ -625,6 +636,9 @@ class _AProposTab extends ConsumerWidget {
                 advance: property.advance ?? 0,
               );
             } catch (_) {}
+            if (sheetContext.mounted) {
+              Navigator.of(sheetContext).pop();
+            }
             if (!context.mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -1214,7 +1228,7 @@ class _VisitRequestSheet extends StatefulWidget {
   const _VisitRequestSheet({required this.property, required this.onConfirm});
 
   final Property property;
-  final void Function(DateTime date, String slot, String note) onConfirm;
+  final Future<void> Function(DateTime date, String slot, String note) onConfirm;
 
   @override
   State<_VisitRequestSheet> createState() => _VisitRequestSheetState();
@@ -1224,6 +1238,21 @@ class _VisitRequestSheetState extends State<_VisitRequestSheet> {
   late DateTime _selectedDate;
   String _selectedSlot = 'Matin (09h - 12h)';
   final _noteController = TextEditingController();
+  var _isSubmitting = false;
+
+  Future<void> _submit() async {
+    if (_isSubmitting) return;
+    setState(() => _isSubmitting = true);
+    try {
+      await widget.onConfirm(
+        _selectedDate,
+        _selectedSlot,
+        _noteController.text.trim(),
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
 
   final List<String> _slots = const [
     'Matin (09h - 12h)',
@@ -1383,11 +1412,8 @@ class _VisitRequestSheetState extends State<_VisitRequestSheet> {
             const SizedBox(height: AppSpacing.lg),
             PrimaryButton(
               label: 'Envoyer la demande',
-              onPressed: () => widget.onConfirm(
-                _selectedDate,
-                _selectedSlot,
-                _noteController.text.trim(),
-              ),
+              isLoading: _isSubmitting,
+              onPressed: _isSubmitting ? null : _submit,
             ),
           ],
         ),
