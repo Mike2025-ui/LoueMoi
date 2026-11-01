@@ -53,15 +53,15 @@ class AgentSearchTests(APITestCase):
         self.client_unsubscribed = _make_client("+2250711115004")
         _subscribe(self.client_user)
 
-    def test_unauthenticated_or_unsubscribed_cannot_search(self):
+    def test_unauthenticated_cannot_search(self):
         # 1. Non connecté -> 401
         response = self.client.get("/api/agents/")
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-        # 2. Connecté mais non abonné -> 403
+        # 2. Connecté (même sans abonnement, 100% gratuit) -> 200
         self.client.force_authenticate(user=self.client_unsubscribed)
         response = self.client.get("/api/agents/")
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_subscribed_user_can_list_agents(self):
         self.client.force_authenticate(user=self.client_user)

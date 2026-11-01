@@ -1,3 +1,4 @@
+import '../../../core/config/env.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -491,6 +492,9 @@ class _AProposTab extends ConsumerWidget {
         phoneToUse = refreshed.agent.phone;
       } catch (_) {}
     }
+    if (phoneToUse.trim().isEmpty) {
+      phoneToUse = Env.supportPhone;
+    }
 
     final cleanPhone = phoneToUse.replaceAll(RegExp(r'[^0-9+]'), '');
     if (cleanPhone.isEmpty) {
@@ -538,6 +542,9 @@ class _AProposTab extends ConsumerWidget {
             ? refreshed.agent.whatsapp
             : refreshed.agent.phone;
       } catch (_) {}
+    }
+    if (phoneToUse.trim().isEmpty) {
+      phoneToUse = Env.supportPhone;
     }
 
     final cleanPhone = phoneToUse.replaceAll(RegExp(r'[^0-9]'), '');
@@ -609,6 +616,15 @@ class _AProposTab extends ConsumerWidget {
               conversationId: conversationId,
               content: visitMessage,
             );
+            try {
+              await createReservation(
+                ref,
+                propertyId: property.id,
+                rent: property.price,
+                deposit: property.deposit ?? 0,
+                advance: property.advance ?? 0,
+              );
+            } catch (_) {}
             if (!context.mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(

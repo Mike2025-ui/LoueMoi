@@ -356,12 +356,12 @@ class ReservationConversationTests(APITestCase):
         self.assertEqual(response.data["client"], self.client_user.id)
         self.assertEqual(response.data["agent"], self.bailleur.id)
 
-    def test_owner_without_subscription_cannot_open_conversation(self):
+    def test_owner_without_subscription_can_open_conversation(self):
         self.subscription.status = "expired"
         self.subscription.save()
         self.client.force_authenticate(user=self.bailleur)
         response = self.client.post(f"/api/reservations/{self.reservation.id}/conversation/")
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_calling_twice_reuses_the_same_conversation(self):
         self.client.force_authenticate(user=self.bailleur)
