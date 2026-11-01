@@ -15,7 +15,9 @@ class CongratsScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.screenPadding,
+          ),
           child: Column(
             children: [
               const Spacer(flex: 3),
@@ -24,9 +26,15 @@ class CongratsScreen extends StatelessWidget {
                 height: 96,
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.fromBorderSide(BorderSide(color: AppColors.success, width: 3)),
+                  border: Border.fromBorderSide(
+                    BorderSide(color: AppColors.success, width: 3),
+                  ),
                 ),
-                child: const Icon(Icons.check, color: AppColors.success, size: 48),
+                child: const Icon(
+                  Icons.check,
+                  color: AppColors.success,
+                  size: 48,
+                ),
               ),
               const SizedBox(height: AppSpacing.lg),
               const Text('Félicitations !', style: AppTextStyles.h2),
@@ -44,7 +52,10 @@ class CongratsScreen extends StatelessWidget {
               const SizedBox(height: AppSpacing.sm),
               TextButton(
                 onPressed: () => context.go(AppRoutes.home),
-                child: const Text('Retour à l’accueil', style: AppTextStyles.link),
+                child: const Text(
+                  'Retour à l’accueil',
+                  style: AppTextStyles.link,
+                ),
               ),
               const SizedBox(height: AppSpacing.lg),
             ],

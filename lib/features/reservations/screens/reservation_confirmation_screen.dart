@@ -30,7 +30,11 @@ class _ReservationConfirmationScreenState
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.check_circle_outline, color: AppColors.success, size: 72),
+            Icon(
+              Icons.check_circle_outline,
+              color: AppColors.success,
+              size: 72,
+            ),
             SizedBox(height: AppSpacing.md),
             Text(
               'Réservation enregistrée !',

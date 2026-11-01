@@ -28,8 +28,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  // Client par défaut, conformément au cahier des charges.
-  UserRole _selectedRole = UserRole.client;
+  // Compte unique : tout le monde est client / utilisateur sur LoueMoi
+  final UserRole _selectedRole = UserRole.client;
 
   @override
   void dispose() {
@@ -57,11 +57,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     state.when(
       data: (user) {
         if (user != null) {
-          if (user.needsActivation) {
-            context.go(AppRoutes.pendingActivation);
-          } else {
-            context.go(AppRoutes.home);
-          }
+          context.go(AppRoutes.home);
         }
       },
       loading: () {},
@@ -88,35 +84,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               children: [
                 const SizedBox(height: AppSpacing.lg),
                 const Text('Inscription', style: AppTextStyles.h1),
-                const SizedBox(height: AppSpacing.lg),
-                const Text('Type de compte', style: AppTextStyles.label),
-                const SizedBox(height: AppSpacing.sm),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _RoleOption(
-                        label: 'Client',
-                        isActive: _selectedRole == UserRole.client,
-                        onTap: () => setState(() => _selectedRole = UserRole.client),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: _RoleOption(
-                        label: 'Bailleur',
-                        isActive: _selectedRole == UserRole.bailleur,
-                        onTap: () => setState(() => _selectedRole = UserRole.bailleur),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: _RoleOption(
-                        label: 'Agent',
-                        isActive: _selectedRole == UserRole.agent,
-                        onTap: () => setState(() => _selectedRole = UserRole.agent),
-                      ),
-                    ),
-                  ],
+                const SizedBox(height: AppSpacing.xs),
+                const Text(
+                  'Créez votre compte en quelques secondes pour planifier vos visites et échanger directement avec l’équipe LoueMoi.',
+                  style: AppTextStyles.caption,
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 AppTextField(
@@ -140,15 +111,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ),
                 const SizedBox(height: AppSpacing.md),
                 AppTextField(
-                  label: _selectedRole == UserRole.client
-                      ? 'Numéro WhatsApp (optionnel)'
-                      : 'Numéro WhatsApp',
+                  label: 'Numéro WhatsApp (optionnel)',
                   hint: '+225 07 08 09 10 11',
                   controller: _whatsappController,
                   keyboardType: TextInputType.phone,
-                  validator: _selectedRole == UserRole.client
-                      ? Validators.optionalPhone
-                      : Validators.phone,
+                  validator: Validators.optionalPhone,
                 ),
                 const SizedBox(height: AppSpacing.md),
                 AppTextField(
@@ -181,43 +148,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 const SizedBox(height: AppSpacing.lg),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Pilule Client / Agent immobilier — même style que le toggle
-/// Location/Vente de l'écran Menu (aucune nouvelle identité visuelle).
-class _RoleOption extends StatelessWidget {
-  const _RoleOption({required this.label, required this.isActive, required this.onTap});
-
-  final String label;
-  final bool isActive;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.pill),
-      child: Container(
-        height: AppSizes.buttonHeight,
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-        decoration: BoxDecoration(
-          color: isActive ? AppColors.primary : AppColors.white,
-          borderRadius: BorderRadius.circular(AppRadius.pill),
-          border: Border.all(color: isActive ? AppColors.primary : AppColors.border),
-        ),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            color: isActive ? AppColors.white : AppColors.textPrimary,
           ),
         ),
       ),

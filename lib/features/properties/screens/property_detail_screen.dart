@@ -19,8 +19,6 @@ import '../../../core/widgets/section_divider_title.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../../messaging/providers/message_providers.dart';
-import '../../payments/providers/payment_providers.dart';
-import '../../payments/widgets/subscription_modal.dart';
 import '../../reservations/models/reservation.dart';
 import '../../reservations/providers/reservation_providers.dart';
 import '../../reviews/providers/review_providers.dart';
@@ -115,6 +113,9 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
             unavailableLabel: property.isVendue
                 ? 'Propriété vendue'
                 : 'Propriété occupée',
+            actionLabel: property.transactionType == TransactionType.location
+                ? 'Planifier visite'
+                : 'Réserver',
             onReserve: () {
               final currentUser = ref.read(authControllerProvider).valueOrNull;
               if (currentUser == null) {
@@ -405,7 +406,7 @@ class _AProposTab extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text(
-            'Veuillez vous connecter pour contacter le propriétaire.',
+            'Veuillez vous connecter pour contacter LoueMoi.',
           ),
           backgroundColor: AppColors.primary,
           action: SnackBarAction(
@@ -417,41 +418,8 @@ class _AProposTab extends ConsumerWidget {
       );
       return false;
     }
-
-    // Le propriétaire consultant son propre bien est autorisé d'office
-    if (currentUser.id == property.agent.id) {
-      return true;
-    }
-
-    // Vérification de l'autorisation de contact :
-    // - Si le propriétaire a un abonnement Pro actif : contact GRATUIT pour tous les clients.
-    // - Sinon : le client doit disposer de son abonnement actif.
-    // Le backend calcule cette règle souveraine via check.canContact.
-    bool canProceed = false;
-    try {
-      final repository = ref.read(paymentRepositoryProvider);
-      final check = await repository.checkCanContact(propertyId: property.id);
-      canProceed = check.canContact;
-    } catch (_) {}
-
-    if (canProceed) {
-      return true;
-    }
-
-    // Sans abonnement actif -> ouvrir DIRECTEMENT la page / modal de paiement comme les agents et bailleurs
-    if (!context.mounted) return false;
-    final isPro = currentUser.isAgent || currentUser.isBailleur;
-    final subscribed = await showSubscriptionModal(
-      context,
-      isPro: isPro,
-      role: currentUser.role,
-      propertyId: property.id,
-      reason: 'subscription_required',
-    );
-    if (subscribed == true) {
-      ref.invalidate(propertyByIdProvider(property.id));
-    }
-    return subscribed == true;
+    // Tous les contacts et demandes sont 100% gratuits et directs
+    return true;
   }
 
   Future<bool> _ensureCanDirectContact(
@@ -465,7 +433,7 @@ class _AProposTab extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text(
-            'Veuillez vous connecter pour contacter le propriétaire.',
+            'Veuillez vous connecter pour contacter LoueMoi.',
           ),
           backgroundColor: AppColors.primary,
           action: SnackBarAction(
@@ -477,38 +445,8 @@ class _AProposTab extends ConsumerWidget {
       );
       return false;
     }
-
-    if (currentUser.id == property.agent.id) {
-      return true;
-    }
-
-    // Vérifier l'autorisation de contact direct selon la règle backend (check.canContact)
-    bool canDirectContact = false;
-    try {
-      final repository = ref.read(paymentRepositoryProvider);
-      final check = await repository.checkCanContact(propertyId: property.id);
-      canDirectContact = check.canContact;
-    } catch (_) {}
-
-    if (canDirectContact) {
-      return true;
-    }
-
-    // Sans abonnement -> ouvrir DIRECTEMENT la page / modal de paiement comme les agents et bailleurs
-    if (!context.mounted) return false;
-    final isPro = currentUser.isAgent || currentUser.isBailleur;
-    final subscribed = await showSubscriptionModal(
-      context,
-      isPro: isPro,
-      role: currentUser.role,
-      propertyId: property.id,
-      reason: 'direct_contact_required',
-    );
-    if (subscribed == true) {
-      ref.invalidate(propertyByIdProvider(property.id));
-      return true;
-    }
-    return false;
+    // Tous les contacts directs (Appel, WhatsApp) sont 100% gratuits
+    return true;
   }
 
   Future<void> _contactAgent(BuildContext context, WidgetRef ref) async {
@@ -709,6 +647,46 @@ class _AProposTab extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Container(
+          margin: const EdgeInsets.only(bottom: AppSpacing.md),
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0FDF4),
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: const Color(0xFF86EFAC)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.verified_outlined, color: Color(0xFF16A34A), size: 24),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text(
+                      'Garantie LoueMoi : 0 mois d’agence !',
+                      style: TextStyle(
+                        color: Color(0xFF15803D),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Vous économisez l’équivalent d’un mois de loyer. LoueMoi centralise les annonces et assure vos visites physiques sur place (forfait unique de 5.000 Fcfa à régler sur les lieux de la visite).',
+                      style: TextStyle(
+                        color: Color(0xFF166534),
+                        fontSize: 12,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
         AgentCard(
           agent: property.agent,
           onMessageTap: isOwner
@@ -1471,6 +1449,16 @@ class _InstallationBudgetCard extends StatelessWidget {
                 amount: Formatters.price(property.advance!),
               ),
             ],
+            const SizedBox(height: AppSpacing.xs),
+            const _BudgetRow(
+              label: 'Frais de visite sur place',
+              amount: '5.000 Fcfa',
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            const _BudgetRow(
+              label: 'Commission d’agence (Mois d’agence)',
+              amount: '0 Fcfa (Offert)',
+            ),
             const Divider(height: AppSpacing.lg),
             _BudgetRow(
               label: 'Total estimé à l’entrée',

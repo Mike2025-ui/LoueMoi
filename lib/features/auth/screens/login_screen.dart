@@ -43,11 +43,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     state.when(
       data: (user) {
         if (user != null) {
-          if (user.needsActivation) {
-            context.go(AppRoutes.pendingActivation);
-          } else {
-            context.go(AppRoutes.home);
-          }
+          context.go(AppRoutes.home);
         }
       },
       loading: () {},

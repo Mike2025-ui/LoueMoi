@@ -11,7 +11,6 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/feedback.dart';
 import '../../../core/utils/media_url.dart';
 import '../../auth/providers/auth_providers.dart';
-import '../../payments/widgets/subscription_modal.dart';
 import '../widgets/profile_menu_tile.dart';
 import '../widgets/change_password_dialog.dart';
 
@@ -442,34 +441,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 label: 'Modifier mon mot de passe',
                 onTap: () => showChangePasswordDialog(context, ref),
               ),
-              ProfileMenuTile(
-                icon: Icons.workspace_premium_outlined,
-                label: (user?.hasActiveSubscription ?? false)
-                    ? 'Mon forfait visites (Actif)'
-                    : 'Forfait visites & mise en relation',
-                onTap: () async {
-                  await showSubscriptionModal(
-                    context,
-                    isPro: user?.canOwnProperties ?? false,
-                    role: user?.role,
-                  );
-                  if (mounted) {
-                    ref.read(authControllerProvider.notifier).refreshProfile();
-                  }
-                },
-              ),
-              if (user?.isAgent ?? false)
-                ProfileMenuTile(
-                  icon: Icons.groups_outlined,
-                  label: 'Mon espace agent',
-                  onTap: () => context.push(AppRoutes.agentSpace),
-                ),
-              if (user?.isBailleur ?? false)
-                ProfileMenuTile(
-                  icon: Icons.home_work_outlined,
-                  label: 'Mon espace bailleur',
-                  onTap: () => context.push(AppRoutes.bailleurSpace),
-                ),
               ProfileMenuTile(
                 icon: Icons.support_agent_outlined,
                 label: 'Assistance WhatsApp (${Env.supportPhoneDisplay})',

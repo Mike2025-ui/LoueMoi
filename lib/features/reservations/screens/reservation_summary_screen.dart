@@ -178,10 +178,36 @@ class _SummaryState extends ConsumerState<_Summary> {
           _PriceRow(label: 'Caution', value: property.deposit ?? 0),
           _PriceRow(label: 'Avance', value: property.advance ?? 0),
           const Divider(height: AppSpacing.xl),
-          _PriceRow(label: 'Total', value: total, isBold: true),
+          _PriceRow(label: 'Total à l’entrée', value: total, isBold: true),
+          const SizedBox(height: AppSpacing.md),
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0FDF4),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(color: const Color(0xFF86EFAC)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Icon(Icons.info_outline, color: Color(0xFF16A34A), size: 20),
+                SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    'Zéro mois d’agence à payer. Frais de visite forfaitaires de 5.000 Fcfa à régler directement sur place le jour de la visite (en espèces ou par Wave / Orange Money).',
+                    style: TextStyle(
+                      color: Color(0xFF166534),
+                      fontSize: 12,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: AppSpacing.xl),
           PrimaryButton(
-            label: 'Reserver',
+            label: 'Confirmer ma demande de visite',
             isLoading: _isSubmitting,
             onPressed: _reserve,
           ),

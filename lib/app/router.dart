@@ -35,6 +35,7 @@ import '../features/profile/screens/profile_screen.dart';
 import '../features/profile/screens/sold_properties_screen.dart';
 import '../features/properties/screens/property_detail_screen.dart';
 import '../features/publish/screens/publish_screen.dart';
+import '../features/publish/screens/submit_property_screen.dart';
 import '../features/reservations/screens/congrats_screen.dart';
 import '../features/reservations/screens/reservation_confirmation_screen.dart';
 import '../features/reservations/screens/reservation_summary_screen.dart';
@@ -64,7 +65,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         if (location != AppRoutes.pendingActivation) {
           return AppRoutes.pendingActivation;
         }
-      } else if (user != null && !user.needsActivation && location == AppRoutes.pendingActivation) {
+      } else if (user != null &&
+          !user.needsActivation &&
+          location == AppRoutes.pendingActivation) {
         return AppRoutes.home;
       }
       return null;
@@ -77,12 +80,18 @@ final routerProvider = Provider<GoRouter>((ref) {
           reference: state.uri.queryParameters['ref'],
         ),
       ),
-      GoRoute(path: AppRoutes.splash, builder: (context, state) => const SplashScreen()),
+      GoRoute(
+        path: AppRoutes.splash,
+        builder: (context, state) => const SplashScreen(),
+      ),
       GoRoute(
         path: AppRoutes.onboarding,
         builder: (context, state) => const OnboardingScreen(),
       ),
-      GoRoute(path: AppRoutes.login, builder: (context, state) => const LoginScreen()),
+      GoRoute(
+        path: AppRoutes.login,
+        builder: (context, state) => const LoginScreen(),
+      ),
       GoRoute(
         path: AppRoutes.register,
         builder: (context, state) => const RegisterScreen(),
@@ -106,63 +115,78 @@ final routerProvider = Provider<GoRouter>((ref) {
           return MainBottomNav(navigationShell: navigationShell);
         },
         branches: [
-          StatefulShellBranch(routes: [
-            GoRoute(path: AppRoutes.home, builder: (context, state) => const HomeScreen()),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: AppRoutes.favorites,
-              builder: (context, state) => const FavoritesScreen(),
-            ),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: AppRoutes.reservationsList,
-              builder: (context, state) => const ReservationsListScreen(),
-            ),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: AppRoutes.messages,
-              builder: (context, state) => const ConversationsScreen(),
-            ),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: AppRoutes.profile,
-              builder: (context, state) => const ProfileScreen(),
-              routes: [
-                GoRoute(
-                  path: 'agent',
-                  builder: (context, state) => const AgentSpaceScreen(),
-                  routes: [
-                    GoRoute(
-                      path: 'properties',
-                      parentNavigatorKey: _rootNavigatorKey,
-                      builder: (context, state) => const MyPropertiesScreen(),
-                    ),
-                  ],
-                ),
-                GoRoute(
-                  path: 'bailleur',
-                  builder: (context, state) => const BailleurSpaceScreen(),
-                  routes: [
-                    GoRoute(
-                      path: 'properties',
-                      parentNavigatorKey: _rootNavigatorKey,
-                      builder: (context, state) => const MyPropertiesScreen(),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: AppRoutes.notifications,
-              builder: (context, state) => const NotificationsScreen(),
-            ),
-          ]),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.home,
+                builder: (context, state) => const HomeScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.favorites,
+                builder: (context, state) => const FavoritesScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.reservationsList,
+                builder: (context, state) => const ReservationsListScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.messages,
+                builder: (context, state) => const ConversationsScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.profile,
+                builder: (context, state) => const ProfileScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'agent',
+                    builder: (context, state) => const AgentSpaceScreen(),
+                    routes: [
+                      GoRoute(
+                        path: 'properties',
+                        parentNavigatorKey: _rootNavigatorKey,
+                        builder: (context, state) => const MyPropertiesScreen(),
+                      ),
+                    ],
+                  ),
+                  GoRoute(
+                    path: 'bailleur',
+                    builder: (context, state) => const BailleurSpaceScreen(),
+                    routes: [
+                      GoRoute(
+                        path: 'properties',
+                        parentNavigatorKey: _rootNavigatorKey,
+                        builder: (context, state) => const MyPropertiesScreen(),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.notifications,
+                builder: (context, state) => const NotificationsScreen(),
+              ),
+            ],
+          ),
         ],
       ),
       GoRoute(
@@ -183,7 +207,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.publish,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const PublishScreen(),
+        builder: (context, state) => const SubmitPropertyScreen(),
       ),
       GoRoute(
         path: AppRoutes.editProperty,
@@ -249,7 +273,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) {
           final extra = state.extra as Map<String, dynamic>?;
-          final images = (extra?['images'] as List?)?.cast<String>() ?? const <String>[];
+          final images =
+              (extra?['images'] as List?)?.cast<String>() ?? const <String>[];
           final index = extra?['index'] as int? ?? 0;
           return PhotoViewerScreen(images: images, initialIndex: index);
         },

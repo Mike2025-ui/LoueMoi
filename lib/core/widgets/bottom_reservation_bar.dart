@@ -18,6 +18,7 @@ class BottomReservationBar extends StatelessWidget {
     required this.isAvailable,
     required this.onReserve,
     this.unavailableLabel = 'Propriété occupée',
+    this.actionLabel = 'Réserver',
   });
 
   final double price;
@@ -25,6 +26,7 @@ class BottomReservationBar extends StatelessWidget {
   final bool isAvailable;
   final VoidCallback onReserve;
   final String unavailableLabel;
+  final String actionLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -58,8 +60,8 @@ class BottomReservationBar extends StatelessWidget {
                       ),
                     ),
                     SizedBox(
-                      width: 160,
-                      child: PrimaryButton(label: 'Reserver', onPressed: onReserve),
+                      width: 170,
+                      child: PrimaryButton(label: actionLabel, onPressed: onReserve),
                     ),
                   ],
                 )
