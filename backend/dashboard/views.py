@@ -279,6 +279,217 @@ def properties_list(request):
 
 
 @staff_required
+def property_create(request):
+    """Permet aux administrateurs LoueMoi de publier directement une annonce
+    immobilière vérifiée (photos, vidéo, localisation, caractéristiques, commodités)
+    sans passer par Django Admin technique."""
+    import os
+    import io
+    import uuid
+    from decimal import Decimal
+    from PIL import Image
+    from django.core.files.base import ContentFile
+    from django.core.files.storage import default_storage
+    from properties.video_utils import validate_video_file
+
+    communes_list = [
+        "Cocody", "Yopougon", "Marcory", "Plateau", "Koumassi",
+        "Treichville", "Port-Bouët", "Abobo", "Adjamé", "Attécoubé",
+        "Bingerville", "Songon", "Grand-Bassam", "Autre"
+    ]
+
+    amenities_list = [
+        ("climatisation", "Climatisation"),
+        ("wifi", "Wi-Fi"),
+        ("parking", "Parking intérieur"),
+        ("gardien", "Gardiennage 24h / Sécurité"),
+        ("piscine", "Piscine"),
+        ("balcon", "Balcon / Terrasse"),
+        ("groupe_electrogene", "Groupe électrogène"),
+        ("chauffe_eau", "Chauffe-eau"),
+        ("cuisine_equipee", "Cuisine équipée"),
+        ("ascenseur", "Ascenseur"),
+        ("meuble", "Meublé"),
+        ("cour_avant", "Cour / Jardin"),
+    ]
+
+    agents_qs = User.objects.filter(
+        Q(is_staff=True) | Q(role__in=[User.ROLE_AGENT, User.ROLE_BAILLEUR])
+    ).distinct().order_by("first_name", "last_name", "phone")
+
+    if request.method == "POST":
+        title = (request.POST.get("title") or "").strip()
+        prop_type = (request.POST.get("type") or "logement").strip()
+        category = (request.POST.get("category") or "").strip()
+        transaction_type = (request.POST.get("transaction_type") or "location").strip()
+        price_raw = (request.POST.get("price") or "").strip()
+        deposit_raw = (request.POST.get("deposit") or "").strip()
+        advance_raw = (request.POST.get("advance") or "").strip()
+        city = (request.POST.get("city") or "Abidjan").strip()
+        commune = (request.POST.get("commune") or "").strip()
+        district = (request.POST.get("district") or "").strip()
+        address = (request.POST.get("address") or "").strip()
+        description = (request.POST.get("description") or "").strip()
+        latitude_raw = (request.POST.get("latitude") or "").strip()
+        longitude_raw = (request.POST.get("longitude") or "").strip()
+        agent_id = request.POST.get("agent_id")
+        selected_amenities = request.POST.getlist("amenities")
+
+        errors = []
+        if not title:
+            errors.append("Le titre de l'annonce est obligatoire.")
+        if not category:
+            errors.append("La catégorie du bien (ex: Appartement, Villa...) est obligatoire.")
+        if not price_raw:
+            errors.append("Le prix est obligatoire.")
+        if not commune or not district:
+            errors.append("La commune et le quartier sont obligatoires.")
+
+        price = Decimal(0)
+        try:
+            price = Decimal(price_raw.replace(" ", "").replace(",", "."))
+            if price <= 0:
+                errors.append("Le prix doit être strictement supérieur à zéro.")
+        except Exception:
+            errors.append("Le montant du prix est invalide.")
+
+        deposit = None
+        if deposit_raw:
+            try:
+                deposit = Decimal(deposit_raw.replace(" ", "").replace(",", "."))
+            except Exception:
+                errors.append("Le montant de la caution est invalide.")
+
+        advance = None
+        if advance_raw:
+            try:
+                advance = Decimal(advance_raw.replace(" ", "").replace(",", "."))
+            except Exception:
+                errors.append("Le montant de l'avance est invalide.")
+
+        latitude = None
+        if latitude_raw:
+            try:
+                latitude = Decimal(latitude_raw.replace(",", "."))
+            except Exception:
+                pass
+
+        longitude = None
+        if longitude_raw:
+            try:
+                longitude = Decimal(longitude_raw.replace(",", "."))
+            except Exception:
+                pass
+
+        agent = request.user
+        if agent_id:
+            found_agent = User.objects.filter(pk=agent_id).first()
+            if found_agent:
+                agent = found_agent
+
+        if errors:
+            for err in errors:
+                messages.error(request, err)
+        else:
+            features = []
+            pieces = (request.POST.get("pieces") or "").strip()
+            chambres = (request.POST.get("chambres") or "").strip()
+            salles_de_bain = (request.POST.get("salles_de_bain") or "").strip()
+            superficie = (request.POST.get("superficie") or "").strip()
+
+            if pieces:
+                features.append({"key": "pieces", "value": pieces})
+            if chambres:
+                features.append({"key": "chambres", "value": chambres})
+            if salles_de_bain:
+                features.append({"key": "salles_de_bain", "value": salles_de_bain})
+            if superficie:
+                features.append({"key": "superficie", "value": f"{superficie} m²"})
+
+            property_obj = Property(
+                title=title,
+                description=description,
+                type=prop_type,
+                category=category,
+                transaction_type=transaction_type,
+                price=price,
+                deposit=deposit,
+                advance=advance,
+                city=city or "Abidjan",
+                commune=commune,
+                district=district,
+                address=address,
+                latitude=latitude,
+                longitude=longitude,
+                amenities=selected_amenities,
+                features=features,
+                agent=agent,
+                status="disponible",
+            )
+            property_obj.publish_for_new_period()
+            property_obj.save()
+
+            uploaded_images = request.FILES.getlist("images")
+            saved_image_urls = []
+            for img_file in uploaded_images:
+                try:
+                    if img_file.size > 10 * 1024 * 1024:
+                        continue
+                    ext = os.path.splitext(img_file.name or "")[1].lower()
+                    if ext not in {".jpg", ".jpeg", ".png", ".webp"}:
+                        continue
+                    img = Image.open(img_file)
+                    img.verify()
+                    img_file.seek(0)
+                    img = Image.open(img_file)
+                    if img.mode in ("RGBA", "P"):
+                        img = img.convert("RGB")
+                    max_dim = 1600
+                    if img.width > max_dim or img.height > max_dim:
+                        img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+                    out_io = io.BytesIO()
+                    img.save(out_io, format="JPEG", quality=82, optimize=True)
+                    safe_name = f"photo_{uuid.uuid4().hex[:12]}.jpg"
+                    saved_path = default_storage.save(
+                        f"properties/{property_obj.pk}/{safe_name}",
+                        ContentFile(out_io.getvalue())
+                    )
+                    url = request.build_absolute_uri(default_storage.url(saved_path))
+                    saved_image_urls.append(url)
+                except Exception:
+                    pass
+
+            if saved_image_urls:
+                property_obj.images = saved_image_urls
+                property_obj.cover_image = saved_image_urls[0]
+
+            video_file = request.FILES.get("video")
+            if video_file:
+                try:
+                    validate_video_file(video_file)
+                    property_obj.video = video_file
+                except Exception as ve:
+                    messages.warning(request, f"Vidéo ignorée : {ve}")
+
+            property_obj.save()
+            messages.success(request, f"L'annonce « {property_obj.title} » a été publiée avec succès !")
+            return redirect("dashboard:property_detail", pk=property_obj.pk)
+
+    return render(
+        request,
+        "dashboard/property_create.html",
+        {
+            "active": "property_create",
+            "type_choices": Property.TYPE_CHOICES,
+            "transaction_choices": Property.TRANSACTION_CHOICES,
+            "communes_list": communes_list,
+            "amenities_list": amenities_list,
+            "agents_qs": agents_qs,
+        },
+    )
+
+
+@staff_required
 def property_detail(request, pk):
     obj = get_object_or_404(Property.objects.select_related("agent"), pk=pk)
     reservations = Reservation.objects.filter(property=obj).select_related("user").order_by("-created_at")

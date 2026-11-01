@@ -389,7 +389,7 @@ class _PendingActivationScreenState
                       color: Color(0xFF25D366),
                     ),
                     label: const Text(
-                      'Assistance WhatsApp (${Env.supportPhoneDisplay})',
+                      'Assistance WhatsApp',
                       style: TextStyle(
                         color: AppColors.textPrimary,
                         fontWeight: FontWeight.w600,

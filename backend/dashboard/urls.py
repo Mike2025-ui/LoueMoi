@@ -13,6 +13,7 @@ urlpatterns = [
     path("users/<int:pk>/delete/", views.delete_user, name="delete_user"),
     path("users/<int:pk>/toggle-certificate/", views.toggle_certificate, name="toggle_certificate"),
     path("properties/", views.properties_list, name="properties_list"),
+    path("properties/create/", views.property_create, name="property_create"),
     path("properties/<int:pk>/", views.property_detail, name="property_detail"),
     path("reservations/", views.reservations_list, name="reservations_list"),
     path("conversations/", views.conversations_list, name="conversations_list"),

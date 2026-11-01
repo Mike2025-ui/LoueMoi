@@ -471,7 +471,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
               ProfileMenuTile(
                 icon: Icons.support_agent_outlined,
-                label: 'Assistance WhatsApp (${Env.supportPhoneDisplay})',
+                label: 'Assistance WhatsApp',
                 onTap: _contactSupport,
               ),
               const SizedBox(height: AppSpacing.xl),

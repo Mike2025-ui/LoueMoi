@@ -222,7 +222,7 @@ class _WebMaintenanceScreenState extends ConsumerState<WebMaintenanceScreen> {
                           const Icon(Icons.headset_mic_outlined, size: 18, color: AppColors.textSecondary),
                           const SizedBox(width: 8),
                           Text(
-                            'Une question ? Contacter l’équipe LoueMoi sur WhatsApp (${Env.supportPhoneDisplay})',
+                            'Une question ? Contacter l’équipe LoueMoi sur WhatsApp',
                             style: const TextStyle(
                               fontSize: 12.5,
                               color: AppColors.textSecondary,

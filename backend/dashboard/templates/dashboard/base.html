@@ -56,6 +56,12 @@
         </a>
 
         <div class="sidebar-heading">Activité Immobilière</div>
+        <a href="{% url 'dashboard:property_create' %}" class="{% if active == 'property_create' %}active{% endif %}">
+          <span class="nav-icon grad-emerald">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+          </span>
+          <span>Publier une annonce</span>
+        </a>
         <a href="{% url 'dashboard:properties_list' %}" class="{% if active == 'properties' %}active{% endif %}">
           <span class="nav-icon grad-sky">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>

@@ -122,7 +122,7 @@ class _WhatsAppFloatingButtonState extends State<WhatsAppFloatingButton>
         );
       },
       child: Tooltip(
-        message: 'Contacter LoueMoi sur WhatsApp (${Env.supportPhoneDisplay})',
+        message: 'Contacter LoueMoi sur WhatsApp',
         child: Material(
           color: Colors.transparent,
           shape: const CircleBorder(),

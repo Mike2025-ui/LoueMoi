@@ -164,7 +164,7 @@ class SubmitPropertyScreen extends StatelessWidget {
                 onPressed: () => _callSupport(context),
                 icon: const Icon(Icons.phone, size: 20, color: AppColors.primary),
                 label: Text(
-                  'Appeler le standard (${Env.supportPhoneDisplay})',
+                  'Appeler le standard',
                   style: const TextStyle(
                     color: AppColors.primary,
                     fontWeight: FontWeight.w600,

@@ -114,9 +114,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
             unavailableLabel: property.isVendue
                 ? 'Propriété vendue'
                 : 'Propriété occupée',
-            actionLabel: property.transactionType == TransactionType.location
-                ? 'Planifier visite'
-                : 'Réserver',
+            actionLabel: 'Réserver',
             onReserve: () {
               final currentUser = ref.read(authControllerProvider).valueOrNull;
               if (currentUser == null) {

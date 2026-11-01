@@ -25,6 +25,7 @@ PROTECTED_URL_NAMES = [
     "dashboard:index",
     "dashboard:users_list",
     "dashboard:properties_list",
+    "dashboard:property_create",
     "dashboard:reservations_list",
     "dashboard:conversations_list",
     "dashboard:notifications_list",
@@ -481,4 +482,47 @@ class DashboardDataAccuracyTests(TestCase):
         self.assertFalse(user.is_verified)
         self.assertFalse(user.has_active_subscription)
 
+    def test_property_create_get_form_for_staff(self):
+        """Un staff accède au formulaire de publication d'annonce."""
+        self.client.force_login(self.admin)
+        res = self.client.get(reverse("dashboard:property_create"))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Formulaire de publication officielle LoueMoi")
+        self.assertContains(res, "Titre de l'annonce")
+
+    def test_property_create_post_success(self):
+        """Un administrateur publie une nouvelle annonce depuis le dashboard."""
+        self.client.force_login(self.admin)
+        post_data = {
+            "title": "Superbe Villa 4 pièces avec jardin",
+            "type": "logement",
+            "category": "Villa",
+            "transaction_type": "location",
+            "price": "350000",
+            "deposit": "700000",
+            "advance": "700000",
+            "commune": "Cocody",
+            "district": "Angré 8ème Tranche",
+            "address": "Près du carrefour Bluetooth",
+            "description": "Magnifique villa lumineuse avec garage et forage.",
+            "pieces": "4",
+            "chambres": "3",
+            "salles_de_bain": "2",
+            "superficie": "250",
+            "amenities": ["climatisation", "parking", "gardien"],
+            "agent_id": str(self.admin.pk),
+        }
+        res = self.client.post(reverse("dashboard:property_create"), data=post_data)
+        self.assertEqual(res.status_code, 302)
+
+        created = Property.objects.filter(title="Superbe Villa 4 pièces avec jardin").first()
+        self.assertIsNotNone(created)
+        self.assertEqual(created.price, 350000)
+        self.assertEqual(created.status, "disponible")
+        self.assertEqual(created.commune, "Cocody")
+        self.assertEqual(created.district, "Angré 8ème Tranche")
+        self.assertIn("climatisation", created.amenities)
+        self.assertIsNotNone(created.published_at)
+        self.assertIsNotNone(created.expires_at)
+        self.assertEqual(created.agent, self.admin)
 
