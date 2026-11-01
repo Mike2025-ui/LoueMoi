@@ -8,25 +8,30 @@ import 'package:louemoi/features/auth/data/auth_repository.dart';
 import 'package:louemoi/features/auth/models/user.dart';
 import 'package:louemoi/features/auth/models/user_role.dart';
 import 'package:louemoi/features/auth/providers/auth_providers.dart';
+import 'package:louemoi/features/messaging/data/message_repository.dart';
+import 'package:louemoi/features/messaging/models/message.dart';
+import 'package:louemoi/features/messaging/providers/message_providers.dart';
 import 'package:louemoi/features/notifications/data/notification_repository.dart';
 import 'package:louemoi/features/notifications/models/app_notification.dart';
 import 'package:louemoi/features/notifications/providers/notification_providers.dart';
 import 'package:louemoi/features/properties/data/property_repository.dart';
 import 'package:louemoi/features/properties/models/property.dart';
 import 'package:louemoi/features/properties/providers/property_providers.dart';
+import 'package:louemoi/features/reservations/data/reservation_repository.dart';
+import 'package:louemoi/features/reservations/models/reservation.dart';
+import 'package:louemoi/features/reservations/providers/reservation_providers.dart';
 
-/// Régression : notificationsProvider et favoritesListProvider ne sont pas
-/// autoDispose (voir commentaire dans app.dart) — leur contenu doit survivre
-/// à un démontage temporaire de l'écran qui les affiche. Mais sans
+/// Régression : notificationsProvider, favoritesListProvider, conversationsProvider et
+/// reservationsListProvider ne sont pas autoDispose (voir commentaire dans app.dart) — leur contenu
+/// doit survivre à un démontage temporaire de l'écran qui les affiche. Mais sans
 /// invalidation explicite au changement de compte (déconnexion/reconnexion
-/// dans la même session app, sans redémarrage), les notifications/favoris de
+/// dans la même session app, sans redémarrage), les données de
 /// l'utilisateur précédent restaient visibles jusqu'au prochain déclenchement
-/// naturel (ouverture de l'écran Notifications, ou un ajout/retrait de
-/// favori) — un vrai risque de fuite d'un compte à l'autre sur un même
+/// naturel — un vrai risque de fuite d'un compte à l'autre sur un même
 /// appareil. Corrigé en étendant le `ref.listen(authControllerProvider)` déjà
 /// présent dans app.dart (même bloc que la synchronisation du token FCM) pour
-/// invalider aussi ces deux providers à chaque transition connecté/
-/// déconnecté, dans les deux sens.
+/// invalider aussi ces providers à chaque transition connecté/déconnecté,
+/// dans les deux sens.
 void main() {
   const user = User(
     id: 'u1',
@@ -38,10 +43,12 @@ void main() {
   );
 
   testWidgets(
-      'changement de compte (connexion/déconnexion) invalide notifications et favoris',
+      'changement de compte (connexion/déconnexion) invalide notifications, favoris, conversations et réservations',
       (tester) async {
     var notifCalls = 0;
     var favCalls = 0;
+    var msgCalls = 0;
+    var resCalls = 0;
 
     final container = ProviderContainer(
       overrides: [
@@ -49,6 +56,9 @@ void main() {
         notificationRepositoryProvider
             .overrideWithValue(_CountingNotificationRepo(() => notifCalls++)),
         propertyRepositoryProvider.overrideWithValue(_CountingPropertyRepo(() => favCalls++)),
+        messageRepositoryProvider.overrideWithValue(_CountingMessageRepo(() => msgCalls++)),
+        reservationRepositoryProvider
+            .overrideWithValue(_CountingReservationRepo(() => resCalls++)),
         routerProvider.overrideWithValue(_testRouter()),
       ],
     );
@@ -61,24 +71,32 @@ void main() {
     await tester.pumpAndSettle();
 
     // Établit un état "périmé" : une première lecture de chaque provider,
-    // comme le ferait l'écran Notifications/Favoris en conditions réelles,
+    // comme le ferait l'écran Notifications/Favoris/Messages/Réservations en conditions réelles,
     // avant même une connexion.
     container.read(notificationsProvider);
     container.read(favoritesListProvider);
+    container.read(conversationsProvider);
+    container.read(reservationsListProvider);
     await tester.pump();
     expect(notifCalls, 1);
     expect(favCalls, 1);
+    expect(msgCalls, 1);
+    expect(resCalls, 1);
 
     // Connexion : la transition déconnecté→connecté doit invalider les
-    // deux — une relecture doit redéclencher un vrai appel réseau, pas
+    // providers — une relecture doit redéclencher un vrai appel réseau, pas
     // renvoyer une valeur mise en cache pour "personne".
     container.read(authControllerProvider.notifier).state = const AsyncValue.data(user);
     await tester.pump();
     container.read(notificationsProvider);
     container.read(favoritesListProvider);
+    container.read(conversationsProvider);
+    container.read(reservationsListProvider);
     await tester.pump();
     expect(notifCalls, 2);
     expect(favCalls, 2);
+    expect(msgCalls, 2);
+    expect(resCalls, 2);
 
     // Déconnexion : même garantie dans l'autre sens (évite qu'un compte B
     // qui se connecte ensuite sur le même appareil hérite des données du
@@ -87,9 +105,13 @@ void main() {
     await tester.pump();
     container.read(notificationsProvider);
     container.read(favoritesListProvider);
+    container.read(conversationsProvider);
+    container.read(reservationsListProvider);
     await tester.pump();
     expect(notifCalls, 3);
     expect(favCalls, 3);
+    expect(msgCalls, 3);
+    expect(resCalls, 3);
 
     expect(tester.takeException(), isNull);
   });
@@ -126,6 +148,28 @@ class _CountingPropertyRepo extends MockPropertyRepository {
 
   @override
   Future<List<Property>> fetchFavorites() async {
+    onFetch();
+    return [];
+  }
+}
+
+class _CountingMessageRepo extends MockMessageRepository {
+  _CountingMessageRepo(this.onFetch);
+  final void Function() onFetch;
+
+  @override
+  Future<List<Conversation>> fetchConversations() async {
+    onFetch();
+    return [];
+  }
+}
+
+class _CountingReservationRepo extends MockReservationRepository {
+  _CountingReservationRepo(this.onFetch);
+  final void Function() onFetch;
+
+  @override
+  Future<List<Reservation>> fetchReservations() async {
     onFetch();
     return [];
   }

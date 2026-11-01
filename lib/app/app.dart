@@ -18,6 +18,7 @@ import '../features/notifications/providers/device_token_providers.dart';
 import '../features/notifications/providers/notification_providers.dart';
 import '../features/payments/providers/payment_providers.dart';
 import '../features/properties/providers/property_providers.dart';
+import '../features/reservations/providers/reservation_providers.dart';
 import 'router.dart';
 import 'routes.dart';
 
@@ -283,20 +284,20 @@ class _LoueMoiAppState extends ConsumerState<LoueMoiApp> with WidgetsBindingObse
         deactivateDeviceTokenOnLogout(ref);
         ref.read(presenceServiceProvider).stop();
       }
-      // notificationsProvider et favoritesListProvider ne sont pas
-      // autoDispose (leur contenu doit survivre à une navigation qui les
-      // démonte temporairement) : sans invalidation explicite ici, changer
-      // de compte dans la même session app (déconnexion/reconnexion sans
-      // redémarrage) laissait apparaître les notifications/favoris de
-      // l'utilisateur précédent jusqu'au prochain déclenchement naturel
-      // (ouverture de l'écran Notifications, ou un premier ajout/retrait de
-      // favori). On force donc leur rafraîchissement à CHAQUE changement de
-      // compte, dans les deux sens, comme pour la synchronisation du token
-      // FCM ci-dessus.
+      // notificationsProvider, favoritesListProvider, conversationsProvider et
+      // reservationsListProvider ne sont pas autoDispose (leur contenu doit
+      // survivre à une navigation qui les démonte temporairement) : sans invalidation
+      // explicite ici, changer de compte dans la même session app (déconnexion/reconnexion
+      // sans redémarrage) laissait apparaître les données de l'utilisateur précédent
+      // jusqu'au prochain déclenchement naturel. On force donc leur rafraîchissement
+      // à CHAQUE changement de compte, dans les deux sens, comme pour la synchronisation
+      // du token FCM ci-dessus.
       if (isConnected != wasConnected) {
         ref.invalidate(notificationsProvider);
         ref.invalidate(unreadNotificationsCountProvider);
         ref.invalidate(favoritesListProvider);
+        ref.invalidate(conversationsProvider);
+        ref.invalidate(reservationsListProvider);
       }
     });
 

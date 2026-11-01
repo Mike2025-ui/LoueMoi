@@ -1051,10 +1051,6 @@ class _AvisTab extends ConsumerWidget {
       return;
     }
 
-    final controller = TextEditingController();
-    var selectedRating = 5;
-    var isSubmitting = false;
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1062,125 +1058,154 @@ class _AvisTab extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
       ),
-      builder: (sheetContext) {
-        return StatefulBuilder(
-          builder: (statefulContext, setSheetState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: AppSpacing.screenPadding,
-                right: AppSpacing.screenPadding,
-                top: AppSpacing.lg,
-                bottom:
-                    MediaQuery.of(sheetContext).viewInsets.bottom +
-                    AppSpacing.lg,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Donner mon avis', style: AppTextStyles.h3),
-                  const SizedBox(height: AppSpacing.xs),
-                  const Text(
-                    'Partagez votre appréciation et attribuez des étoiles à cette publication.',
-                    style: AppTextStyles.caption,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  // Étoiles de notation interactives
-                  Center(
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(5, (index) {
-                            final starNum = index + 1;
-                            return IconButton(
-                              iconSize: 36,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                              ),
-                              constraints: const BoxConstraints(),
-                              icon: Icon(
-                                starNum <= selectedRating
-                                    ? Icons.star
-                                    : Icons.star_border,
-                                color: Colors.amber,
-                              ),
-                              onPressed: () {
-                                setSheetState(() => selectedRating = starNum);
-                              },
-                            );
-                          }),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          switch (selectedRating) {
-                            5 => '⭐⭐⭐⭐⭐ 5/5 - Excellent',
-                            4 => '⭐⭐⭐⭐ 4/5 - Très bien',
-                            3 => '⭐⭐⭐ 3/5 - Bien',
-                            2 => '⭐⭐ 2/5 - Passable',
-                            _ => '⭐ 1/5 - Décevant',
-                          },
-                          style: AppTextStyles.caption.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  TextField(
-                    controller: controller,
-                    maxLines: 3,
-                    decoration: InputDecoration(
-                      hintText: 'Votre commentaire (facultatif)...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  PrimaryButton(
-                    label: 'Publier mon avis',
-                    isLoading: isSubmitting,
-                    onPressed: () async {
-                      if (isSubmitting) return;
-                      final comment = controller.text.trim();
-                      setSheetState(() => isSubmitting = true);
-                      try {
-                        await addReview(
-                          ref,
-                          propertyId: property.id,
-                          comment: comment.isEmpty
-                              ? 'Avis laissé sans commentaire écrit'
-                              : comment,
-                          rating: selectedRating.toDouble(),
-                        );
-                        if (sheetContext.mounted) {
-                          Navigator.of(sheetContext).pop();
-                        }
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Merci ! Votre avis a bien été publié.',
-                              ),
-                            ),
-                          );
-                        }
-                      } catch (e) {
-                        setSheetState(() => isSubmitting = false);
-                        if (statefulContext.mounted) {
-                          showErrorSnackbar(statefulContext, e);
-                        }
-                      }
-                    },
-                  ),
-                ],
+      builder: (sheetContext) => _AddReviewSheet(
+        property: property,
+        onSuccess: () {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Merci ! Votre avis a bien été publié.'),
               ),
             );
-          },
-        );
-      },
+          }
+        },
+      ),
+    );
+  }
+}
+
+class _AddReviewSheet extends ConsumerStatefulWidget {
+  const _AddReviewSheet({
+    required this.property,
+    required this.onSuccess,
+  });
+
+  final Property property;
+  final VoidCallback onSuccess;
+
+  @override
+  ConsumerState<_AddReviewSheet> createState() => _AddReviewSheetState();
+}
+
+class _AddReviewSheetState extends ConsumerState<_AddReviewSheet> {
+  late final TextEditingController _controller;
+  var _selectedRating = 5;
+  var _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitReview() async {
+    if (_isSubmitting) return;
+    final comment = _controller.text.trim();
+    setState(() => _isSubmitting = true);
+    try {
+      await addReview(
+        ref,
+        propertyId: widget.property.id,
+        comment: comment.isEmpty
+            ? 'Avis laissé sans commentaire écrit'
+            : comment,
+        rating: _selectedRating.toDouble(),
+      );
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      widget.onSuccess();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      showErrorSnackbar(context, e);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: AppSpacing.screenPadding,
+        right: AppSpacing.screenPadding,
+        top: AppSpacing.lg,
+        bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.lg,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Donner mon avis', style: AppTextStyles.h3),
+          const SizedBox(height: AppSpacing.xs),
+          const Text(
+            'Partagez votre appréciation et attribuez des étoiles à cette publication.',
+            style: AppTextStyles.caption,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          // Étoiles de notation interactives
+          Center(
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(5, (index) {
+                    final starNum = index + 1;
+                    return IconButton(
+                      iconSize: 36,
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      constraints: const BoxConstraints(),
+                      icon: Icon(
+                        starNum <= _selectedRating
+                            ? Icons.star
+                            : Icons.star_border,
+                        color: Colors.amber,
+                      ),
+                      onPressed: () {
+                        setState(() => _selectedRating = starNum);
+                      },
+                    );
+                  }),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  switch (_selectedRating) {
+                    5 => '⭐⭐⭐⭐⭐ 5/5 - Excellent',
+                    4 => '⭐⭐⭐⭐ 4/5 - Très bien',
+                    3 => '⭐⭐⭐ 3/5 - Bien',
+                    2 => '⭐⭐ 2/5 - Passable',
+                    _ => '⭐ 1/5 - Décevant',
+                  },
+                  style: AppTextStyles.caption.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          TextField(
+            controller: _controller,
+            maxLines: 3,
+            decoration: InputDecoration(
+              hintText: 'Votre commentaire (facultatif)...',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          PrimaryButton(
+            label: 'Publier mon avis',
+            isLoading: _isSubmitting,
+            onPressed: _submitReview,
+          ),
+        ],
+      ),
     );
   }
 }

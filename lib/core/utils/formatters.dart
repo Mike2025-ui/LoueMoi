@@ -31,7 +31,7 @@ class Formatters {
 
   static String relativeTimeWithPrefix(DateTime dateTime) {
     final diff = DateTime.now().difference(dateTime);
-    if (diff.inDays >= 7) return 'Il y a ${relativeTime(dateTime)}';
+    if (diff.inMinutes < 1) return "À l'instant";
     return 'Il y a ${relativeTime(dateTime)}';
   }
 
