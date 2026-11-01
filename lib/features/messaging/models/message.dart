@@ -67,11 +67,17 @@ class Message extends Equatable {
       attachmentType: MessageAttachmentType.fromString(json['attachment_type'] as String?),
       attachmentUrl: json['attachment_url'] as String?,
       duration: json['duration'] as int?,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: json['created_at'] != null
+          ? (DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now())
+          : DateTime.now(),
       isDelivered: json['is_delivered'] as bool? ?? false,
-      deliveredAt: json['delivered_at'] != null ? DateTime.parse(json['delivered_at'] as String) : null,
+      deliveredAt: json['delivered_at'] != null
+          ? DateTime.tryParse(json['delivered_at'].toString())
+          : null,
       isRead: json['is_read'] as bool? ?? false,
-      readAt: json['read_at'] != null ? DateTime.parse(json['read_at'] as String) : null,
+      readAt: json['read_at'] != null
+          ? DateTime.tryParse(json['read_at'].toString())
+          : null,
     );
   }
 

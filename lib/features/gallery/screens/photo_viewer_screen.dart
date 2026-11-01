@@ -26,6 +26,12 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
   late int _currentIndex = widget.initialIndex;
 
   @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.black,

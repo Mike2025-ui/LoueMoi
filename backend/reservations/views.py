@@ -125,7 +125,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
         bien disponible, d'autant qu'il peut y avoir d'autres réservations
         en cours sur le même bien."""
         reservation = self.get_object()
-        if reservation.user_id != request.user.id:
+        if reservation.user_id != request.user.id and not request.user.is_staff:
             raise PermissionDenied("Seul le client ayant fait cette réservation peut l'annuler.")
         if reservation.status == "accomplie":
             raise ValidationError("Une réservation accomplie ne peut plus être annulée.")
@@ -184,7 +184,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
         une transition invalide (l'annulation est définitive)."""
         reservation = self.get_object()
         property_obj = reservation.property
-        if property_obj.agent_id != request.user.id:
+        if property_obj.agent_id != request.user.id and not request.user.is_staff:
             raise PermissionDenied("Seul le propriétaire du bien peut valider cette réservation.")
         if reservation.status == "annulee":
             raise ValidationError("Une réservation annulée ne peut pas être marquée accomplie.")

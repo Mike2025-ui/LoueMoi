@@ -48,85 +48,113 @@ Future<void> _confirmDeleteAccount(BuildContext context, WidgetRef ref) async {
   );
   if (confirmed != true || !context.mounted) return;
 
-  final passwordController = TextEditingController();
-  var isSubmitting = false;
-  String? errorText;
-
   await showDialog<void>(
     context: context,
-    builder: (dialogContext) => StatefulBuilder(
-      builder: (statefulContext, setDialogState) {
-        Future<void> submit() async {
-          final password = passwordController.text;
-          if (password.isEmpty) {
-            setDialogState(() => errorText = 'Mot de passe requis.');
-            return;
-          }
-          setDialogState(() {
-            isSubmitting = true;
-            errorText = null;
-          });
-          try {
-            await ref
-                .read(authControllerProvider.notifier)
-                .deactivateAccount(password);
-            if (dialogContext.mounted) Navigator.of(dialogContext).pop();
-            if (context.mounted) context.go(AppRoutes.login);
-          } catch (e) {
-            setDialogState(() {
-              isSubmitting = false;
-              errorText = 'Mot de passe incorrect.';
-            });
-          }
-        }
-
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.lg),
-          ),
-          title: const Text('Confirmez votre mot de passe'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
-                controller: passwordController,
-                obscureText: true,
-                autofocus: true,
-                decoration: InputDecoration(
-                  hintText: 'Mot de passe',
-                  errorText: errorText,
-                  border: const OutlineInputBorder(),
-                ),
-                onSubmitted: (_) => isSubmitting ? null : submit(),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: isSubmitting
-                  ? null
-                  : () => Navigator.of(dialogContext).pop(),
-              child: const Text('Annuler'),
-            ),
-            TextButton(
-              onPressed: isSubmitting ? null : submit,
-              child: isSubmitting
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text(
-                      'Supprimer mon compte',
-                      style: TextStyle(color: AppColors.danger),
-                    ),
-            ),
-          ],
-        );
-      },
-    ),
+    builder: (dialogContext) => _DeleteAccountDialog(ref: ref, rootContext: context),
   );
+}
+
+class _DeleteAccountDialog extends StatefulWidget {
+  const _DeleteAccountDialog({
+    required this.ref,
+    required this.rootContext,
+  });
+
+  final WidgetRef ref;
+  final BuildContext rootContext;
+
+  @override
+  State<_DeleteAccountDialog> createState() => _DeleteAccountDialogState();
+}
+
+class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
+  late final TextEditingController _passwordController;
+  var _isSubmitting = false;
+  String? _errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    _passwordController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final password = _passwordController.text;
+    if (password.isEmpty) {
+      setState(() => _errorText = 'Mot de passe requis.');
+      return;
+    }
+    setState(() {
+      _isSubmitting = true;
+      _errorText = null;
+    });
+    try {
+      await widget.ref
+          .read(authControllerProvider.notifier)
+          .deactivateAccount(password);
+      if (mounted) Navigator.of(context).pop();
+      if (widget.rootContext.mounted) widget.rootContext.go(AppRoutes.login);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+          _errorText = 'Mot de passe incorrect.';
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+      ),
+      title: const Text('Confirmez votre mot de passe'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _passwordController,
+            obscureText: true,
+            autofocus: true,
+            decoration: InputDecoration(
+              hintText: 'Mot de passe',
+              errorText: _errorText,
+              border: const OutlineInputBorder(),
+            ),
+            onSubmitted: (_) => _isSubmitting ? null : _submit(),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
+          child: const Text('Annuler'),
+        ),
+        TextButton(
+          onPressed: _isSubmitting ? null : _submit,
+          child: _isSubmitting
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text(
+                  'Supprimer mon compte',
+                  style: TextStyle(color: AppColors.danger),
+                ),
+        ),
+      ],
+    );
+  }
 }
 
 class ProfileScreen extends ConsumerStatefulWidget {
