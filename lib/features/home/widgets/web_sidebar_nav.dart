@@ -32,7 +32,6 @@ class WebSidebarNav extends ConsumerWidget {
     final user = ref.watch(authControllerProvider).valueOrNull;
     final unreadMessages = ref.watch(totalUnreadConversationsCountProvider);
     final unreadNotifs = ref.watch(unreadNotificationsCountProvider).valueOrNull ?? 0;
-    final canPublish = user?.canOwnProperties ?? false;
 
     final screenWidth = MediaQuery.of(context).size.width;
     final sidebarWidth = screenWidth < 1024 ? 220.0 : 240.0;
@@ -127,27 +126,25 @@ class WebSidebarNav extends ConsumerWidget {
                   const Divider(height: 1, indent: 6, endIndent: 6),
                   const SizedBox(height: 16),
 
-                  // 3. Bouton "Publier un bien" : affiché UNIQUEMENT pour les autorisés (bailleurs / agents)
-                  if (canPublish) ...[
-                    ElevatedButton.icon(
-                      onPressed: () => context.push(AppRoutes.publish),
-                      icon: const Icon(Icons.add_circle_outline, size: 18),
-                      label: const Text(
-                        'Publier un bien',
-                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: AppColors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 11),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppRadius.md),
-                        ),
-                        elevation: 0,
-                      ),
+                  // 3. Bouton "Confier un bien" (LoueMoi centralise les publications)
+                  ElevatedButton.icon(
+                    onPressed: () => context.push(AppRoutes.publish),
+                    icon: const Icon(Icons.add_home_work_outlined, size: 18),
+                    label: const Text(
+                      'Confier un bien',
+                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
                     ),
-                    const SizedBox(height: 12),
-                  ],
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 11),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                      ),
+                      elevation: 0,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
 
                   // 4. Bouton "Télécharger l'APK" ultra-attractif et moderne
                   Material(

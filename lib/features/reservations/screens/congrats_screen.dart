@@ -20,12 +20,13 @@ class CongratsScreen extends StatelessWidget {
           ),
           child: Column(
             children: [
-              const Spacer(flex: 3),
+              const Spacer(flex: 2),
               Container(
-                width: 96,
-                height: 96,
+                width: 88,
+                height: 88,
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
+                  color: Color(0xFFDCFCE7),
                   border: Border.fromBorderSide(
                     BorderSide(color: AppColors.success, width: 3),
                   ),
@@ -37,14 +38,69 @@ class CongratsScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
-              const Text('Félicitations !', style: AppTextStyles.h2),
+              const Text(
+                'Demande enregistrée !',
+                style: AppTextStyles.h2,
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: AppSpacing.sm),
               const Text(
-                'Nous vous remercions d’avoir utilisé l’application.',
+                'Votre demande de visite a bien été transmise à l’équipe LoueMoi.',
                 textAlign: TextAlign.center,
                 style: AppTextStyles.caption,
               ),
-              const Spacer(flex: 4),
+              const SizedBox(height: AppSpacing.xl),
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FDF4),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  border: Border.all(color: const Color(0xFF86EFAC)),
+                ),
+                child: Column(
+                  children: const [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.phone_in_talk_outlined, color: Color(0xFF16A34A), size: 20),
+                        SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: Text(
+                            'Un conseiller LoueMoi vous contactera par appel ou WhatsApp pour planifier l’heure de votre visite physique.',
+                            style: TextStyle(
+                              color: Color(0xFF166534),
+                              fontSize: 13,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: AppSpacing.sm),
+                    Divider(color: Color(0xFFBBF7D0)),
+                    SizedBox(height: AppSpacing.sm),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.payments_outlined, color: Color(0xFF16A34A), size: 20),
+                        SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: Text(
+                            'Frais forfaitaires de visite de 5.000 Fcfa à régler directement sur place le jour de la visite (en espèces ou par Wave / Orange Money). Zéro mois d’agence à payer.',
+                            style: TextStyle(
+                              color: Color(0xFF166534),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(flex: 3),
               PrimaryButton(
                 label: 'Voir mes réservations',
                 onPressed: () => context.go(AppRoutes.reservationsList),

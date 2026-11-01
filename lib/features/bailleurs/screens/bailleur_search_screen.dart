@@ -187,15 +187,13 @@ class BailleurSearchScreen extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Icon(
-                        Icons.lock_person_outlined,
+                        Icons.error_outline,
                         size: 40,
-                        color: AppColors.primary,
+                        color: AppColors.textHint,
                       ),
                       const SizedBox(height: AppSpacing.sm),
-                      Text(
-                        e.toString().contains('abonnement')
-                            ? 'Un abonnement actif est requis pour effectuer cette recherche.'
-                            : 'Impossible de charger les propriétaires.',
+                      const Text(
+                        'Impossible de charger les propriétaires pour le moment.',
                         style: AppTextStyles.caption,
                         textAlign: TextAlign.center,
                       ),

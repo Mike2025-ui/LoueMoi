@@ -26,7 +26,6 @@ class WebHeaderNav extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authControllerProvider).valueOrNull;
     final unreadMessages = ref.watch(totalUnreadConversationsCountProvider);
-    final canPublish = user?.canOwnProperties ?? false;
 
     return Container(
       height: 72,
@@ -140,23 +139,21 @@ class WebHeaderNav extends ConsumerWidget {
                       ),
                     ),
 
-                    if (canPublish) ...[
-                      const SizedBox(width: 12),
-                      ElevatedButton.icon(
-                        onPressed: () => context.push(AppRoutes.publish),
-                        icon: const Icon(Icons.add_circle_outline, size: 18),
-                        label: const Text('Publier un bien'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: AppColors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppRadius.pill),
-                          ),
-                          elevation: 1,
+                    const SizedBox(width: 12),
+                    ElevatedButton.icon(
+                      onPressed: () => context.push(AppRoutes.publish),
+                      icon: const Icon(Icons.add_home_work_outlined, size: 18),
+                      label: const Text('Confier un bien'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: AppColors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
                         ),
+                        elevation: 1,
                       ),
-                    ],
+                    ),
 
                     const SizedBox(width: 16),
 
