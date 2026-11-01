@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import '../../../core/theme/app_colors.dart';
@@ -58,7 +59,7 @@ class _PropertyVideoPlayerState extends State<PropertyVideoPlayer> {
 
   Future<void> _init() async {
     try {
-      final controller = widget.isLocalFile
+      final controller = (widget.isLocalFile && !kIsWeb)
           ? VideoPlayerController.file(File(widget.source))
           : VideoPlayerController.networkUrl(Uri.parse(widget.source));
       controller.addListener(_listener);

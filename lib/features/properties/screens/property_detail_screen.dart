@@ -910,9 +910,18 @@ class _GallerieTab extends StatelessWidget {
           ),
           itemCount: property.images.length,
           itemBuilder: (context, index) {
-            return ClipRRect(
+            return InkWell(
+              onTap: () {
+                context.push(
+                  AppRoutes.propertyGalleryViewerPath(property.id),
+                  extra: {'images': property.images, 'index': index},
+                );
+              },
               borderRadius: BorderRadius.circular(AppRadius.sm),
-              child: PropertyImage(property.images[index], fit: BoxFit.cover),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+                child: PropertyImage(property.images[index], fit: BoxFit.cover),
+              ),
             );
           },
         ),

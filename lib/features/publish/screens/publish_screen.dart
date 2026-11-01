@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -1380,7 +1381,9 @@ class _PhotoCategorySection extends StatelessWidget {
           children: [
             for (final file in images)
               _PhotoThumb(
-                child: Image.file(File(file.path), fit: BoxFit.cover),
+                child: kIsWeb
+                    ? Image.network(file.path, fit: BoxFit.cover)
+                    : Image.file(File(file.path), fit: BoxFit.cover),
                 onRemove: () => onRemove(file),
               ),
             if (allowMultiple || images.isEmpty)
@@ -1477,7 +1480,7 @@ class _VideoPickerSectionState extends ConsumerState<_VideoPickerSection> {
         return;
       }
 
-      final sizeBytes = await File(picked.path).length();
+      final sizeBytes = await picked.length();
       if (sizeBytes > _maxSizeBytes) {
         if (mounted) {
           setState(() {
@@ -1488,7 +1491,9 @@ class _VideoPickerSectionState extends ConsumerState<_VideoPickerSection> {
         return;
       }
 
-      final controller = VideoPlayerController.file(File(picked.path));
+      final controller = kIsWeb
+          ? VideoPlayerController.networkUrl(Uri.parse(picked.path))
+          : VideoPlayerController.file(File(picked.path));
       try {
         await controller.initialize();
         if (controller.value.duration > _maxDuration) {
@@ -1747,10 +1752,15 @@ class _StepPreview extends ConsumerWidget {
             child: AspectRatio(
               aspectRatio: 1.5,
               child: form.newImages.isNotEmpty
-                  ? Image.file(
-                      File(form.newImages.first.path),
-                      fit: BoxFit.cover,
-                    )
+                  ? (kIsWeb
+                      ? Image.network(
+                          form.newImages.first.path,
+                          fit: BoxFit.cover,
+                        )
+                      : Image.file(
+                          File(form.newImages.first.path),
+                          fit: BoxFit.cover,
+                        ))
                   : form.existingImages.isNotEmpty
                   ? PropertyImage(form.existingImages.first, fit: BoxFit.cover)
                   : Container(color: AppColors.surfaceMuted),

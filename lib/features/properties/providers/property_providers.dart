@@ -185,6 +185,8 @@ Future<void> markPropertyStatus(
   final repository = ref.read(propertyRepositoryProvider);
   await repository.updatePropertyStatus(propertyId, status);
   ref.invalidate(propertyByIdProvider(propertyId));
+  ref.invalidate(myPropertiesProvider);
+  ref.invalidate(propertiesControllerProvider);
 }
 
 Future<void> toggleFavorite(WidgetRef ref, String propertyId) async {
