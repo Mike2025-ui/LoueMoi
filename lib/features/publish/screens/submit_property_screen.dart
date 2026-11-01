@@ -88,7 +88,7 @@ class SubmitPropertyScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.lg),
               const Text(
-                'Vous êtes propriétaire ou bailleur ?',
+                'Vous souhaitez proposer un bien immobilier ?',
                 textAlign: TextAlign.center,
                 style: AppTextStyles.h2,
               ),

@@ -35,7 +35,6 @@ import '../features/profile/screens/profile_screen.dart';
 import '../features/profile/screens/sold_properties_screen.dart';
 import '../features/properties/screens/property_detail_screen.dart';
 import '../features/publish/screens/publish_screen.dart';
-import '../features/publish/screens/submit_property_screen.dart';
 import '../features/reservations/screens/congrats_screen.dart';
 import '../features/reservations/screens/reservation_confirmation_screen.dart';
 import '../features/reservations/screens/reservation_summary_screen.dart';
@@ -207,7 +206,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.publish,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const SubmitPropertyScreen(),
+        builder: (context, state) => const PublishScreen(),
       ),
       GoRoute(
         path: AppRoutes.editProperty,

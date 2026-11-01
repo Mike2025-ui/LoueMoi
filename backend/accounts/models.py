@@ -143,9 +143,9 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     @property
     def can_own_properties(self):
-        """Bailleur et agent peuvent tous deux publier/posséder des
-        annonces — deux rôles indépendants, sans hiérarchie entre eux."""
-        return self.role in (self.ROLE_AGENT, self.ROLE_BAILLEUR)
+        """Les administrateurs LoueMoi (is_staff / is_superuser) ainsi que les
+        comptes habilités peuvent publier et gérer des annonces."""
+        return bool(self.is_staff or self.is_superuser or self.role in (self.ROLE_AGENT, self.ROLE_BAILLEUR))
 
     @property
     def has_active_subscription(self):

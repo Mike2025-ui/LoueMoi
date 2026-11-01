@@ -110,7 +110,7 @@ class Property(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
         related_name="properties",
-        limit_choices_to={"role__in": ["agent", "bailleur"]},
+        limit_choices_to=models.Q(role__in=["agent", "bailleur"]) | models.Q(is_staff=True),
     )
 
     created_at = models.DateTimeField(auto_now_add=True)

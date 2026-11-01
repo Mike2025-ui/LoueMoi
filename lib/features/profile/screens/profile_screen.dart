@@ -454,6 +454,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               // Pas d'entrée "Messages" ici : la maquette n'en montre aucune
               // sur cet écran (l'onglet Messages de la bottom navigation
               // reste le seul accès aux conversations, inchangé).
+              if (user?.canPublish == true) ...[
+                ProfileMenuTile(
+                  icon: Icons.add_home_work_outlined,
+                  label: 'Publier une annonce',
+                  onTap: () => context.push(AppRoutes.publish),
+                ),
+                ProfileMenuTile(
+                  icon: Icons.apartment_outlined,
+                  label: 'Mes annonces publiées',
+                  onTap: () => context.push(AppRoutes.myProperties),
+                ),
+              ],
               ProfileMenuTile(
                 icon: Icons.receipt_long_outlined,
                 label: 'Propriétés contactées',

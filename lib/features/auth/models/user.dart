@@ -15,6 +15,8 @@ class User extends Equatable {
   final bool activationRequested;
   final bool isVerified;
   final bool hasActiveSubscription;
+  final bool isStaff;
+  final bool isSuperAdmin;
 
   /// Non-null uniquement quand [role] == [UserRole.agent] — un client n'a
   /// jamais de profil agent.
@@ -33,6 +35,8 @@ class User extends Equatable {
     this.activationRequested = false,
     this.isVerified = false,
     this.hasActiveSubscription = false,
+    this.isStaff = false,
+    this.isSuperAdmin = false,
     this.agentProfile,
   });
 
@@ -41,10 +45,13 @@ class User extends Equatable {
   bool get isAgent => role == UserRole.agent;
   bool get isBailleur => role == UserRole.bailleur;
   bool get isClient => role == UserRole.client;
+  bool get isAdmin => isStaff || isSuperAdmin;
+  bool get isSuperAdminUser => isSuperAdmin || isStaff;
 
   /// Badge de certification : accordé automatiquement à tout utilisateur abonné
-  /// (client, bailleur, agent) ou certifié en base.
+  /// ou certifié en base.
   bool get isVerifiedUser {
+    if (isSuperAdminUser) return true;
     if (hasActiveSubscription) return true;
     if (isAgent) {
       return (agentProfile?.isVerified ?? false) || isVerified;
@@ -54,11 +61,11 @@ class User extends Equatable {
 
   /// Les comptes agent et bailleur doivent être approuvés par l'administrateur
   /// avant de pouvoir accéder à l'application.
-  bool get needsActivation => (isAgent || isBailleur) && !isApproved;
+  bool get needsActivation => !isSuperAdminUser && (isAgent || isBailleur) && !isApproved;
 
-  /// Agent et bailleur sont deux rôles indépendants pouvant tous deux
-  /// publier/posséder des annonces — aucune délégation entre eux.
-  bool get canOwnProperties => isAgent || isBailleur;
+  /// Les administrateurs LoueMoi peuvent publier et gérer directement les annonces.
+  bool get canPublish => isSuperAdminUser || isAgent || isBailleur;
+  bool get canOwnProperties => canPublish;
 
   factory User.fromJson(Map<String, dynamic> json) {
     final agentProfileJson = json['agent_profile'] as Map<String, dynamic>?;
@@ -84,6 +91,8 @@ class User extends Equatable {
       activationRequested: json['activation_requested'] as bool? ?? false,
       isVerified: json['is_verified'] as bool? ?? false,
       hasActiveSubscription: json['has_active_subscription'] as bool? ?? false,
+      isStaff: (json['is_staff'] as bool?) ?? false,
+      isSuperAdmin: (json['is_superuser'] as bool?) ?? false,
       agentProfile: agentProfileJson != null ? AgentProfile.fromJson(agentProfileJson) : null,
     );
   }
@@ -102,6 +111,8 @@ class User extends Equatable {
     bool? activationRequested,
     bool? isVerified,
     bool? hasActiveSubscription,
+    bool? isStaff,
+    bool? isSuperAdmin,
     AgentProfile? agentProfile,
   }) {
     return User(
@@ -117,6 +128,8 @@ class User extends Equatable {
       activationRequested: activationRequested ?? this.activationRequested,
       isVerified: isVerified ?? this.isVerified,
       hasActiveSubscription: hasActiveSubscription ?? this.hasActiveSubscription,
+      isStaff: isStaff ?? this.isStaff,
+      isSuperAdmin: isSuperAdmin ?? this.isSuperAdmin,
       agentProfile: agentProfile ?? this.agentProfile,
     );
   }
@@ -134,6 +147,8 @@ class User extends Equatable {
         'activation_requested': activationRequested,
         'is_verified': isVerified,
         'has_active_subscription': hasActiveSubscription,
+        'is_staff': isStaff,
+        'is_superuser': isSuperAdmin,
       };
 
   @override
@@ -150,6 +165,8 @@ class User extends Equatable {
         activationRequested,
         isVerified,
         hasActiveSubscription,
+        isStaff,
+        isSuperAdmin,
         agentProfile,
       ];
 }

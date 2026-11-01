@@ -32,27 +32,12 @@
           <span>Statistiques</span>
         </a>
 
-        <div class="sidebar-heading">Gestion & Validations</div>
-        <a href="{% url 'dashboard:pending_activations' %}" class="{% if active == 'pending_activations' %}active{% endif %}">
-          <span class="nav-icon grad-rose">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>
-          </span>
-          <span>Comptes à activer</span>
-          {% if pending_activations_count > 0 %}
-            <span class="nav-counter alert">{{ pending_activations_count }}</span>
-          {% endif %}
-        </a>
+        <div class="sidebar-heading">Gestion & Utilisateurs</div>
         <a href="{% url 'dashboard:users_list' %}" class="{% if active == 'users' %}active{% endif %}">
           <span class="nav-icon grad-blue">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           </span>
-          <span>Utilisateurs</span>
-        </a>
-        <a href="{% url 'dashboard:agents_list' %}" class="{% if active == 'agents' %}active{% endif %}">
-          <span class="nav-icon grad-purple">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-          </span>
-          <span>Agents immobiliers</span>
+          <span>Utilisateurs inscrits</span>
         </a>
 
         <div class="sidebar-heading">Activité Immobilière</div>

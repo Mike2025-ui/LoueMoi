@@ -29,6 +29,7 @@ import '../../properties/providers/property_providers.dart';
 import '../../properties/widgets/property_video_player.dart';
 import '../providers/publish_form_provider.dart';
 import '../widgets/publish_dropdown_field.dart';
+import 'submit_property_screen.dart';
 
 /// Assistant multi-étapes de publication. Réutilisé pour la modification
 /// (voir [editPropertyId]) : mêmes étapes, pré-remplies, PATCH au lieu de
@@ -348,13 +349,13 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
           amenities: form.characteristics.toList(),
           agent: Agent(
             id: user?.id ?? '',
-            firstName: user?.firstName ?? '',
+            firstName: (user?.firstName.isNotEmpty ?? false) ? user!.firstName : 'LoueMoi',
             lastName: user?.lastName ?? '',
             phone: user?.phone ?? '',
             whatsapp: user?.whatsapp ?? '',
             photo: user?.photo,
-            isVerified: user?.agentProfile?.isVerified ?? false,
-            rating: user?.agentProfile?.rating ?? 0,
+            isVerified: true,
+            rating: 5.0,
           ),
           createdAt: now,
           updatedAt: now,
@@ -480,24 +481,10 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
     // (CanOwnProperties sur POST /api/properties/). Un client qui
     // atteindrait quand même cet écran (deep link, etc.) ne doit pas
     // pouvoir publier. Agent et bailleur sont tous deux habilités.
-    final canPublish =
-        ref.watch(authControllerProvider).valueOrNull?.canOwnProperties ??
-        false;
+    final user = ref.watch(authControllerProvider).valueOrNull;
+    final canPublish = user?.canPublish ?? false;
     if (!canPublish) {
-      return Scaffold(
-        backgroundColor: AppColors.background,
-        appBar: AppBar(title: const Text('Publier une propriété')),
-        body: const Center(
-          child: Padding(
-            padding: EdgeInsets.all(AppSpacing.screenPadding),
-            child: Text(
-              'La publication d’annonces est réservée aux agents et bailleurs.',
-              textAlign: TextAlign.center,
-              style: AppTextStyles.caption,
-            ),
-          ),
-        ),
-      );
+      return const SubmitPropertyScreen();
     }
 
     if (_loadingInitial) {

@@ -15,9 +15,8 @@ enum UserRole {
     return switch (value) {
       'bailleur' => UserRole.bailleur,
       'agent' => UserRole.agent,
-      // Toute valeur inconnue, absente ou inattendue (y compris "admin",
-      // qui ne doit jamais ouvrir un espace dédié côté mobile) retombe
-      // silencieusement sur le rôle client, sans jamais bloquer l'utilisateur.
+      // "admin" existe côté Django via is_staff/is_superuser (voir User.isStaff/isSuperAdmin)
+      // et retombe sur client au niveau du rôle enum.
       _ => UserRole.client,
     };
   }

@@ -26,6 +26,8 @@ class UserSerializer(serializers.ModelSerializer):
             "photo",
             "role",
             "is_approved",
+            "is_staff",
+            "is_superuser",
             "activation_requested",
             "activation_requested_at",
             "agent_profile",
@@ -34,12 +36,14 @@ class UserSerializer(serializers.ModelSerializer):
             "is_online",
             "last_seen",
         ]
-        # Sécurité stricte : phone, role, is_verified, etc. ne sont jamais modifiables via l'API
+        # Sécurité stricte : phone, role, is_verified, is_staff, etc. ne sont jamais modifiables via l'API
         read_only_fields = [
             "id",
             "phone",
             "role",
             "is_approved",
+            "is_staff",
+            "is_superuser",
             "is_verified",
             "activation_requested",
             "activation_requested_at",

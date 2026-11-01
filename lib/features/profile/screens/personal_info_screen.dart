@@ -7,15 +7,14 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/primary_button.dart';
-import '../../auth/models/user_role.dart';
+import '../../auth/models/user.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../widgets/change_password_dialog.dart';
 
-String _roleLabel(UserRole? role) => switch (role) {
-      UserRole.agent => 'Agent immobilier',
-      UserRole.bailleur => 'Bailleur',
-      UserRole.client || null => 'Client',
-    };
+String _roleLabel(User? user) {
+  if (user?.isSuperAdminUser == true) return 'Administrateur LoueMoi';
+  return 'Client';
+}
 
 /// "Informations personnelles" — lecture seule, données réellement
 /// renvoyées par GET /api/users/me/ (via authControllerProvider, déjà
@@ -62,7 +61,7 @@ class PersonalInfoScreen extends ConsumerWidget {
             const SizedBox(height: AppSpacing.md),
             AppTextField(
               label: 'Rôle',
-              controller: TextEditingController(text: _roleLabel(user?.role)),
+              controller: TextEditingController(text: _roleLabel(user)),
               enabled: false,
             ),
             if (user?.agentProfile != null) ...[

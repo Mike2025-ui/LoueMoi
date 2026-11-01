@@ -98,6 +98,25 @@ void main() {
       expect(user.canOwnProperties, isFalse);
     });
 
+    test('isStaff or isSuperAdmin allows canPublish and isSuperAdminUser', () {
+      final adminUser = User.fromJson({
+        'id': 99,
+        'first_name': 'Admin',
+        'last_name': 'LoueMoi',
+        'phone': '0702065206',
+        'whatsapp': '0702065206',
+        'role': 'client',
+        'is_staff': true,
+        'is_superuser': true,
+      });
+
+      expect(adminUser.isStaff, isTrue);
+      expect(adminUser.isSuperAdmin, isTrue);
+      expect(adminUser.isSuperAdminUser, isTrue);
+      expect(adminUser.canPublish, isTrue);
+      expect(adminUser.canOwnProperties, isTrue);
+    });
+
     test('missing role key defaults to client (backward-compatible parsing)', () {
       final user = User.fromJson({
         'id': 1,
