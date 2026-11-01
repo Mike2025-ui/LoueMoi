@@ -10,8 +10,6 @@ import '../../../core/utils/feedback.dart';
 import '../../../core/utils/media_url.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../../messaging/providers/message_providers.dart';
-import '../../payments/providers/payment_providers.dart';
-import '../../payments/widgets/subscription_modal.dart';
 import '../models/agent_search_result.dart';
 import '../providers/agent_search_providers.dart';
 
@@ -31,12 +29,18 @@ class AgentSearchScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _message(BuildContext context, WidgetRef ref, AgentSearchResult agent) async {
+  Future<void> _message(
+    BuildContext context,
+    WidgetRef ref,
+    AgentSearchResult agent,
+  ) async {
     final currentUser = ref.read(authControllerProvider).valueOrNull;
     if (currentUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Veuillez vous connecter pour contacter cet agent.'),
+          content: const Text(
+            'Veuillez vous connecter pour contacter cet agent.',
+          ),
           backgroundColor: AppColors.primary,
           action: SnackBarAction(
             label: 'Se connecter',
@@ -50,7 +54,9 @@ class AgentSearchScreen extends ConsumerWidget {
     if (currentUser.id == agent.id) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Vous ne pouvez pas démarrer une conversation avec vous-même.'),
+          content: Text(
+            'Vous ne pouvez pas démarrer une conversation avec vous-même.',
+          ),
           backgroundColor: AppColors.primary,
         ),
       );
@@ -59,7 +65,9 @@ class AgentSearchScreen extends ConsumerWidget {
 
     try {
       final repository = ref.read(messageRepositoryProvider);
-      final conversationId = await repository.getOrCreateConversationId(agentId: agent.id);
+      final conversationId = await repository.getOrCreateConversationId(
+        agentId: agent.id,
+      );
       if (!context.mounted) return;
       context.push(
         AppRoutes.conversationPath(conversationId),
@@ -73,10 +81,6 @@ class AgentSearchScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentUser = ref.watch(authControllerProvider).valueOrNull;
-    final subStatus = ref.watch(userSubscriptionStatusProvider).valueOrNull;
-    final hasActiveSub = subStatus != null
-        ? subStatus.hasActiveSubscription
-        : (currentUser?.hasActiveSubscription == true);
 
     if (currentUser == null) {
       return Scaffold(
@@ -89,35 +93,6 @@ class AgentSearchScreen extends ConsumerWidget {
               'Veuillez vous connecter pour accéder à l\'annuaire et rechercher les agents immobiliers certifiés.',
           buttonLabel: 'Se connecter',
           onPressed: () => context.push(AppRoutes.login),
-        ),
-      );
-    }
-
-    if (!hasActiveSub) {
-      return Scaffold(
-        backgroundColor: AppColors.background,
-        appBar: AppBar(title: const Text('Trouver un agent')),
-        body: _LockedSubscriptionView(
-          icon: Icons.workspace_premium_outlined,
-          title: 'Abonnement requis',
-          description:
-              'La recherche et la consultation des agents immobiliers sont réservées aux membres abonnés.\n\n'
-              '• Clients : 1 000 FCFA / mois\n'
-              '• Professionnels : 3 000 FCFA / mois',
-          buttonLabel: 'S\'abonner maintenant',
-          onPressed: () async {
-            final isPro = currentUser.isAgent || currentUser.isBailleur;
-            final subscribed = await showSubscriptionModal(
-              context,
-              isPro: isPro,
-              role: currentUser.role,
-            );
-            if (subscribed == true) {
-              ref.invalidate(authControllerProvider);
-              ref.invalidate(userSubscriptionStatusProvider);
-              ref.invalidate(agentSearchResultsProvider);
-            }
-          },
         ),
       );
     }
@@ -145,7 +120,8 @@ class AgentSearchScreen extends ConsumerWidget {
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: TextField(
-                      onChanged: (v) => ref.read(agentSearchQueryProvider.notifier).state = v,
+                      onChanged: (v) =>
+                          ref.read(agentSearchQueryProvider.notifier).state = v,
                       decoration: const InputDecoration(
                         hintText: 'Nom, agence...',
                         border: InputBorder.none,
@@ -167,13 +143,19 @@ class AgentSearchScreen extends ConsumerWidget {
               data: (agents) {
                 if (agents.isEmpty) {
                   return const Center(
-                    child: Text('Aucun agent trouvé.', style: AppTextStyles.caption),
+                    child: Text(
+                      'Aucun agent trouvé.',
+                      style: AppTextStyles.caption,
+                    ),
                   );
                 }
                 return ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.screenPadding,
+                  ),
                   itemCount: agents.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.md),
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: AppSpacing.md),
                   itemBuilder: (context, index) {
                     final agent = agents[index];
                     return _AgentTile(
@@ -191,7 +173,11 @@ class AgentSearchScreen extends ConsumerWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.lock_person_outlined, size: 40, color: AppColors.primary),
+                      const Icon(
+                        Icons.lock_person_outlined,
+                        size: 40,
+                        color: AppColors.primary,
+                      ),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
                         e.toString().contains('abonnement')
@@ -202,7 +188,8 @@ class AgentSearchScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: AppSpacing.md),
                       ElevatedButton(
-                        onPressed: () => ref.invalidate(agentSearchResultsProvider),
+                        onPressed: () =>
+                            ref.invalidate(agentSearchResultsProvider),
                         child: const Text('Réessayer'),
                       ),
                     ],
@@ -249,15 +236,13 @@ class _LockedSubscriptionView extends StatelessWidget {
               child: Icon(icon, size: 48, color: AppColors.primary),
             ),
             const SizedBox(height: AppSpacing.lg),
-            Text(
-              title,
-              style: AppTextStyles.h2,
-              textAlign: TextAlign.center,
-            ),
+            Text(title, style: AppTextStyles.h2, textAlign: TextAlign.center),
             const SizedBox(height: AppSpacing.sm),
             Text(
               description,
-              style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.body.copyWith(
+                color: AppColors.textSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.xl),
@@ -284,7 +269,11 @@ class _LockedSubscriptionView extends StatelessWidget {
 }
 
 class _AgentTile extends StatelessWidget {
-  const _AgentTile({required this.agent, required this.onMessage, required this.onCall});
+  const _AgentTile({
+    required this.agent,
+    required this.onMessage,
+    required this.onCall,
+  });
 
   final AgentSearchResult agent;
   final VoidCallback onMessage;
@@ -314,7 +303,11 @@ class _AgentTile extends StatelessWidget {
                         ? NetworkImage(buildMediaUrl(agent.photo!))
                         : null,
                     child: agent.photo == null
-                        ? const Icon(Icons.person, size: 28, color: AppColors.primary)
+                        ? const Icon(
+                            Icons.person,
+                            size: 28,
+                            color: AppColors.primary,
+                          )
                         : null,
                   ),
                   if (agent.isVerified)
@@ -324,7 +317,11 @@ class _AgentTile extends StatelessWidget {
                       child: CircleAvatar(
                         radius: 9,
                         backgroundColor: AppColors.primary,
-                        child: Icon(Icons.check, size: 11, color: AppColors.white),
+                        child: Icon(
+                          Icons.check,
+                          size: 11,
+                          color: AppColors.white,
+                        ),
                       ),
                     ),
                 ],
@@ -340,9 +337,16 @@ class _AgentTile extends StatelessWidget {
                     const SizedBox(height: 2),
                     Row(
                       children: [
-                        const Icon(Icons.star, size: 14, color: AppColors.accent),
+                        const Icon(
+                          Icons.star,
+                          size: 14,
+                          color: AppColors.accent,
+                        ),
                         const SizedBox(width: 2),
-                        Text(agent.rating.toStringAsFixed(1), style: AppTextStyles.small),
+                        Text(
+                          agent.rating.toStringAsFixed(1),
+                          style: AppTextStyles.small,
+                        ),
                       ],
                     ),
                   ],
@@ -375,7 +379,11 @@ class _AgentTile extends StatelessWidget {
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: onCall,
-                  icon: const Icon(Icons.call, size: 16, color: AppColors.white),
+                  icon: const Icon(
+                    Icons.call,
+                    size: 16,
+                    color: AppColors.white,
+                  ),
                   label: const Text('Appeler'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,

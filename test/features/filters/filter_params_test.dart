@@ -4,10 +4,10 @@ import 'package:louemoi/features/properties/models/property_enums.dart';
 
 void main() {
   group('FilterParams.copyWith', () {
-    test('defaults to Location and Logement', () {
+    test('defaults to Location and null propertyType (all types)', () {
       const params = FilterParams();
       expect(params.transactionType, TransactionType.location);
-      expect(params.propertyType, PropertyType.logement);
+      expect(params.propertyType, isNull);
     });
 
     test('switching to Terrain does not keep a logement category', () {

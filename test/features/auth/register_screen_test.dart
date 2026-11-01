@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:louemoi/core/theme/app_colors.dart';
 import 'package:louemoi/features/auth/screens/register_screen.dart';
 
 void main() {
-  testWidgets('account type selector defaults to Client and can switch to Bailleur/Agent',
+  testWidgets('registration form displays all required input fields',
       (tester) async {
     await tester.pumpWidget(
       const ProviderScope(
@@ -14,36 +13,13 @@ void main() {
     );
     await tester.pump();
 
-    Color? pillColor(String label) {
-      final container = tester.widget<Container>(
-        find
-            .descendant(
-              of: find.widgetWithText(InkWell, label),
-              matching: find.byType(Container),
-            )
-            .first,
-      );
-      return (container.decoration as BoxDecoration?)?.color;
-    }
-
-    expect(find.text('Type de compte'), findsOneWidget);
-    // Client sélectionné par défaut, conformément au cahier des charges.
-    expect(pillColor('Client'), AppColors.primary);
-    expect(pillColor('Bailleur'), AppColors.white);
-    expect(pillColor('Agent'), AppColors.white);
-
-    await tester.tap(find.text('Bailleur'));
-    await tester.pump();
-
-    expect(pillColor('Client'), AppColors.white);
-    expect(pillColor('Bailleur'), AppColors.primary);
-    expect(pillColor('Agent'), AppColors.white);
-
-    await tester.tap(find.text('Agent'));
-    await tester.pump();
-
-    expect(pillColor('Bailleur'), AppColors.white);
-    expect(pillColor('Agent'), AppColors.primary);
+    expect(find.text('Nom'), findsOneWidget);
+    expect(find.text('Prenoms'), findsOneWidget);
+    expect(find.text('Numéro de téléphone'), findsOneWidget);
+    expect(find.text('Numéro WhatsApp (optionnel)'), findsOneWidget);
+    expect(find.text('Mot de passe'), findsOneWidget);
+    expect(find.text('Confirmer mot de passe'), findsOneWidget);
+    expect(find.text('Inscription'), findsWidgets);
   });
 
   testWidgets('shows a mismatch error when passwords differ', (tester) async {
@@ -81,21 +57,9 @@ void main() {
     );
     await tester.pump();
 
-    // Au départ (Client par défaut) : aucun bandeau ni bouton WhatsApp
+    // Client par défaut : aucun bandeau ni bouton WhatsApp
     expect(find.text('Activation requise par l’administration'), findsNothing);
     expect(find.text('Nous contacter sur WhatsApp'), findsNothing);
-    expect(find.text('Numéro WhatsApp'), findsOneWidget);
-
-    // Sélection Bailleur : aucun bandeau inline (redirigé vers la page d'activation post-inscription)
-    await tester.tap(find.text('Bailleur'));
-    await tester.pump();
-    expect(find.text('Activation requise par l’administration'), findsNothing);
-    expect(find.text('Nous contacter sur WhatsApp'), findsNothing);
-
-    // Sélection Agent : idem
-    await tester.tap(find.text('Agent'));
-    await tester.pump();
-    expect(find.text('Activation requise par l’administration'), findsNothing);
-    expect(find.text('Nous contacter sur WhatsApp'), findsNothing);
+    expect(find.text('Numéro WhatsApp (optionnel)'), findsOneWidget);
   });
 }

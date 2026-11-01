@@ -12,7 +12,6 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/feedback.dart';
 import '../../../core/utils/media_url.dart';
 import '../../auth/providers/auth_providers.dart';
-import '../../payments/widgets/subscription_modal.dart';
 import '../models/message.dart';
 import '../providers/message_providers.dart';
 import '../widgets/audio_message_player.dart';
@@ -280,12 +279,6 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     final hasText = _controller.text.trim().isNotEmpty;
     final canSend = hasText || _hasStagedAttachment;
 
-    final hasForbiddenError = messagesAsync.hasError &&
-        (messagesAsync.error.toString().contains('403') ||
-            messagesAsync.error.toString().toLowerCase().contains('abonnement') ||
-            messagesAsync.error.toString().toLowerCase().contains('forbidden'));
-    final isLocked = (conv?.canAccess == false) || hasForbiddenError;
-
     final displayName =
         widget.participantName ?? conv?.participantName ?? 'Contact';
 
@@ -377,149 +370,42 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           ],
         ),
       ),
-      body: isLocked
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 72,
-                      height: 72,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.lock_outline,
-                        size: 36,
-                        color: AppColors.primary,
-                      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: messagesAsync.when(
+              skipLoadingOnReload: true,
+              data: (messages) {
+                if (messages.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'Démarrez la conversation',
+                      style: AppTextStyles.caption,
                     ),
-                    const SizedBox(height: AppSpacing.lg),
-                    const Text(
-                      'Mise en relation immobilière',
-                      style: AppTextStyles.h3,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    const Text(
-                      'Un forfait actif est requis pour planifier des visites physiques sur le terrain et échanger avec votre interlocuteur.',
-                      style: AppTextStyles.bodyMedium,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
-                    ElevatedButton.icon(
-                      onPressed: () async {
-                        final currentUser = ref.read(authControllerProvider).valueOrNull;
-                        final isPro = currentUser?.isAgent == true || currentUser?.isBailleur == true;
-                        final subscribed = await showSubscriptionModal(
-                          context,
-                          isPro: isPro,
-                          role: currentUser?.role,
-                          reason: 'subscription_required',
-                        );
-                        if (subscribed == true) {
-                          ref.invalidate(conversationsProvider);
-                          ref.invalidate(messagesProvider(widget.conversationId));
-                        }
-                      },
-                      icon: const Icon(Icons.workspace_premium, size: 18),
-                      label: const Text('Activer mon forfait visites'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: AppColors.white,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.xl,
-                          vertical: AppSpacing.md,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppRadius.md),
-                        ),
-                      ),
-                    ),
-                  ],
+                  );
+                }
+                return ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(AppSpacing.screenPadding),
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    final message = messages[index];
+                    return MessageBubble(
+                      message: message,
+                      isMine: message.senderId == currentUserId,
+                    );
+                  },
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => const Center(
+                child: Text(
+                  'Impossible de charger la conversation.',
+                  style: AppTextStyles.caption,
                 ),
               ),
-            )
-          : Column(
-              children: [
-                Expanded(
-                  child: messagesAsync.when(
-                    skipLoadingOnReload: true,
-                    data: (messages) {
-                      if (messages.isEmpty) {
-                        return const Center(
-                          child: Text(
-                            'Démarrez la conversation',
-                            style: AppTextStyles.caption,
-                          ),
-                        );
-                      }
-                      return ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.all(AppSpacing.screenPadding),
-                        itemCount: messages.length,
-                        itemBuilder: (context, index) {
-                          final message = messages[index];
-                          return MessageBubble(
-                            message: message,
-                            isMine: message.senderId == currentUserId,
-                          );
-                        },
-                      );
-                    },
-                    loading: () => const Center(child: CircularProgressIndicator()),
-                    error: (e, _) {
-                      final isPermissionDenied = e.toString().contains('403') ||
-                          e.toString().toLowerCase().contains('abonnement');
-                      if (isPermissionDenied) {
-                        return Center(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.lock_outline, size: 40, color: AppColors.primary),
-                                const SizedBox(height: 12),
-                                const Text(
-                                  'Forfait requis pour la planification des visites',
-                                  style: AppTextStyles.h3,
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 16),
-                                ElevatedButton(
-                                  onPressed: () async {
-                                    final currentUser = ref.read(authControllerProvider).valueOrNull;
-                                    final isPro = currentUser?.isAgent == true || currentUser?.isBailleur == true;
-                                    final subscribed = await showSubscriptionModal(
-                                      context,
-                                      isPro: isPro,
-                                      role: currentUser?.role,
-                                      reason: 'subscription_required',
-                                    );
-                                    if (subscribed == true) {
-                                      ref.invalidate(conversationsProvider);
-                                      ref.invalidate(messagesProvider(widget.conversationId));
-                                    }
-                                  },
-                                  child: const Text('Activer mon forfait'),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }
-                      return const Center(
-                        child: Text(
-                          'Impossible de charger la conversation.',
-                          style: AppTextStyles.caption,
-                        ),
-                      );
-                    },
-                  ),
-                ),
+            ),
+          ),
           SafeArea(
             top: false,
             child: Container(

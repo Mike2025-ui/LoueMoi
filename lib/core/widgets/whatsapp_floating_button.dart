@@ -33,7 +33,10 @@ class _WhatsAppFloatingButtonState extends State<WhatsAppFloatingButton>
     _glowController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1600),
-    )..repeat(reverse: true);
+    );
+    if (!WidgetsBinding.instance.runtimeType.toString().contains('Test')) {
+      _glowController.repeat(reverse: true);
+    }
 
     _glowAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),

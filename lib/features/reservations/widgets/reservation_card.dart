@@ -10,8 +10,6 @@ import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/property_image.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../../auth/providers/auth_providers.dart';
-import '../../payments/providers/payment_providers.dart';
-import '../../payments/widgets/subscription_modal.dart';
 import '../../properties/models/property.dart';
 import '../../properties/models/property_enums.dart';
 import '../../properties/providers/property_providers.dart';
@@ -35,7 +33,6 @@ class ReservationCard extends ConsumerWidget {
     );
     final currentUser = ref.watch(authControllerProvider).valueOrNull;
     final currentUserId = currentUser?.id;
-    final hasSub = currentUser?.hasActiveSubscription ?? false;
     // "Voir qui a réservé" : uniquement pertinent pour le propriétaire du
     // bien qui consulte une réservation faite par quelqu'un d'autre — un
     // client qui voit sa propre réservation n'a pas besoin de revoir ses
@@ -136,7 +133,7 @@ class ReservationCard extends ConsumerWidget {
                                   const SizedBox(width: 2),
                                   Expanded(
                                     child: Text(
-                                      (client.phone.isEmpty || !hasSub)
+                                      client.phone.isEmpty
                                           ? 'Réservé par ${client.fullName}'
                                           : 'Réservé par ${client.fullName} · ${client.phone}',
                                       style: AppTextStyles.small,
@@ -483,33 +480,6 @@ class _OwnerActionsRowState extends ConsumerState<_OwnerActionsRow> {
   bool _completingReservation = false;
 
   Future<void> _openChat() async {
-    final currentUser = ref.read(authControllerProvider).valueOrNull;
-    final isPro = currentUser?.isAgent == true || currentUser?.isBailleur == true;
-
-    // Règle métier : les réservations sont gratuites, mais l'agent ou bailleur
-    // ne peut pas contacter ou discuter avec le client sans abonnement actif (3 000 FCFA/mois).
-    if (isPro) {
-      bool needModal = true;
-      try {
-        final status = await ref.read(paymentRepositoryProvider).getSubscriptionStatus();
-        if (status.hasActiveSubscription) {
-          needModal = false;
-        }
-      } catch (_) {}
-
-      if (needModal) {
-        if (!mounted) return;
-        final subscribed = await showSubscriptionModal(
-          context,
-          isPro: true,
-          role: currentUser?.role,
-          propertyId: widget.property.id,
-          reason: 'pro_subscription_required',
-        );
-        if (subscribed != true) return;
-      }
-    }
-
     setState(() => _openingChat = true);
     try {
       final repository = ref.read(reservationRepositoryProvider);

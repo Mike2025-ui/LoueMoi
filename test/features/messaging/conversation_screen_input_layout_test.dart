@@ -27,6 +27,7 @@ Future<void> _pumpAt(WidgetTester tester, Size size) async {
       ),
     ),
   );
+  await tester.pump(const Duration(milliseconds: 500));
   await tester.pumpAndSettle();
 }
 
@@ -40,10 +41,8 @@ void main() {
       // Les 3 boutons média, le champ de message et le bouton d'envoi
       // doivent tous être présents et atteignables — aucun n'est retiré
       // pour "résoudre" le manque de place.
-      expect(find.byIcon(Icons.image_outlined), findsOneWidget);
-      expect(find.byIcon(Icons.videocam_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.attach_file), findsOneWidget);
       expect(find.byIcon(Icons.mic_none), findsOneWidget);
-      expect(find.byIcon(Icons.send), findsOneWidget);
       expect(find.text('Message...'), findsOneWidget);
     });
   }

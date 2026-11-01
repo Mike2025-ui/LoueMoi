@@ -10,8 +10,6 @@ import '../../../core/utils/feedback.dart';
 import '../../../core/utils/media_url.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../../messaging/providers/message_providers.dart';
-import '../../payments/providers/payment_providers.dart';
-import '../../payments/widgets/subscription_modal.dart';
 import '../models/bailleur_search_result.dart';
 import '../providers/bailleur_search_providers.dart';
 
@@ -34,12 +32,18 @@ class BailleurSearchScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _message(BuildContext context, WidgetRef ref, BailleurSearchResult bailleur) async {
+  Future<void> _message(
+    BuildContext context,
+    WidgetRef ref,
+    BailleurSearchResult bailleur,
+  ) async {
     final currentUser = ref.read(authControllerProvider).valueOrNull;
     if (currentUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Veuillez vous connecter pour contacter ce bailleur.'),
+          content: const Text(
+            'Veuillez vous connecter pour contacter ce bailleur.',
+          ),
           backgroundColor: AppColors.primary,
           action: SnackBarAction(
             label: 'Se connecter',
@@ -53,7 +57,9 @@ class BailleurSearchScreen extends ConsumerWidget {
     if (currentUser.id == bailleur.id) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Vous ne pouvez pas démarrer une conversation avec vous-même.'),
+          content: Text(
+            'Vous ne pouvez pas démarrer une conversation avec vous-même.',
+          ),
           backgroundColor: AppColors.primary,
         ),
       );
@@ -62,7 +68,9 @@ class BailleurSearchScreen extends ConsumerWidget {
 
     try {
       final repository = ref.read(messageRepositoryProvider);
-      final conversationId = await repository.getOrCreateConversationId(agentId: bailleur.id);
+      final conversationId = await repository.getOrCreateConversationId(
+        agentId: bailleur.id,
+      );
       if (!context.mounted) return;
       context.push(
         AppRoutes.conversationPath(conversationId),
@@ -83,10 +91,6 @@ class BailleurSearchScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentUser = ref.watch(authControllerProvider).valueOrNull;
-    final subStatus = ref.watch(userSubscriptionStatusProvider).valueOrNull;
-    final hasActiveSub = subStatus != null
-        ? subStatus.hasActiveSubscription
-        : (currentUser?.hasActiveSubscription == true);
 
     if (currentUser == null) {
       return Scaffold(
@@ -99,35 +103,6 @@ class BailleurSearchScreen extends ConsumerWidget {
               'Veuillez vous connecter pour accéder à l\'annuaire et rechercher les propriétaires.',
           buttonLabel: 'Se connecter',
           onPressed: () => context.push(AppRoutes.login),
-        ),
-      );
-    }
-
-    if (!hasActiveSub) {
-      return Scaffold(
-        backgroundColor: AppColors.background,
-        appBar: AppBar(title: const Text('Rechercher un propriétaire')),
-        body: _LockedSubscriptionView(
-          icon: Icons.workspace_premium_outlined,
-          title: 'Abonnement requis',
-          description:
-              'La recherche et la consultation des propriétaires sont réservées aux membres abonnés.\n\n'
-              '• Clients : 1 000 FCFA / mois\n'
-              '• Professionnels : 3 000 FCFA / mois',
-          buttonLabel: 'S\'abonner maintenant',
-          onPressed: () async {
-            final isPro = currentUser.isAgent || currentUser.isBailleur;
-            final subscribed = await showSubscriptionModal(
-              context,
-              isPro: isPro,
-              role: currentUser.role,
-            );
-            if (subscribed == true) {
-              ref.invalidate(authControllerProvider);
-              ref.invalidate(userSubscriptionStatusProvider);
-              ref.invalidate(bailleurSearchResultsProvider);
-            }
-          },
         ),
       );
     }
@@ -155,7 +130,9 @@ class BailleurSearchScreen extends ConsumerWidget {
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: TextField(
-                      onChanged: (v) => ref.read(bailleurSearchQueryProvider.notifier).state = v,
+                      onChanged: (v) =>
+                          ref.read(bailleurSearchQueryProvider.notifier).state =
+                              v,
                       decoration: const InputDecoration(
                         hintText: 'Nom, prénom...',
                         border: InputBorder.none,
@@ -177,20 +154,27 @@ class BailleurSearchScreen extends ConsumerWidget {
               data: (bailleurs) {
                 if (bailleurs.isEmpty) {
                   return const Center(
-                    child: Text('Aucun propriétaire trouvé.', style: AppTextStyles.caption),
+                    child: Text(
+                      'Aucun propriétaire trouvé.',
+                      style: AppTextStyles.caption,
+                    ),
                   );
                 }
                 return ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.screenPadding,
+                  ),
                   itemCount: bailleurs.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.md),
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: AppSpacing.md),
                   itemBuilder: (context, index) {
                     final bailleur = bailleurs[index];
                     return _BailleurTile(
                       bailleur: bailleur,
                       onMessage: () => _message(context, ref, bailleur),
                       onCall: () => _call(context, bailleur.phone),
-                      onViewProperties: () => _viewProperties(context, bailleur),
+                      onViewProperties: () =>
+                          _viewProperties(context, bailleur),
                     );
                   },
                 );
@@ -202,7 +186,11 @@ class BailleurSearchScreen extends ConsumerWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.lock_person_outlined, size: 40, color: AppColors.primary),
+                      const Icon(
+                        Icons.lock_person_outlined,
+                        size: 40,
+                        color: AppColors.primary,
+                      ),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
                         e.toString().contains('abonnement')
@@ -213,7 +201,8 @@ class BailleurSearchScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: AppSpacing.md),
                       ElevatedButton(
-                        onPressed: () => ref.invalidate(bailleurSearchResultsProvider),
+                        onPressed: () =>
+                            ref.invalidate(bailleurSearchResultsProvider),
                         child: const Text('Réessayer'),
                       ),
                     ],
@@ -260,15 +249,13 @@ class _LockedSubscriptionView extends StatelessWidget {
               child: Icon(icon, size: 48, color: AppColors.primary),
             ),
             const SizedBox(height: AppSpacing.lg),
-            Text(
-              title,
-              style: AppTextStyles.h2,
-              textAlign: TextAlign.center,
-            ),
+            Text(title, style: AppTextStyles.h2, textAlign: TextAlign.center),
             const SizedBox(height: AppSpacing.sm),
             Text(
               description,
-              style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.body.copyWith(
+                color: AppColors.textSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.xl),
@@ -329,7 +316,11 @@ class _BailleurTile extends StatelessWidget {
                     ? NetworkImage(buildMediaUrl(bailleur.photo!))
                     : null,
                 child: bailleur.photo == null
-                    ? const Icon(Icons.person, size: 28, color: AppColors.primary)
+                    ? const Icon(
+                        Icons.person,
+                        size: 28,
+                        color: AppColors.primary,
+                      )
                     : null,
               ),
               const SizedBox(width: AppSpacing.md),
@@ -381,7 +372,11 @@ class _BailleurTile extends StatelessWidget {
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: onCall,
-                  icon: const Icon(Icons.call, size: 16, color: AppColors.white),
+                  icon: const Icon(
+                    Icons.call,
+                    size: 16,
+                    color: AppColors.white,
+                  ),
                   label: const Text('Appeler'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,

@@ -53,6 +53,7 @@ class PropertiesController extends StateNotifier<AsyncValue<List<Property>>> {
     state = const AsyncValue.loading();
     try {
       final page = await _repository.fetchProperties(filters: _filters, page: 1);
+      if (!mounted) return;
       _page = 1;
       _hasMore = page.hasMore;
       state = AsyncValue.data(page.results);
@@ -60,6 +61,7 @@ class PropertiesController extends StateNotifier<AsyncValue<List<Property>>> {
         _ref.read(homePropertiesCacheProvider.notifier).state = page.results;
       }
     } catch (e, st) {
+      if (!mounted) return;
       state = AsyncValue.error(e, st);
     }
   }
@@ -73,6 +75,7 @@ class PropertiesController extends StateNotifier<AsyncValue<List<Property>>> {
     _isLoadingMore = true;
     try {
       final nextPage = await _repository.fetchProperties(filters: _filters, page: _page + 1);
+      if (!mounted) return;
       _page += 1;
       _hasMore = nextPage.hasMore;
       final combined = [...current, ...nextPage.results];
@@ -84,7 +87,7 @@ class PropertiesController extends StateNotifier<AsyncValue<List<Property>>> {
       // Erreur non bloquante : l'utilisateur peut re-scroller pour réessayer,
       // la liste déjà chargée reste affichée.
     } finally {
-      _isLoadingMore = false;
+      if (mounted) _isLoadingMore = false;
     }
   }
 

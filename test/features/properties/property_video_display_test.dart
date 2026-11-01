@@ -56,6 +56,7 @@ void main() {
 
   testWidgets('annonce sans vidéo : aucun lecteur affiché, pas d\'espace vide', (tester) async {
     await pump(tester, makeProperty());
+    await tester.pump(const Duration(milliseconds: 500));
     await tester.pumpAndSettle();
 
     expect(find.byType(PropertyVideoPlayer), findsNothing);
@@ -65,6 +66,7 @@ void main() {
 
   testWidgets('annonce avec vidéo : le lecteur est affiché', (tester) async {
     await pump(tester, makeProperty(video: 'https://example.com/clip.mp4'));
+    await tester.pump(const Duration(milliseconds: 500));
     await tester.pumpAndSettle();
 
     expect(find.byType(PropertyVideoPlayer), findsOneWidget);

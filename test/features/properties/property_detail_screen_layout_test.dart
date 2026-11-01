@@ -66,6 +66,7 @@ void main() {
         child: MaterialApp(home: PropertyDetailScreen(propertyId: property.id)),
       ),
     );
+    await tester.pump(const Duration(milliseconds: 500));
     await tester.pumpAndSettle();
   }
 

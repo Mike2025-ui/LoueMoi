@@ -8,7 +8,6 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/media_url.dart';
 import '../../auth/providers/auth_providers.dart';
-import '../../payments/widgets/subscription_modal.dart';
 import '../models/message.dart';
 import '../providers/message_providers.dart';
 
@@ -183,20 +182,6 @@ class ConversationsScreen extends ConsumerWidget {
                   },
                   child: ListTile(
                     onTap: () async {
-                      if (!conversation.canAccess) {
-                        final isPro =
-                            currentUser.isAgent || currentUser.isBailleur;
-                        final subscribed = await showSubscriptionModal(
-                          context,
-                          isPro: isPro,
-                          role: currentUser.role,
-                          reason: 'subscription_required',
-                        );
-                        if (subscribed == true) {
-                          ref.invalidate(conversationsProvider);
-                        }
-                        return;
-                      }
                       await context.push(
                         AppRoutes.conversationPath(conversation.id),
                         extra: {

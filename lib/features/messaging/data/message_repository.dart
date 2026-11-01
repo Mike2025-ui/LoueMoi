@@ -1,3 +1,4 @@
+import '../../../core/utils/mock_delay.dart';
 import '../models/message.dart';
 
 /// Contrat de messagerie. Architecture prête pour un flux WebSocket
@@ -58,7 +59,7 @@ class MockMessageRepository implements MessageRepository {
 
   @override
   Future<List<Conversation>> fetchConversations() async {
-    await Future.delayed(const Duration(milliseconds: 300));
+    await mockDelay(300);
     return _messages.entries.map((entry) {
       final messages = entry.value;
       final unread = messages.where((m) => !m.isRead && m.receiverId == 'user-1').length;
@@ -73,7 +74,7 @@ class MockMessageRepository implements MessageRepository {
 
   @override
   Future<List<Message>> fetchMessages(String conversationId) async {
-    await Future.delayed(const Duration(milliseconds: 200));
+    await mockDelay(200);
     return List.unmodifiable(_messages[conversationId] ?? []);
   }
 
@@ -85,7 +86,7 @@ class MockMessageRepository implements MessageRepository {
     MessageAttachmentType attachmentType = MessageAttachmentType.text,
     int? duration,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 150));
+    await mockDelay(150);
     final message = Message(
       id: 'm-${DateTime.now().millisecondsSinceEpoch}',
       conversationId: conversationId,

@@ -91,7 +91,8 @@ void main() {
       );
 
       expect(state.existingImages, ['http://x/1.jpg', 'http://x/2.jpg']);
-      expect(state.characteristics, containsAll(['3 chambre(s)', 'Eau', 'Parking']));
+      expect(state.chambres, '3');
+      expect(state.characteristics, containsAll(['Eau', 'Parking']));
       expect(state.newImages, isEmpty);
     });
   });

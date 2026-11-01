@@ -26,6 +26,11 @@ void main() {
 
   setUp(() {
     mockMessaging = MockFirebaseMessaging();
+    when(() => mockMessaging.setForegroundNotificationPresentationOptions(
+          alert: any(named: 'alert'),
+          badge: any(named: 'badge'),
+          sound: any(named: 'sound'),
+        )).thenAnswer((_) async {});
     service = FcmService(messaging: mockMessaging);
   });
 

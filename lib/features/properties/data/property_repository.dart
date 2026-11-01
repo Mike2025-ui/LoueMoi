@@ -1,3 +1,4 @@
+import '../../../core/utils/mock_delay.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/utils/geo.dart';
 import '../../filters/models/filter_params.dart';
@@ -102,7 +103,7 @@ class MockPropertyRepository implements PropertyRepository {
     FilterParams? filters,
     int page = 1,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 400));
+    await mockDelay(400);
     var results = _properties
         .where((p) => p.status != PropertyStatus.accomplie)
         .toList();
@@ -162,7 +163,7 @@ class MockPropertyRepository implements PropertyRepository {
 
   @override
   Future<Property> fetchPropertyById(String id) async {
-    await Future.delayed(const Duration(milliseconds: 200));
+    await mockDelay(200);
     return _properties.firstWhere((p) => p.id == id);
   }
 
@@ -178,7 +179,7 @@ class MockPropertyRepository implements PropertyRepository {
 
   @override
   Future<List<Property>> fetchFavorites() async {
-    await Future.delayed(const Duration(milliseconds: 200));
+    await mockDelay(200);
     return _properties
         .where((p) => p.isFavorite && p.status != PropertyStatus.accomplie)
         .toList();
@@ -186,14 +187,14 @@ class MockPropertyRepository implements PropertyRepository {
 
   @override
   Future<Property> addProperty(Property property) async {
-    await Future.delayed(const Duration(milliseconds: 400));
+    await mockDelay(400);
     _properties.insert(0, property);
     return property;
   }
 
   @override
   Future<List<Property>> fetchMyProperties() async {
-    await Future.delayed(const Duration(milliseconds: 300));
+    await mockDelay(300);
     // Un seul agent existe dans l'univers de démo : toutes les propriétés
     // mock lui appartiennent déjà.
     return _properties
@@ -207,7 +208,7 @@ class MockPropertyRepository implements PropertyRepository {
 
   @override
   Future<List<Property>> fetchMyPropertiesAsBailleur() async {
-    await Future.delayed(const Duration(milliseconds: 300));
+    await mockDelay(300);
     // Aucun bailleur de démo dans MockProperties.all (univers mock construit
     // autour d'un unique agent) : une nouvelle "Mes biens" bailleur en mode
     // mock démarre donc vide, exactement comme un vrai bailleur qui vient de
@@ -228,7 +229,7 @@ class MockPropertyRepository implements PropertyRepository {
     String id,
     Map<String, dynamic> changes,
   ) async {
-    await Future.delayed(const Duration(milliseconds: 300));
+    await mockDelay(300);
     final index = _indexOrThrow(id);
     final current = _properties[index];
     final updated = Property.fromJson({...current.toJson(), ...changes});
@@ -238,7 +239,7 @@ class MockPropertyRepository implements PropertyRepository {
 
   @override
   Future<void> deleteProperty(String id) async {
-    await Future.delayed(const Duration(milliseconds: 300));
+    await mockDelay(300);
     _properties.removeWhere((p) => p.id == id);
   }
 
@@ -249,7 +250,7 @@ class MockPropertyRepository implements PropertyRepository {
     bool isCover = false,
     String? category,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 300));
+    await mockDelay(300);
     final index = _indexOrThrow(propertyId);
     final current = _properties[index];
     final storedPath = category != null && !file.path.contains('cat_')
@@ -268,7 +269,7 @@ class MockPropertyRepository implements PropertyRepository {
 
   @override
   Future<Property> deleteImage(String propertyId, String url) async {
-    await Future.delayed(const Duration(milliseconds: 300));
+    await mockDelay(300);
     final index = _indexOrThrow(propertyId);
     final current = _properties[index];
     final images = current.images.where((img) => img != url).toList();
@@ -284,7 +285,7 @@ class MockPropertyRepository implements PropertyRepository {
 
   @override
   Future<Property> uploadVideo(String propertyId, XFile file) async {
-    await Future.delayed(const Duration(milliseconds: 300));
+    await mockDelay(300);
     final index = _indexOrThrow(propertyId);
     final updated = Property.fromJson({
       ..._properties[index].toJson(),
@@ -296,7 +297,7 @@ class MockPropertyRepository implements PropertyRepository {
 
   @override
   Future<Property> deleteVideo(String propertyId) async {
-    await Future.delayed(const Duration(milliseconds: 300));
+    await mockDelay(300);
     final index = _indexOrThrow(propertyId);
     final updated = Property.fromJson({
       ..._properties[index].toJson(),
@@ -324,7 +325,7 @@ class MockPropertyRepository implements PropertyRepository {
     double? longitude,
     double? radiusKm,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 300));
+    await mockDelay(300);
     final withCoords = _properties.where(
       (p) => p.latitude != null && p.longitude != null,
     );
@@ -354,7 +355,7 @@ class MockPropertyRepository implements PropertyRepository {
     double latitude,
     double longitude,
   ) async {
-    await Future.delayed(const Duration(milliseconds: 300));
+    await mockDelay(300);
     final index = _indexOrThrow(id);
     final updated = _properties[index].copyWith(
       latitude: latitude,
@@ -366,7 +367,7 @@ class MockPropertyRepository implements PropertyRepository {
 
   @override
   Future<Property> renewProperty(String id) async {
-    await Future.delayed(const Duration(milliseconds: 300));
+    await mockDelay(300);
     final index = _indexOrThrow(id);
     final current = _properties[index];
     if (current.status == PropertyStatus.accomplie) {
@@ -383,7 +384,7 @@ class MockPropertyRepository implements PropertyRepository {
 
   @override
   Future<List<Property>> fetchPropertiesByOwner(String ownerId) async {
-    await Future.delayed(const Duration(milliseconds: 300));
+    await mockDelay(300);
     return _properties.where((p) => p.agent.id == ownerId).toList();
   }
 
@@ -392,7 +393,7 @@ class MockPropertyRepository implements PropertyRepository {
     String id,
     PropertyStatus status,
   ) async {
-    await Future.delayed(const Duration(milliseconds: 300));
+    await mockDelay(300);
     final index = _indexOrThrow(id);
     final updated = _properties[index].copyWith(status: status);
     _properties[index] = updated;
