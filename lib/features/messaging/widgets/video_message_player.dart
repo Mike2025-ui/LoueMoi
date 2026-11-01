@@ -27,10 +27,31 @@ class _VideoMessagePlayerState extends State<VideoMessagePlayer> {
   bool _initializing = true;
   bool _failed = false;
 
+  void _listener() {
+    if (mounted) setState(() {});
+  }
+
+  void _disposeController() {
+    _controller?.removeListener(_listener);
+    _controller?.dispose();
+    _controller = null;
+  }
+
   @override
   void initState() {
     super.initState();
     _init();
+  }
+
+  @override
+  void didUpdateWidget(covariant VideoMessagePlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.source != widget.source || oldWidget.isLocalFile != widget.isLocalFile) {
+      _disposeController();
+      _initializing = true;
+      _failed = false;
+      _init();
+    }
   }
 
   Future<void> _init() async {
@@ -38,8 +59,10 @@ class _VideoMessagePlayerState extends State<VideoMessagePlayer> {
       final controller = (widget.isLocalFile && !kIsWeb)
           ? VideoPlayerController.file(File(widget.source))
           : VideoPlayerController.networkUrl(Uri.parse(widget.source));
+      controller.addListener(_listener);
       await controller.initialize();
       if (!mounted) {
+        controller.removeListener(_listener);
         controller.dispose();
         return;
       }
@@ -59,16 +82,21 @@ class _VideoMessagePlayerState extends State<VideoMessagePlayer> {
 
   @override
   void dispose() {
-    _controller?.dispose();
+    _disposeController();
     super.dispose();
   }
 
   void _togglePlay() {
     final controller = _controller;
     if (controller == null) return;
-    setState(() {
-      controller.value.isPlaying ? controller.pause() : controller.play();
-    });
+    if (controller.value.isPlaying) {
+      controller.pause();
+    } else {
+      if (controller.value.position >= controller.value.duration) {
+        controller.seekTo(Duration.zero);
+      }
+      controller.play();
+    }
   }
 
   @override

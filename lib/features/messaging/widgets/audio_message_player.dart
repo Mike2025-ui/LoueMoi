@@ -34,6 +34,15 @@ class _AudioMessagePlayerState extends State<AudioMessagePlayer> {
     _load();
   }
 
+  @override
+  void didUpdateWidget(covariant AudioMessagePlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.source != widget.source || oldWidget.isLocalFile != widget.isLocalFile) {
+      _loadFailed = false;
+      _load();
+    }
+  }
+
   Future<void> _load() async {
     try {
       if (widget.isLocalFile && !kIsWeb) {
@@ -53,7 +62,8 @@ class _AudioMessagePlayerState extends State<AudioMessagePlayer> {
   }
 
   String _formatDuration(Duration? d) {
-    final totalSeconds = d?.inSeconds ?? widget.durationSeconds ?? 0;
+    final dur = (d != null && d.isNegative) ? Duration.zero : d;
+    final totalSeconds = dur?.inSeconds ?? widget.durationSeconds ?? 0;
     final minutes = totalSeconds ~/ 60;
     final seconds = totalSeconds % 60;
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
@@ -80,7 +90,16 @@ class _AudioMessagePlayerState extends State<AudioMessagePlayer> {
           mainAxisSize: MainAxisSize.min,
           children: [
             InkWell(
-              onTap: () => playing ? _player.pause() : _player.play(),
+              onTap: () async {
+                if (playing) {
+                  await _player.pause();
+                } else {
+                  if (_player.processingState == ProcessingState.completed) {
+                    await _player.seek(Duration.zero);
+                  }
+                  await _player.play();
+                }
+              },
               borderRadius: BorderRadius.circular(20),
               child: Icon(
                 playing ? Icons.pause_circle_filled : Icons.play_circle_fill,
