@@ -7,7 +7,7 @@ import 'package:flutter/widgets.dart';
 bool get isFlutterTestEnvironment {
   try {
     final binding = WidgetsBinding.instance;
-    if (binding != null && binding.runtimeType.toString().contains('Test')) {
+    if (binding.runtimeType.toString().contains('Test')) {
       return true;
     }
   } catch (_) {}

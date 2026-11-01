@@ -29,6 +29,12 @@ class ReservationViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated:
             return Reservation.objects.none()
+        if user.is_staff:
+            return (
+                Reservation.objects.all()
+                .select_related("user", "property", "property__agent")
+                .distinct()
+            )
         # Règle de confidentialité stricte :
         # Chaque utilisateur ne voit que les réservations qui le concernent directement :
         # - En tant que client ayant effectué la réservation (user=user)
@@ -211,8 +217,8 @@ class ReservationViewSet(viewsets.ModelViewSet):
         Property.agent accepte déjà indifféremment agent et bailleur."""
         reservation = self.get_object()
         property_obj = reservation.property
-        if property_obj.agent_id != request.user.id:
-            raise PermissionDenied("Seul le propriétaire du bien peut contacter ce client.")
+        if property_obj.agent_id != request.user.id and not request.user.is_staff:
+            raise PermissionDenied("Seul le propriétaire du bien ou un administrateur peut contacter ce client.")
 
         conversation = Conversation.objects.filter(
             Q(client=reservation.user, agent=property_obj.agent) |

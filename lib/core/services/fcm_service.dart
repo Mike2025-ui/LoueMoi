@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 
@@ -15,6 +17,13 @@ class FcmService {
   FcmService({FirebaseMessaging? messaging}) : _messaging = messaging ?? FirebaseMessaging.instance;
 
   final FirebaseMessaging _messaging;
+  StreamSubscription<String>? _tokenRefreshSubscription;
+
+  /// Libère les souscriptions actives pour éviter toute fuite de mémoire.
+  void dispose() {
+    _tokenRefreshSubscription?.cancel();
+    _tokenRefreshSubscription = null;
+  }
 
   /// Demande la permission de notification puis récupère le token FCM.
   /// [onToken], si fourni, est appelé avec le token initial (s'il existe)
@@ -52,7 +61,8 @@ class FcmService {
       }
       if (token != null) onToken?.call(token);
 
-      _messaging.onTokenRefresh.listen((newToken) {
+      await _tokenRefreshSubscription?.cancel();
+      _tokenRefreshSubscription = _messaging.onTokenRefresh.listen((newToken) {
         if (kDebugMode) debugPrint('[FCM] Token rafraîchi :\n$newToken');
         onToken?.call(newToken);
       });

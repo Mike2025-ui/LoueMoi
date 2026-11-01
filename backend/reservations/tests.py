@@ -380,6 +380,15 @@ class ReservationConversationTests(APITestCase):
         response = self.client.post(f"/api/reservations/{self.reservation.id}/conversation/")
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
+    def test_staff_can_open_conversation(self):
+        admin = User.objects.create_user(
+            phone="+2250788880099", password="secret123", first_name="Ad", last_name="M",
+            role=User.ROLE_CLIENT, is_staff=True,
+        )
+        self.client.force_authenticate(user=admin)
+        response = self.client.post(f"/api/reservations/{self.reservation.id}/conversation/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
 
 class ReservationCompleteTests(APITestCase):
     """POST /api/reservations/{id}/complete/ — Phase 2 de la mission de
