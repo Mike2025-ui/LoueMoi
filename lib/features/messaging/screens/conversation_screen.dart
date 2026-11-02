@@ -50,8 +50,8 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     _markRead();
     _pollTimer = Timer.periodic(const Duration(seconds: 4), (_) {
       if (mounted) {
-        ref.invalidate(messagesProvider(widget.conversationId));
-        ref.invalidate(conversationsProvider);
+        ref.refresh(messagesProvider(widget.conversationId));
+        ref.refresh(conversationsProvider);
         _markRead();
       }
     });
@@ -398,10 +398,27 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => const Center(
-                child: Text(
-                  'Impossible de charger la conversation.',
-                  style: AppTextStyles.caption,
+              error: (e, _) => Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.cloud_off_outlined,
+                      size: 48,
+                      color: AppColors.textHint,
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    const Text(
+                      'Impossible de charger la conversation.',
+                      style: AppTextStyles.caption,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    ElevatedButton.icon(
+                      onPressed: () => ref.refresh(messagesProvider(widget.conversationId)),
+                      icon: const Icon(Icons.refresh, size: 16),
+                      label: const Text('Réessayer'),
+                    ),
+                  ],
                 ),
               ),
             ),

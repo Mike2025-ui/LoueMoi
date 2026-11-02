@@ -101,8 +101,19 @@ class _FiltersSheetState extends ConsumerState<FiltersSheet> {
 
   void _search() {
     final draft = ref.read(draftFilterParamsProvider);
-    final minVal = double.tryParse(_budgetMinController.text.trim());
-    final maxVal = double.tryParse(_budgetMaxController.text.trim());
+    double? parseAmount(String raw) {
+      final cleaned = raw.replaceAll(RegExp(r'[\s\u00A0\u202F]'), '').replaceAll(',', '.');
+      return double.tryParse(cleaned);
+    }
+
+    var minVal = parseAmount(_budgetMinController.text.trim());
+    var maxVal = parseAmount(_budgetMaxController.text.trim());
+    if (minVal != null && maxVal != null && minVal > maxVal) {
+      final tmp = minVal;
+      minVal = maxVal;
+      maxVal = tmp;
+    }
+
     final updated = draft.copyWith(
       commune: _communeController.text.trim(),
       district: _quartierController.text.trim(),

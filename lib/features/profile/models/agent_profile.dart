@@ -48,13 +48,23 @@ class AgentProfile extends Equatable {
   final double rating;
 
   factory AgentProfile.fromJson(Map<String, dynamic> json) {
+    final rawVerified = json['is_verified'];
+    final isVerified = rawVerified == true ||
+        rawVerified == 1 ||
+        rawVerified?.toString().toLowerCase() == 'true';
+
+    final rawRating = json['rating'];
+    final rating = rawRating is num
+        ? rawRating.toDouble()
+        : (num.tryParse(rawRating?.toString() ?? '')?.toDouble() ?? 0.0);
+
     return AgentProfile(
-      agencyName: json['agency_name'] as String? ?? '',
-      whatsapp: json['whatsapp'] as String? ?? '',
-      description: json['description'] as String? ?? '',
-      isVerified: json['is_verified'] as bool? ?? false,
-      certificationStatus: CertificationStatus.fromString(json['certification_status'] as String?),
-      rating: (json['rating'] as num?)?.toDouble() ?? 0,
+      agencyName: json['agency_name']?.toString() ?? '',
+      whatsapp: json['whatsapp']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      isVerified: isVerified,
+      certificationStatus: CertificationStatus.fromString(json['certification_status']?.toString()),
+      rating: rating,
     );
   }
 

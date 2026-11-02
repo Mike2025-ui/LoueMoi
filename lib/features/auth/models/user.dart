@@ -68,32 +68,71 @@ class User extends Equatable {
   bool get canOwnProperties => canPublish;
 
   factory User.fromJson(Map<String, dynamic> json) {
-    final agentProfileJson = json['agent_profile'] as Map<String, dynamic>?;
-    final role = UserRole.fromString(json['role'] as String?);
+    final rawProfile = json['agent_profile'];
+    final AgentProfile? agentProfile;
+    if (rawProfile is Map<String, dynamic>) {
+      agentProfile = AgentProfile.fromJson(rawProfile);
+    } else if (rawProfile is Map) {
+      agentProfile = AgentProfile.fromJson(Map<String, dynamic>.from(rawProfile));
+    } else {
+      agentProfile = null;
+    }
+
+    final role = UserRole.fromString(json['role']?.toString());
     final rawApproved = json['is_approved'];
     final bool isApproved;
     if (rawApproved != null) {
-      isApproved = rawApproved as bool;
+      isApproved = rawApproved == true ||
+          rawApproved == 1 ||
+          rawApproved.toString().toLowerCase() == 'true';
     } else {
       isApproved = role == UserRole.client;
     }
 
+    final phone = json['phone']?.toString() ?? '';
+    final whatsapp = json['whatsapp']?.toString();
+
+    final rawActivation = json['activation_requested'];
+    final activationRequested = rawActivation == true ||
+        rawActivation == 1 ||
+        rawActivation.toString().toLowerCase() == 'true';
+
+    final rawVerified = json['is_verified'];
+    final isVerified = rawVerified == true ||
+        rawVerified == 1 ||
+        rawVerified.toString().toLowerCase() == 'true';
+
+    final rawSub = json['has_active_subscription'];
+    final hasActiveSubscription = rawSub == true ||
+        rawSub == 1 ||
+        rawSub.toString().toLowerCase() == 'true';
+
+    final rawStaff = json['is_staff'];
+    final isStaff = rawStaff == true ||
+        rawStaff == 1 ||
+        rawStaff.toString().toLowerCase() == 'true';
+
+    final rawSuperUser = json['is_superuser'];
+    final isSuperAdmin = rawSuperUser == true ||
+        rawSuperUser == 1 ||
+        rawSuperUser.toString().toLowerCase() == 'true';
+
     return User(
-      id: json['id'].toString(),
-      firstName: json['first_name'] as String,
-      lastName: json['last_name'] as String,
-      phone: json['phone'] as String,
-      whatsapp: json['whatsapp'] as String? ?? json['phone'] as String,
-      photo: json['photo'] as String?,
-      token: json['token'] as String?,
+      id: json['id']?.toString() ?? '',
+      firstName: json['first_name']?.toString() ?? '',
+      lastName: json['last_name']?.toString() ?? '',
+      phone: phone,
+      whatsapp: (whatsapp != null && whatsapp.isNotEmpty) ? whatsapp : phone,
+      photo: json['photo']?.toString(),
+      token: json['token']?.toString(),
       role: role,
       isApproved: isApproved,
-      activationRequested: json['activation_requested'] as bool? ?? false,
-      isVerified: json['is_verified'] as bool? ?? false,
-      hasActiveSubscription: json['has_active_subscription'] as bool? ?? false,
-      isStaff: (json['is_staff'] as bool?) ?? false,
-      isSuperAdmin: (json['is_superuser'] as bool?) ?? false,
-      agentProfile: agentProfileJson != null ? AgentProfile.fromJson(agentProfileJson) : null,
+      activationRequested: activationRequested,
+      isVerified: isVerified,
+      hasActiveSubscription: hasActiveSubscription,
+      isStaff: isStaff,
+      isSuperAdmin: isSuperAdmin,
+      agentProfile: agentProfile,
     );
   }
 

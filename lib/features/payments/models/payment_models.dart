@@ -71,13 +71,38 @@ class CanContactResult extends Equatable {
   });
 
   factory CanContactResult.fromJson(Map<String, dynamic> json) {
+    final rawCan = json['can_contact'];
+    final canContact = rawCan == true ||
+        rawCan == 1 ||
+        rawCan?.toString().toLowerCase() == 'true';
+
+    final rawOwner = json['owner_has_active_subscription'];
+    final ownerHasActiveSubscription = rawOwner == true ||
+        rawOwner == 1 ||
+        rawOwner?.toString().toLowerCase() == 'true';
+
+    final rawUser = json['user_has_active_subscription'];
+    final userHasActiveSubscription = rawUser == true ||
+        rawUser == 1 ||
+        rawUser?.toString().toLowerCase() == 'true';
+
+    final rawClientPrice = json['client_plan_price'];
+    final clientPlanPrice = rawClientPrice is num
+        ? rawClientPrice.toInt()
+        : (int.tryParse(rawClientPrice?.toString() ?? '') ?? 1000);
+
+    final rawProPrice = json['pro_plan_price'];
+    final proPlanPrice = rawProPrice is num
+        ? rawProPrice.toInt()
+        : (int.tryParse(rawProPrice?.toString() ?? '') ?? 3000);
+
     return CanContactResult(
-      canContact: json['can_contact'] as bool? ?? false,
-      reason: json['reason'] as String? ?? '',
-      ownerHasActiveSubscription: json['owner_has_active_subscription'] as bool? ?? false,
-      userHasActiveSubscription: json['user_has_active_subscription'] as bool? ?? false,
-      clientPlanPrice: json['client_plan_price'] as int? ?? 1000,
-      proPlanPrice: json['pro_plan_price'] as int? ?? 3000,
+      canContact: canContact,
+      reason: json['reason']?.toString() ?? '',
+      ownerHasActiveSubscription: ownerHasActiveSubscription,
+      userHasActiveSubscription: userHasActiveSubscription,
+      clientPlanPrice: clientPlanPrice,
+      proPlanPrice: proPlanPrice,
     );
   }
 
@@ -110,13 +135,23 @@ class SubscriptionResult extends Equatable {
   });
 
   factory SubscriptionResult.fromJson(Map<String, dynamic> json) {
+    final rawAmount = json['amount'];
+    final amount = rawAmount is num
+        ? rawAmount.toInt()
+        : (int.tryParse(rawAmount?.toString() ?? '') ?? 0);
+
+    final rawSim = json['is_simulation'];
+    final isSimulation = rawSim == true ||
+        rawSim == 1 ||
+        rawSim?.toString().toLowerCase() == 'true';
+
     return SubscriptionResult(
-      reference: json['reference'] as String? ?? '',
-      redirectUrl: json['redirect_url'] as String? ?? '',
-      amount: json['amount'] as int? ?? 0,
-      plan: json['plan'] as String? ?? '',
-      paymentMethod: json['payment_method'] as String? ?? '',
-      isSimulation: json['is_simulation'] as bool? ?? false,
+      reference: json['reference']?.toString() ?? '',
+      redirectUrl: json['redirect_url']?.toString() ?? '',
+      amount: amount,
+      plan: json['plan']?.toString() ?? '',
+      paymentMethod: json['payment_method']?.toString() ?? '',
+      isSimulation: isSimulation,
     );
   }
 
@@ -147,13 +182,27 @@ class UserSubscriptionStatus extends Equatable {
   });
 
   factory UserSubscriptionStatus.fromJson(Map<String, dynamic> json) {
-    final sub = json['subscription'] as Map<String, dynamic>?;
+    final rawSub = json['subscription'];
+    final Map<String, dynamic>? sub = rawSub is Map<String, dynamic>
+        ? rawSub
+        : (rawSub is Map ? Map<String, dynamic>.from(rawSub) : null);
+
+    final rawActive = json['has_active_subscription'];
+    final hasActiveSubscription = rawActive == true ||
+        rawActive == 1 ||
+        rawActive?.toString().toLowerCase() == 'true';
+
+    final rawPrice = json['plan_price'];
+    final planPrice = rawPrice is num
+        ? rawPrice.toInt()
+        : (int.tryParse(rawPrice?.toString() ?? '') ?? 1000);
+
     return UserSubscriptionStatus(
-      hasActiveSubscription: json['has_active_subscription'] as bool? ?? false,
-      role: json['role'] as String? ?? 'client',
-      requiredPlan: json['required_plan'] as String? ?? 'client',
-      planPrice: json['plan_price'] as int? ?? 1000,
-      expiresAt: sub?['expires_at'] as String?,
+      hasActiveSubscription: hasActiveSubscription,
+      role: json['role']?.toString() ?? 'client',
+      requiredPlan: json['required_plan']?.toString() ?? 'client',
+      planPrice: planPrice,
+      expiresAt: sub?['expires_at']?.toString(),
     );
   }
 

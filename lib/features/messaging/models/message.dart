@@ -9,11 +9,11 @@ enum MessageAttachmentType {
   audio;
 
   static MessageAttachmentType fromString(String? value) => switch (value) {
-        'image' => MessageAttachmentType.image,
-        'video' => MessageAttachmentType.video,
-        'audio' => MessageAttachmentType.audio,
-        _ => MessageAttachmentType.text,
-      };
+    'image' => MessageAttachmentType.image,
+    'video' => MessageAttachmentType.video,
+    'audio' => MessageAttachmentType.audio,
+    _ => MessageAttachmentType.text,
+  };
 
   String toJson() => name;
 }
@@ -58,23 +58,42 @@ class Message extends Equatable {
   bool get hasAttachment => attachmentUrl != null;
 
   factory Message.fromJson(Map<String, dynamic> json) {
+    final rawDelivered = json['is_delivered'];
+    final isDelivered =
+        rawDelivered == true ||
+        rawDelivered == 1 ||
+        rawDelivered?.toString().toLowerCase() == 'true';
+
+    final rawRead = json['is_read'];
+    final isRead =
+        rawRead == true ||
+        rawRead == 1 ||
+        rawRead?.toString().toLowerCase() == 'true';
+
+    final rawDuration = json['duration'];
+    final int? duration = rawDuration is num
+        ? rawDuration.toInt()
+        : int.tryParse(rawDuration?.toString() ?? '');
+
     return Message(
-      id: json['id'].toString(),
-      conversationId: json['conversation_id'].toString(),
-      senderId: json['sender_id'].toString(),
-      receiverId: json['receiver_id'].toString(),
-      content: json['content'] as String? ?? '',
-      attachmentType: MessageAttachmentType.fromString(json['attachment_type'] as String?),
-      attachmentUrl: json['attachment_url'] as String?,
-      duration: json['duration'] as int?,
+      id: json['id']?.toString() ?? '',
+      conversationId: json['conversation_id']?.toString() ?? '',
+      senderId: json['sender_id']?.toString() ?? '',
+      receiverId: json['receiver_id']?.toString() ?? '',
+      content: json['content']?.toString() ?? '',
+      attachmentType: MessageAttachmentType.fromString(
+        json['attachment_type']?.toString(),
+      ),
+      attachmentUrl: json['attachment_url']?.toString(),
+      duration: duration,
       createdAt: json['created_at'] != null
           ? (DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now())
           : DateTime.now(),
-      isDelivered: json['is_delivered'] as bool? ?? false,
+      isDelivered: isDelivered,
       deliveredAt: json['delivered_at'] != null
           ? DateTime.tryParse(json['delivered_at'].toString())
           : null,
-      isRead: json['is_read'] as bool? ?? false,
+      isRead: isRead,
       readAt: json['read_at'] != null
           ? DateTime.tryParse(json['read_at'].toString())
           : null,
@@ -82,37 +101,37 @@ class Message extends Equatable {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'conversation_id': conversationId,
-        'sender_id': senderId,
-        'receiver_id': receiverId,
-        'content': content,
-        'attachment_type': attachmentType.toJson(),
-        'attachment_url': attachmentUrl,
-        'duration': duration,
-        'created_at': createdAt.toIso8601String(),
-        'is_delivered': isDelivered,
-        'delivered_at': deliveredAt?.toIso8601String(),
-        'is_read': isRead,
-        'read_at': readAt?.toIso8601String(),
-      };
+    'id': id,
+    'conversation_id': conversationId,
+    'sender_id': senderId,
+    'receiver_id': receiverId,
+    'content': content,
+    'attachment_type': attachmentType.toJson(),
+    'attachment_url': attachmentUrl,
+    'duration': duration,
+    'created_at': createdAt.toIso8601String(),
+    'is_delivered': isDelivered,
+    'delivered_at': deliveredAt?.toIso8601String(),
+    'is_read': isRead,
+    'read_at': readAt?.toIso8601String(),
+  };
 
   @override
   List<Object?> get props => [
-        id,
-        conversationId,
-        senderId,
-        receiverId,
-        content,
-        attachmentType,
-        attachmentUrl,
-        duration,
-        createdAt,
-        isDelivered,
-        deliveredAt,
-        isRead,
-        readAt,
-      ];
+    id,
+    conversationId,
+    senderId,
+    receiverId,
+    content,
+    attachmentType,
+    attachmentUrl,
+    duration,
+    createdAt,
+    isDelivered,
+    deliveredAt,
+    isRead,
+    readAt,
+  ];
 }
 
 /// Regroupe les messages d'une conversation avec un agent/utilisateur donné.
@@ -149,34 +168,61 @@ class Conversation extends Equatable {
   });
 
   factory Conversation.fromJson(Map<String, dynamic> json) {
-    final lastMessageJson = json['last_message'] as Map<String, dynamic>?;
+    final rawLastMessage = json['last_message'];
+    final Message? lastMessage;
+    if (rawLastMessage is Map<String, dynamic>) {
+      lastMessage = Message.fromJson(rawLastMessage);
+    } else if (rawLastMessage is Map) {
+      lastMessage = Message.fromJson(Map<String, dynamic>.from(rawLastMessage));
+    } else {
+      lastMessage = null;
+    }
+
+    final rawOnline = json['participant_is_online'];
+    final isOnline =
+        rawOnline == true ||
+        rawOnline == 1 ||
+        rawOnline?.toString().toLowerCase() == 'true';
+
+    final rawCanAccess = json['can_access'];
+    final canAccess = rawCanAccess == null
+        ? true
+        : (rawCanAccess == true ||
+              rawCanAccess == 1 ||
+              rawCanAccess.toString().toLowerCase() == 'true');
+
+    final rawUnread = json['unread_count'];
+    final unreadCount = rawUnread is num
+        ? rawUnread.toInt()
+        : (int.tryParse(rawUnread?.toString() ?? '') ?? 0);
+
     return Conversation(
-      id: json['id'].toString(),
+      id: json['id']?.toString() ?? '',
       participantId: json['participant_id']?.toString(),
-      participantName: json['participant_name'] as String,
-      participantPhoto: json['participant_photo'] as String?,
-      participantIsOnline: json['participant_is_online'] as bool? ?? false,
+      participantName: json['participant_name']?.toString() ?? 'Contact',
+      participantPhoto: json['participant_photo']?.toString(),
+      participantIsOnline: isOnline,
       participantLastSeen: json['participant_last_seen'] != null
-          ? DateTime.tryParse(json['participant_last_seen'] as String)
+          ? DateTime.tryParse(json['participant_last_seen'].toString())
           : null,
-      lastMessage: lastMessageJson != null ? Message.fromJson(lastMessageJson) : null,
-      unreadCount: json['unread_count'] as int? ?? 0,
-      canAccess: json['can_access'] as bool? ?? true,
+      lastMessage: lastMessage,
+      unreadCount: unreadCount,
+      canAccess: canAccess,
       propertyId: json['property']?.toString(),
     );
   }
 
   @override
   List<Object?> get props => [
-        id,
-        participantId,
-        participantName,
-        participantPhoto,
-        participantIsOnline,
-        participantLastSeen,
-        lastMessage,
-        unreadCount,
-        canAccess,
-        propertyId,
-      ];
+    id,
+    participantId,
+    participantName,
+    participantPhoto,
+    participantIsOnline,
+    participantLastSeen,
+    lastMessage,
+    unreadCount,
+    canAccess,
+    propertyId,
+  ];
 }

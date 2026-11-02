@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/utils/media_url.dart';
 import '../models/message.dart';
 import 'audio_message_player.dart';
 import 'video_message_player.dart';
@@ -16,20 +17,26 @@ class MessageBubble extends StatelessWidget {
   final Message message;
   final bool isMine;
 
-  /// URLs réseau (`http`/`https`, retournées par le backend) vs chemins de
-  /// fichiers locaux (mode mock, ou aperçu avant envoi) — jamais déduit par
-  /// analyse heuristique d'un chemin absolu (qui commence aussi par "/" sur
-  /// Android), seulement par ce préfixe explicite.
-  bool get _isNetworkAttachment =>
-      message.attachmentUrl!.startsWith('http://') ||
-      message.attachmentUrl!.startsWith('https://');
+  /// URLs réseau (`http`/`https`, ou `/media/...` retournées par le backend) vs
+  /// chemins de fichiers locaux (mode mock, ou aperçu avant envoi).
+  bool get _isNetworkAttachment {
+    final raw = message.attachmentUrl ?? '';
+    if (raw.startsWith('http://') || raw.startsWith('https://')) return true;
+    if (raw.startsWith('/media/') || raw.startsWith('media/') || raw.startsWith('/')) return true;
+    return false;
+  }
+
+  String get _resolvedUrl {
+    final raw = message.attachmentUrl ?? '';
+    return _isNetworkAttachment ? buildMediaUrl(raw) : raw;
+  }
 
   Widget _buildAttachment(
     BuildContext context,
     Color iconColor,
     Color textColor,
   ) {
-    final url = message.attachmentUrl!;
+    final url = _resolvedUrl;
     switch (message.attachmentType) {
       case MessageAttachmentType.image:
         return ClipRRect(

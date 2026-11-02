@@ -167,7 +167,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                 ? 'Propriété vendue'
                 : 'Propriété occupée',
             actionLabel: 'Réserver',
-            onReserve: () {
+            onReserve: () async {
               final currentUser = ref.read(authControllerProvider).valueOrNull;
               if (currentUser == null) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -185,8 +185,14 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                 );
                 return;
               }
-              final reservations =
+              List<Reservation> reservations =
                   ref.read(reservationsListProvider).valueOrNull ?? [];
+              if (reservations.isEmpty) {
+                try {
+                  reservations = await ref.read(reservationsListProvider.future);
+                } catch (_) {}
+              }
+              if (!context.mounted) return;
               final alreadyReserved = reservations.any(
                 (r) =>
                     r.propertyId == property.id &&

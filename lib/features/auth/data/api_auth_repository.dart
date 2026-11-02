@@ -180,11 +180,12 @@ class ApiAuthRepository implements AuthRepository {
   }
 
   Future<User> _persistAndParse(Map<String, dynamic> data) async {
-    final access = data['token'] as String?;
-    final refresh = data['refresh'] as String?;
+    final access = (data['token'] ?? data['access'])?.toString();
+    final refresh = data['refresh']?.toString();
     if (access != null && refresh != null) {
       await _authStorage.saveTokens(access: access, refresh: refresh);
     }
-    return User.fromJson(data);
+    final userData = data['user'] is Map ? Map<String, dynamic>.from(data['user'] as Map) : data;
+    return User.fromJson(userData);
   }
 }

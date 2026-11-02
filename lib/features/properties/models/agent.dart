@@ -26,15 +26,15 @@ class Agent extends Equatable {
   });
 
   const Agent.empty()
-      : this(
-          id: '',
-          firstName: 'LoueMoi',
-          lastName: '',
-          phone: '',
-          whatsapp: '',
-          isVerified: true,
-          hasActiveSubscription: true,
-        );
+    : this(
+        id: '',
+        firstName: 'LoueMoi',
+        lastName: '',
+        phone: '',
+        whatsapp: '',
+        isVerified: true,
+        hasActiveSubscription: true,
+      );
 
   /// Nom court affiché en en-tête (ex: "LoueMoi").
   String get shortName {
@@ -59,12 +59,14 @@ class Agent extends Equatable {
 
   factory Agent.fromJson(Map<String, dynamic> json) {
     final rawVerified = json['is_verified'];
-    final isVerified = rawVerified == true ||
+    final isVerified =
+        rawVerified == true ||
         rawVerified == 1 ||
         rawVerified?.toString().toLowerCase() == 'true';
 
     final rawSub = json['has_active_subscription'];
-    final hasActiveSubscription = rawSub == true ||
+    final hasActiveSubscription =
+        rawSub == true ||
         rawSub == 1 ||
         rawSub?.toString().toLowerCase() == 'true';
 
@@ -83,29 +85,29 @@ class Agent extends Equatable {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'first_name': firstName,
-        'last_name': lastName,
-        'phone': phone,
-        'whatsapp': whatsapp,
-        'photo': photo,
-        'is_verified': isVerified,
-        'rating': rating,
-        'has_active_subscription': hasActiveSubscription,
-        'role': role,
-      };
+    'id': id,
+    'first_name': firstName,
+    'last_name': lastName,
+    'phone': phone,
+    'whatsapp': whatsapp,
+    'photo': photo,
+    'is_verified': isVerified,
+    'rating': rating,
+    'has_active_subscription': hasActiveSubscription,
+    'role': role,
+  };
 
   @override
   List<Object?> get props => [
-        id,
-        firstName,
-        lastName,
-        phone,
-        whatsapp,
-        photo,
-        role,
-        isVerified,
-        rating,
-        hasActiveSubscription,
-      ];
+    id,
+    firstName,
+    lastName,
+    phone,
+    whatsapp,
+    photo,
+    role,
+    isVerified,
+    rating,
+    hasActiveSubscription,
+  ];
 }

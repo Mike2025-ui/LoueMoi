@@ -19,10 +19,17 @@ class ApiReservationRepository implements ReservationRepository {
       ApiEndpoints.reservations,
       query: {'page_size': 100},
     );
-    final results = response.data!['results'] as List;
-    return results
-        .map((json) => Reservation.fromJson(json as Map<String, dynamic>))
-        .toList();
+    final rawResults = response.data?['results'];
+    if (rawResults is! List) return const [];
+    final List<Reservation> list = [];
+    for (final item in rawResults) {
+      if (item is Map) {
+        try {
+          list.add(Reservation.fromJson(Map<String, dynamic>.from(item)));
+        } catch (_) {}
+      }
+    }
+    return list;
   }
 
   @override

@@ -73,7 +73,13 @@ class _SummaryState extends ConsumerState<_Summary> {
       );
       return;
     }
-    final existingReservations = ref.read(reservationsListProvider).valueOrNull ?? [];
+    List<Reservation> existingReservations =
+        ref.read(reservationsListProvider).valueOrNull ?? [];
+    if (existingReservations.isEmpty) {
+      try {
+        existingReservations = await ref.read(reservationsListProvider.future);
+      } catch (_) {}
+    }
     final alreadyReserved = existingReservations.any(
       (r) =>
           r.propertyId == widget.property.id &&
@@ -174,11 +180,15 @@ class _SummaryState extends ConsumerState<_Summary> {
           const Text('Caracteristiques', style: AppTextStyles.caption),
           PropertyDetailsTable(property: property),
           const Divider(height: AppSpacing.xl),
-          _PriceRow(label: 'Loyer', value: property.price),
-          _PriceRow(label: 'Caution', value: property.deposit ?? 0),
-          _PriceRow(label: 'Avance', value: property.advance ?? 0),
-          const Divider(height: AppSpacing.xl),
-          _PriceRow(label: 'Total à l’entrée', value: total, isBold: true),
+          if (property.transactionType == TransactionType.vente) ...[
+            _PriceRow(label: 'Prix de vente', value: property.price, isBold: true),
+          ] else ...[
+            _PriceRow(label: 'Loyer', value: property.price),
+            _PriceRow(label: 'Caution', value: property.deposit ?? 0),
+            _PriceRow(label: 'Avance', value: property.advance ?? 0),
+            const Divider(height: AppSpacing.xl),
+            _PriceRow(label: 'Total à l’entrée', value: total, isBold: true),
+          ],
           const SizedBox(height: AppSpacing.md),
           Container(
             padding: const EdgeInsets.all(AppSpacing.md),
@@ -189,13 +199,15 @@ class _SummaryState extends ConsumerState<_Summary> {
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Icon(Icons.info_outline, color: Color(0xFF16A34A), size: 20),
-                SizedBox(width: AppSpacing.sm),
+              children: [
+                const Icon(Icons.info_outline, color: Color(0xFF16A34A), size: 20),
+                const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Text(
-                    'Zéro mois d’agence à payer. Frais de visite forfaitaires de 5.000 Fcfa à régler directement sur place le jour de la visite (en espèces ou par Wave / Orange Money).',
-                    style: TextStyle(
+                    property.transactionType == TransactionType.vente
+                        ? 'Zéro commission d’agence. Frais de visite forfaitaires de 5.000 Fcfa à régler directement sur place le jour de la visite (en espèces ou par Wave / Orange Money).'
+                        : 'Zéro mois d’agence à payer. Frais de visite forfaitaires de 5.000 Fcfa à régler directement sur place le jour de la visite (en espèces ou par Wave / Orange Money).',
+                    style: const TextStyle(
                       color: Color(0xFF166534),
                       fontSize: 12,
                       height: 1.4,

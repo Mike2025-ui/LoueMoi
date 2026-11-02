@@ -48,6 +48,8 @@ class AuthController extends StateNotifier<AsyncValue<User?>> {
       state = AsyncValue.data(user);
     } on ApiException catch (e, st) {
       state = AsyncValue.error(e, st);
+    } catch (e, st) {
+      state = AsyncValue.error(UnknownApiException(e.toString()), st);
     }
   }
 
@@ -72,6 +74,8 @@ class AuthController extends StateNotifier<AsyncValue<User?>> {
       state = AsyncValue.data(user);
     } on ApiException catch (e, st) {
       state = AsyncValue.error(e, st);
+    } catch (e, st) {
+      state = AsyncValue.error(UnknownApiException(e.toString()), st);
     }
   }
 

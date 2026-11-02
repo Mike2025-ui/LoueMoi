@@ -20,10 +20,17 @@ class ApiMessageRepository implements MessageRepository {
       ApiEndpoints.conversations,
       query: {'page_size': 100},
     );
-    final results = response.data!['results'] as List;
-    return results
-        .map((json) => Conversation.fromJson(json as Map<String, dynamic>))
-        .toList();
+    final rawResults = response.data?['results'];
+    if (rawResults is! List) return const [];
+    final List<Conversation> conversations = [];
+    for (final item in rawResults) {
+      if (item is Map) {
+        try {
+          conversations.add(Conversation.fromJson(Map<String, dynamic>.from(item)));
+        } catch (_) {}
+      }
+    }
+    return conversations;
   }
 
   @override
@@ -32,10 +39,17 @@ class ApiMessageRepository implements MessageRepository {
       ApiEndpoints.messages,
       query: {'conversation': conversationId, 'page_size': 200},
     );
-    final results = response.data!['results'] as List;
-    return results
-        .map((json) => Message.fromJson(json as Map<String, dynamic>))
-        .toList();
+    final rawResults = response.data?['results'];
+    if (rawResults is! List) return const [];
+    final List<Message> messages = [];
+    for (final item in rawResults) {
+      if (item is Map) {
+        try {
+          messages.add(Message.fromJson(Map<String, dynamic>.from(item)));
+        } catch (_) {}
+      }
+    }
+    return messages;
   }
 
   @override

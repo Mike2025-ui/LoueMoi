@@ -88,11 +88,16 @@ class Property extends Equatable {
   /// Bien non réservable, quelle qu'en soit la raison (loué, vendu, accompli ou annulé).
   bool get isUnavailable => isOccupee || isVendue || isAccomplie || isAnnulee;
 
-  /// Total réservation = loyer + caution + avance (calcul dynamique).
-  double get reservationTotal => price + (deposit ?? 0) + (advance ?? 0);
+  /// Total réservation = loyer + caution + avance pour une location, ou prix de vente.
+  double get reservationTotal => transactionType == TransactionType.vente
+      ? price
+      : price + (deposit ?? 0) + (advance ?? 0);
 
   String get locationLabel {
-    final parts = [commune, district].where((s) => s.trim().isNotEmpty).toList();
+    final parts = [
+      commune,
+      district,
+    ].where((s) => s.trim().isNotEmpty).toList();
     if (parts.isNotEmpty) return parts.join(', ');
     if (city.trim().isNotEmpty) return city.trim();
     return address.trim();
@@ -156,28 +161,34 @@ class Property extends Equatable {
   factory Property.fromJson(Map<String, dynamic> json) {
     final rawStatus = json['status']?.toString() ?? 'disponible';
     final expiresAtRaw = json['expires_at']?.toString();
-    final expiresAt = expiresAtRaw != null ? DateTime.tryParse(expiresAtRaw) : null;
+    final expiresAt = expiresAtRaw != null
+        ? DateTime.tryParse(expiresAtRaw)
+        : null;
     final isExpired = expiresAt != null && expiresAt.isBefore(DateTime.now());
     final resolvedStatus = (isExpired && rawStatus == 'disponible')
         ? PropertyStatus.annulee
         : PropertyStatus.fromString(rawStatus);
 
     final rawIsFuture = json['is_future'];
-    final isFuture = rawIsFuture == true ||
+    final isFuture =
+        rawIsFuture == true ||
         rawIsFuture == 1 ||
         rawIsFuture?.toString().toLowerCase() == 'true';
 
     final rawIsFavorite = json['is_favorite'];
-    final isFavorite = rawIsFavorite == true ||
+    final isFavorite =
+        rawIsFavorite == true ||
         rawIsFavorite == 1 ||
         rawIsFavorite?.toString().toLowerCase() == 'true';
 
     final rawSub = json['owner_has_active_subscription'];
-    final ownerHasActiveSubscription = rawSub == true ||
+    final ownerHasActiveSubscription =
+        rawSub == true ||
         rawSub == 1 ||
         rawSub?.toString().toLowerCase() == 'true';
 
-    final parsedImages = (json['images'] as List?)
+    final parsedImages =
+        (json['images'] as List?)
             ?.map((e) => e.toString())
             .where((e) => e.isNotEmpty)
             .toList() ??
@@ -204,8 +215,9 @@ class Property extends Equatable {
       description: json['description']?.toString() ?? '',
       type: PropertyType.fromString(json['type']?.toString() ?? ''),
       category: json['category']?.toString() ?? '',
-      transactionType:
-          TransactionType.fromString(json['transaction_type']?.toString() ?? ''),
+      transactionType: TransactionType.fromString(
+        json['transaction_type']?.toString() ?? '',
+      ),
       price: _parseDouble(json['price']) ?? 0.0,
       deposit: _parseDouble(json['deposit']),
       advance: _parseDouble(json['advance']),
@@ -221,18 +233,22 @@ class Property extends Equatable {
       images: parsedImages,
       coverImage: coverImage,
       video: _resolveVideoUrl(json['video']?.toString()),
-      features: (json['features'] as List?)?.map((e) {
-        if (e is Map) {
-          final val = e['value']?.toString() ?? '';
-          final key = e['key']?.toString() ?? '';
-          if (key == 'pieces') return '$val pièce(s)';
-          if (key == 'chambres') return '$val chambre(s)';
-          if (key == 'salles_de_bain') return '$val salle(s) de bain';
-          return val.isNotEmpty ? val : e.toString();
-        }
-        return e.toString();
-      }).toList() ?? const [],
-      amenities: (json['amenities'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      features:
+          (json['features'] as List?)?.map((e) {
+            if (e is Map) {
+              final val = e['value']?.toString() ?? '';
+              final key = e['key']?.toString() ?? '';
+              if (key == 'pieces') return '$val pièce(s)';
+              if (key == 'chambres') return '$val chambre(s)';
+              if (key == 'salles_de_bain') return '$val salle(s) de bain';
+              return val.isNotEmpty ? val : e.toString();
+            }
+            return e.toString();
+          }).toList() ??
+          const [],
+      amenities:
+          (json['amenities'] as List?)?.map((e) => e.toString()).toList() ??
+          const [],
       agent: parsedAgent,
       viewsCount: _parseInt(json['views_count']) ?? 0,
       favoritesCount: _parseInt(json['favorites_count']) ?? 0,
@@ -263,67 +279,67 @@ class Property extends Equatable {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'description': description,
-        'type': type.name,
-        'category': category,
-        'transaction_type': transactionType.name,
-        'price': price,
-        'deposit': deposit,
-        'advance': advance,
-        'city': city,
-        'commune': commune,
-        'district': district,
-        'address': address,
-        'latitude': normalizeCoordinate(latitude),
-        'longitude': normalizeCoordinate(longitude),
-        'status': status.name,
-        'is_future': isFuture,
-        'is_favorite': isFavorite,
-        'images': images,
-        'cover_image': coverImage,
-        'video': video,
-        'features': features,
-        'amenities': amenities,
-        'agent': agent.toJson(),
-        'views_count': viewsCount,
-        'favorites_count': favoritesCount,
-        'owner_has_active_subscription': ownerHasActiveSubscription,
-        if (distanceKm != null) 'distance_km': distanceKm,
-        'created_at': createdAt.toIso8601String(),
-        'updated_at': updatedAt.toIso8601String(),
-      };
+    'id': id,
+    'title': title,
+    'description': description,
+    'type': type.name,
+    'category': category,
+    'transaction_type': transactionType.name,
+    'price': price,
+    'deposit': deposit,
+    'advance': advance,
+    'city': city,
+    'commune': commune,
+    'district': district,
+    'address': address,
+    'latitude': normalizeCoordinate(latitude),
+    'longitude': normalizeCoordinate(longitude),
+    'status': status.name,
+    'is_future': isFuture,
+    'is_favorite': isFavorite,
+    'images': images,
+    'cover_image': coverImage,
+    'video': video,
+    'features': features,
+    'amenities': amenities,
+    'agent': agent.toJson(),
+    'views_count': viewsCount,
+    'favorites_count': favoritesCount,
+    'owner_has_active_subscription': ownerHasActiveSubscription,
+    if (distanceKm != null) 'distance_km': distanceKm,
+    'created_at': createdAt.toIso8601String(),
+    'updated_at': updatedAt.toIso8601String(),
+  };
 
   @override
   List<Object?> get props => [
-        id,
-        title,
-        description,
-        type,
-        category,
-        transactionType,
-        price,
-        deposit,
-        advance,
-        city,
-        commune,
-        district,
-        address,
-        status,
-        isFuture,
-        isFavorite,
-        images,
-        coverImage,
-        video,
-        features,
-        amenities,
-        agent,
-        viewsCount,
-        favoritesCount,
-        ownerHasActiveSubscription,
-        distanceKm,
-        createdAt,
-        updatedAt,
-      ];
+    id,
+    title,
+    description,
+    type,
+    category,
+    transactionType,
+    price,
+    deposit,
+    advance,
+    city,
+    commune,
+    district,
+    address,
+    status,
+    isFuture,
+    isFavorite,
+    images,
+    coverImage,
+    video,
+    features,
+    amenities,
+    agent,
+    viewsCount,
+    favoritesCount,
+    ownerHasActiveSubscription,
+    distanceKm,
+    createdAt,
+    updatedAt,
+  ];
 }
