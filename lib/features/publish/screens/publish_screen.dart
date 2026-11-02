@@ -11,6 +11,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:video_player/video_player.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/location_permission_service.dart';
+import '../../../core/services/reverse_geocoding_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -899,7 +900,8 @@ class _StepLocalisation extends ConsumerStatefulWidget {
   ConsumerState<_StepLocalisation> createState() => _StepLocalisationState();
 }
 
-class _StepLocalisationState extends ConsumerState<_StepLocalisation> {
+class _StepLocalisationState extends ConsumerState<_StepLocalisation>
+    with AutomaticKeepAliveClientMixin {
   late final TextEditingController _cityCtrl;
   late final TextEditingController _communeCtrl;
   late final TextEditingController _districtCtrl;
@@ -907,8 +909,25 @@ class _StepLocalisationState extends ConsumerState<_StepLocalisation> {
   final _mapController = MapController();
   bool _locating = false;
 
+  @override
+  bool get wantKeepAlive => true;
+
   // Cocody, Abidjan — centre par défaut tant qu'aucune position n'est choisie.
   static const _defaultCenter = LatLng(5.359951, -4.008256);
+
+  static const _popularCommunes = [
+    'Cocody',
+    'Yopougon',
+    'Marcory',
+    'Plateau',
+    'Koumassi',
+    'Treichville',
+    'Port-Bouët',
+    'Abobo',
+    'Adjamé',
+    'Attécoubé',
+    'Bingerville',
+  ];
 
   @override
   void initState() {
@@ -929,15 +948,65 @@ class _StepLocalisationState extends ConsumerState<_StepLocalisation> {
     super.dispose();
   }
 
+  void _selectCommune(String commune) {
+    _communeCtrl.text = commune;
+    ref.read(publishFormProvider.notifier).state =
+        ref.read(publishFormProvider).copyWith(commune: commune);
+  }
+
   void _setPosition(double latitude, double longitude) {
-    final form = ref.read(publishFormProvider);
-    ref.read(publishFormProvider.notifier).state = form.copyWith(
+    final currentForm = ref.read(publishFormProvider);
+    ref.read(publishFormProvider.notifier).state = currentForm.copyWith(
       latitude: latitude,
       longitude: longitude,
     );
-    _mapController.move(
-      LatLng(latitude, longitude),
-      _mapController.camera.zoom,
+    try {
+      final zoom = _mapController.camera.zoom;
+      _mapController.move(
+        LatLng(latitude, longitude),
+        zoom,
+      );
+    } catch (_) {
+      // MapController pas encore initialisé, pas de crash
+    }
+  }
+
+  void _clearPosition() {
+    ref.read(publishFormProvider.notifier).state =
+        ref.read(publishFormProvider).copyWith(clearLocation: true);
+  }
+
+  Future<void> _geocodeAndFill(double lat, double lng) async {
+    final res = await ReverseGeocodingService().reverseGeocode(lat, lng);
+    if (!mounted) return;
+    final currentForm = ref.read(publishFormProvider);
+    String nextCommune = currentForm.commune;
+    String nextDistrict = currentForm.district;
+    String nextCity = currentForm.city;
+    String nextAddress = currentForm.address;
+
+    if (_communeCtrl.text.trim().isEmpty && res.commune != null) {
+      _communeCtrl.text = res.commune!;
+      nextCommune = res.commune!;
+    }
+    if (_districtCtrl.text.trim().isEmpty && res.district != null) {
+      _districtCtrl.text = res.district!;
+      nextDistrict = res.district!;
+    }
+    if (_cityCtrl.text.trim().isEmpty && res.city != null) {
+      _cityCtrl.text = res.city!;
+      nextCity = res.city!;
+    }
+    if (_addressCtrl.text.trim().isEmpty && res.address != null) {
+      _addressCtrl.text = res.address!;
+      nextAddress = res.address!;
+    }
+
+    ref.read(publishFormProvider.notifier).state = currentForm.copyWith(
+      commune: nextCommune,
+      district: nextDistrict,
+      city: nextCity,
+      address: nextAddress,
     );
   }
 
@@ -953,12 +1022,21 @@ class _StepLocalisationState extends ConsumerState<_StepLocalisation> {
       return;
     }
     _setPosition(result.latitude!, result.longitude!);
+    await _geocodeAndFill(result.latitude!, result.longitude!);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Position GPS définie avec succès.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final form = ref.watch(publishFormProvider);
-    final notifier = ref.read(publishFormProvider.notifier);
     final center = form.hasLocation
         ? LatLng(form.latitude!, form.longitude!)
         : _defaultCenter;
@@ -972,36 +1050,82 @@ class _StepLocalisationState extends ConsumerState<_StepLocalisation> {
             label: 'Ville',
             hint: 'Ville',
             controller: _cityCtrl,
-            onChanged: (v) => notifier.state = form.copyWith(city: v),
+            onChanged: (v) => ref.read(publishFormProvider.notifier).state =
+                ref.read(publishFormProvider).copyWith(city: v),
           ),
           const SizedBox(height: AppSpacing.md),
           AppTextField(
-            label: 'Commune',
-            hint: 'Commune',
-            suffixIcon: const Icon(
-              Icons.my_location,
-              color: AppColors.textHint,
+            label: 'Commune (obligatoire)',
+            hint: 'Ex: Cocody, Yopougon, Marcory...',
+            suffixIcon: IconButton(
+              icon: _locating
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.my_location, color: AppColors.primary),
+              tooltip: 'Utiliser ma position GPS',
+              onPressed: _locating ? null : _useMyPosition,
             ),
             controller: _communeCtrl,
-            onChanged: (v) => notifier.state = form.copyWith(commune: v),
+            onChanged: (v) => ref.read(publishFormProvider.notifier).state =
+                ref.read(publishFormProvider).copyWith(commune: v),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: _popularCommunes.map((c) {
+                final isSelected = form.commune.trim().toLowerCase() == c.toLowerCase();
+                return Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: ActionChip(
+                    label: Text(
+                      c,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isSelected ? AppColors.white : AppColors.textPrimary,
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                      ),
+                    ),
+                    backgroundColor: isSelected ? AppColors.primary : AppColors.background,
+                    side: BorderSide(
+                      color: isSelected ? AppColors.primary : AppColors.border,
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    onPressed: () => _selectCommune(c),
+                  ),
+                );
+              }).toList(),
+            ),
           ),
           const SizedBox(height: AppSpacing.md),
           AppTextField(
-            label: 'Quartier',
-            hint: 'Quartier',
-            suffixIcon: const Icon(
-              Icons.my_location,
-              color: AppColors.textHint,
+            label: 'Quartier (obligatoire)',
+            hint: 'Ex: Angré, Riviera, Zone 4, Niangon...',
+            suffixIcon: IconButton(
+              icon: _locating
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.my_location, color: AppColors.primary),
+              tooltip: 'Utiliser ma position GPS',
+              onPressed: _locating ? null : _useMyPosition,
             ),
             controller: _districtCtrl,
-            onChanged: (v) => notifier.state = form.copyWith(district: v),
+            onChanged: (v) => ref.read(publishFormProvider.notifier).state =
+                ref.read(publishFormProvider).copyWith(district: v),
           ),
           const SizedBox(height: AppSpacing.md),
           AppTextField(
             label: 'Adresse (optionnel)',
-            hint: 'Adresse précise',
+            hint: 'Adresse précise, rue, repère...',
             controller: _addressCtrl,
-            onChanged: (v) => notifier.state = form.copyWith(address: v),
+            onChanged: (v) => ref.read(publishFormProvider.notifier).state =
+                ref.read(publishFormProvider).copyWith(address: v),
           ),
           const SizedBox(height: AppSpacing.lg),
           const Text(
@@ -1030,30 +1154,46 @@ class _StepLocalisationState extends ConsumerState<_StepLocalisation> {
                         ),
                       ]
                     : const [],
-                onTap: (point) => _setPosition(point.latitude, point.longitude),
+                onTap: (point) {
+                  _setPosition(point.latitude, point.longitude);
+                  _geocodeAndFill(point.latitude, point.longitude);
+                },
               ),
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
-          OutlinedButton.icon(
-            onPressed: _locating ? null : _useMyPosition,
-            icon: _locating
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.my_location, size: 18),
-            label: const Text('Utiliser ma position'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.primary,
-              side: const BorderSide(color: AppColors.primary),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              minimumSize: const Size.fromHeight(0),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppRadius.pill),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _locating ? null : _useMyPosition,
+                  icon: _locating
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.my_location, size: 18),
+                  label: const Text('Utiliser ma position'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    side: const BorderSide(color: AppColors.primary),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                    ),
+                  ),
+                ),
               ),
-            ),
+              if (form.hasLocation) ...[
+                const SizedBox(width: AppSpacing.sm),
+                IconButton(
+                  onPressed: _clearPosition,
+                  icon: const Icon(Icons.clear, color: AppColors.danger),
+                  tooltip: 'Supprimer le repère GPS',
+                ),
+              ],
+            ],
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(

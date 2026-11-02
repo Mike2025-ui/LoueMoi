@@ -65,13 +65,29 @@ class LocationPermissionService {
         );
       }
 
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 10),
-        ),
-      );
-      return LocationResult.success(latitude: position.latitude, longitude: position.longitude);
+      try {
+        final position = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.medium,
+            timeLimit: Duration(seconds: 15),
+          ),
+        );
+        return LocationResult.success(
+          latitude: position.latitude,
+          longitude: position.longitude,
+        );
+      } catch (_) {
+        try {
+          final last = await Geolocator.getLastKnownPosition();
+          if (last != null) {
+            return LocationResult.success(
+              latitude: last.latitude,
+              longitude: last.longitude,
+            );
+          }
+        } catch (_) {}
+        rethrow;
+      }
     } catch (_) {
       return const LocationResult.failure(
         LocationResultStatus.error,

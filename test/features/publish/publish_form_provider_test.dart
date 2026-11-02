@@ -144,5 +144,15 @@ void main() {
 
       expect(state.hasLocation, isFalse);
     });
+
+    test('copyWith with clearLocation: true resets latitude and longitude to null', () {
+      final withLocation = const PublishFormState().copyWith(latitude: 5.35, longitude: -4.0);
+      expect(withLocation.hasLocation, isTrue);
+
+      final cleared = withLocation.copyWith(clearLocation: true);
+      expect(cleared.hasLocation, isFalse);
+      expect(cleared.latitude, isNull);
+      expect(cleared.longitude, isNull);
+    });
   });
 }
