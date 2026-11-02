@@ -159,13 +159,11 @@ final propertiesByOwnerProvider =
 final myPropertiesProvider = FutureProvider.autoDispose<List<Property>>((ref) async {
   final repository = ref.watch(propertyRepositoryProvider);
   final user = ref.watch(authControllerProvider).valueOrNull;
-  final List<Property> list;
   if (user?.isBailleur ?? false) {
-    list = await repository.fetchMyPropertiesAsBailleur();
+    return repository.fetchMyPropertiesAsBailleur();
   } else {
-    list = await repository.fetchMyProperties();
+    return repository.fetchMyProperties();
   }
-  return list.where((p) => p.status != PropertyStatus.accomplie).toList();
 });
 
 /// Bascule l'état favori en optimiste sur la liste Menu (l'UI change

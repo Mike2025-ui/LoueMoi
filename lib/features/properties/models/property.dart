@@ -173,7 +173,17 @@ class Property extends Equatable {
       images: (json['images'] as List?)?.map((e) => e.toString()).toList() ?? const [],
       coverImage: json['cover_image'] as String? ?? '',
       video: _resolveVideoUrl(json['video'] as String?),
-      features: (json['features'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      features: (json['features'] as List?)?.map((e) {
+        if (e is Map) {
+          final val = e['value']?.toString() ?? '';
+          final key = e['key']?.toString() ?? '';
+          if (key == 'pieces') return '$val pièce(s)';
+          if (key == 'chambres') return '$val chambre(s)';
+          if (key == 'salles_de_bain') return '$val salle(s) de bain';
+          return val.isNotEmpty ? val : e.toString();
+        }
+        return e.toString();
+      }).toList() ?? const [],
       amenities: (json['amenities'] as List?)?.map((e) => e.toString()).toList() ?? const [],
       agent: Agent.fromJson(json['agent'] as Map<String, dynamic>? ?? const {}),
       viewsCount: json['views_count'] as int? ?? 0,

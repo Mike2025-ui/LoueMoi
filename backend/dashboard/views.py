@@ -398,13 +398,13 @@ def property_create(request):
             superficie = (request.POST.get("superficie") or "").strip()
 
             if pieces:
-                features.append({"key": "pieces", "value": pieces})
+                features.append(f"{pieces} pièce(s)")
             if chambres:
-                features.append({"key": "chambres", "value": chambres})
+                features.append(f"{chambres} chambre(s)")
             if salles_de_bain:
-                features.append({"key": "salles_de_bain", "value": salles_de_bain})
+                features.append(f"{salles_de_bain} salle(s) de bain")
             if superficie:
-                features.append({"key": "superficie", "value": f"{superficie} m²"})
+                features.append(f"{superficie} m²")
 
             property_obj = Property(
                 title=title,

@@ -12,7 +12,7 @@ class IsAgent(permissions.BasePermission):
             user
             and user.is_authenticated
             and user.is_active
-            and (user.role == user.ROLE_AGENT or user.is_staff)
+            and (user.role == user.ROLE_AGENT or user.is_staff or user.is_superuser)
         )
 
 
@@ -27,7 +27,7 @@ class IsBailleur(permissions.BasePermission):
             user
             and user.is_authenticated
             and user.is_active
-            and (user.role == user.ROLE_BAILLEUR or user.is_staff)
+            and (user.role == user.ROLE_BAILLEUR or user.is_staff or user.is_superuser)
         )
 
 
@@ -45,7 +45,7 @@ class CanOwnProperties(permissions.BasePermission):
             and user.is_authenticated
             and user.is_active
             and user.can_own_properties
-            and (user.is_approved or user.is_staff)
+            and (user.is_approved or user.is_staff or user.is_superuser)
         )
 
 
@@ -60,6 +60,6 @@ class HasActiveSubscription(permissions.BasePermission):
             user
             and user.is_authenticated
             and user.is_active
-            and (user.has_active_subscription or user.is_staff)
+            and (user.has_active_subscription or user.is_staff or user.is_superuser)
         )
 

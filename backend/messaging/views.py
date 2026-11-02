@@ -25,7 +25,7 @@ def user_can_access_conversation(user, conversation):
     """
     if not user or not getattr(user, "is_authenticated", False):
         return False
-    if getattr(user, "is_staff", False):
+    if getattr(user, "is_staff", False) or getattr(user, "is_superuser", False):
         return True
 
     return user in (conversation.client, conversation.agent)
@@ -113,7 +113,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         conversation = self.get_object()
         if not user_can_access_conversation(request.user, conversation):
-            raise PermissionDenied("Un abonnement actif est requis pour consulter cette conversation.")
+            raise PermissionDenied("Vous n'êtes pas autorisé à consulter cette conversation.")
         serializer = self.get_serializer(conversation)
         return Response(serializer.data)
 
@@ -159,7 +159,11 @@ class MessageListCreateView(generics.ListCreateAPIView):
                 Conversation.objects.select_related("client", "agent"),
                 pk=conversation_id,
             )
-            if self.request.user not in (conversation.client, conversation.agent):
+            if (
+                self.request.user not in (conversation.client, conversation.agent)
+                and not getattr(self.request.user, "is_staff", False)
+                and not getattr(self.request.user, "is_superuser", False)
+            ):
                 raise PermissionDenied("Vous ne faites pas partie de cette conversation.")
             if not user_can_access_conversation(self.request.user, conversation):
                 raise PermissionDenied("Un abonnement actif est requis pour consulter les messages de cette conversation.")
@@ -242,7 +246,11 @@ class MessageAttachmentDownloadView(APIView):
         conversation = message.conversation
 
         if request.user and request.user.is_authenticated:
-            if request.user not in (conversation.client, conversation.agent):
+            if (
+                request.user not in (conversation.client, conversation.agent)
+                and not getattr(request.user, "is_staff", False)
+                and not getattr(request.user, "is_superuser", False)
+            ):
                 raise PermissionDenied("Vous ne faites pas partie de cette conversation.")
             if not user_can_access_conversation(request.user, conversation):
                 raise PermissionDenied("Un abonnement actif est requis pour télécharger cette pièce jointe.")

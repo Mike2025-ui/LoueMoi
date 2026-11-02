@@ -14,10 +14,28 @@ class PropertyDetailsTable extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        _Row(label: 'Type', value: property.category),
-        _Row(label: 'Details', value: property.features.join(',')),
-        _Row(label: 'Equipements', value: property.amenities.join(',')),
-        _Row(label: 'Localisation', value: property.locationLabel),
+        _Row(
+          label: 'Type',
+          value: property.category.isNotEmpty ? property.category : 'Non spécifié',
+        ),
+        _Row(
+          label: 'Details',
+          value: property.features.isNotEmpty
+              ? property.features.join(', ')
+              : 'Non spécifié',
+        ),
+        _Row(
+          label: 'Equipements',
+          value: property.amenities.isNotEmpty
+              ? property.amenities.join(', ')
+              : 'Non spécifié',
+        ),
+        _Row(
+          label: 'Localisation',
+          value: property.locationLabel.isNotEmpty
+              ? property.locationLabel
+              : 'Non spécifié',
+        ),
       ],
     );
   }
