@@ -417,6 +417,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       .refresh();
                 },
                 child: propertiesAsync.when(
+                  skipLoadingOnReload: true,
                   data: (properties) {
                     if (properties.isEmpty) {
                       return ListView(
@@ -555,12 +556,52 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       const Center(child: CircularProgressIndicator()),
                   error: (e, _) => ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    children: const [
-                      SizedBox(height: 120),
+                    children: [
+                      const SizedBox(height: 80),
                       Center(
-                        child: Text(
-                          'Impossible de charger les annonces. Glissez vers le bas pour actualiser.',
-                          style: AppTextStyles.caption,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.cloud_off_outlined,
+                                size: 56,
+                                color: AppColors.textHint,
+                              ),
+                              const SizedBox(height: AppSpacing.md),
+                              const Text(
+                                'Impossible de charger les annonces',
+                                style: AppTextStyles.h3,
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: AppSpacing.xs),
+                              const Text(
+                                'Vérifiez votre connexion internet ou réessayez.',
+                                style: AppTextStyles.caption,
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: AppSpacing.lg),
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  ref.read(propertiesControllerProvider.notifier).refresh();
+                                },
+                                icon: const Icon(Icons.refresh, size: 18),
+                                label: const Text('Réessayer'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  foregroundColor: AppColors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                    vertical: 12,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],

@@ -95,6 +95,39 @@ void main() {
       expect(page.hasMore, isFalse);
     });
 
+    test('tolerates corrupt items in results list and keeps valid ones', () async {
+      when(() => apiClient.get<Map<String, dynamic>>(any(), query: any(named: 'query')))
+          .thenAnswer((_) async => _fakeResponse({
+                'count': 2,
+                'next': null,
+                'previous': null,
+                'results': [
+                  'not a map',
+                  _propertyJson(id: 1),
+                ],
+              }));
+
+      final page = await repository.fetchProperties();
+
+      expect(page.results, hasLength(1));
+      expect(page.results.first.id, '1');
+    });
+
+    test('handles null or non-list results gracefully', () async {
+      when(() => apiClient.get<Map<String, dynamic>>(any(), query: any(named: 'query')))
+          .thenAnswer((_) async => _fakeResponse({
+                'count': 0,
+                'next': null,
+                'previous': null,
+                'results': null,
+              }));
+
+      final page = await repository.fetchProperties();
+
+      expect(page.results, isEmpty);
+      expect(page.count, 0);
+    });
+
     test('maps FilterParams to the Django query parameters', () async {
       when(() => apiClient.get<Map<String, dynamic>>(any(), query: any(named: 'query')))
           .thenAnswer((_) async => _fakeResponse({

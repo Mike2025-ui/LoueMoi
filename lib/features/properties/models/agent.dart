@@ -25,6 +25,17 @@ class Agent extends Equatable {
     this.role = 'agent',
   });
 
+  const Agent.empty()
+      : this(
+          id: '',
+          firstName: 'LoueMoi',
+          lastName: '',
+          phone: '',
+          whatsapp: '',
+          isVerified: true,
+          hasActiveSubscription: true,
+        );
+
   /// Nom court affiché en en-tête (ex: "LoueMoi").
   String get shortName {
     if (firstName.trim().isNotEmpty) return firstName.trim();
@@ -40,18 +51,34 @@ class Agent extends Equatable {
   bool get isBailleur => role == 'bailleur';
   String get roleLabel => 'Service officiel LoueMoi';
 
+  static double? _parseDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    return num.tryParse(value.toString())?.toDouble();
+  }
+
   factory Agent.fromJson(Map<String, dynamic> json) {
+    final rawVerified = json['is_verified'];
+    final isVerified = rawVerified == true ||
+        rawVerified == 1 ||
+        rawVerified?.toString().toLowerCase() == 'true';
+
+    final rawSub = json['has_active_subscription'];
+    final hasActiveSubscription = rawSub == true ||
+        rawSub == 1 ||
+        rawSub?.toString().toLowerCase() == 'true';
+
     return Agent(
       id: json['id']?.toString() ?? '',
-      firstName: (json['first_name'] as String?) ?? 'LoueMoi',
-      lastName: (json['last_name'] as String?) ?? '',
-      phone: (json['phone'] as String?) ?? '',
-      whatsapp: (json['whatsapp'] as String?) ?? '',
-      photo: json['photo'] as String?,
-      isVerified: json['is_verified'] as bool? ?? true,
-      rating: (json['rating'] as num?)?.toDouble() ?? 5.0,
-      hasActiveSubscription: json['has_active_subscription'] as bool? ?? true,
-      role: json['role'] as String? ?? 'agent',
+      firstName: json['first_name']?.toString() ?? 'LoueMoi',
+      lastName: json['last_name']?.toString() ?? '',
+      phone: json['phone']?.toString() ?? '',
+      whatsapp: json['whatsapp']?.toString() ?? '',
+      photo: json['photo']?.toString(),
+      isVerified: rawVerified != null ? isVerified : true,
+      rating: _parseDouble(json['rating']) ?? 5.0,
+      hasActiveSubscription: rawSub != null ? hasActiveSubscription : true,
+      role: json['role']?.toString() ?? 'agent',
     );
   }
 

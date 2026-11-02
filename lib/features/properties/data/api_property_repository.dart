@@ -41,21 +41,28 @@ class ApiPropertyRepository implements PropertyRepository {
     Map<String, dynamic> data, {
     bool excludeClosed = true,
   }) {
-    final mapped = (data['results'] as List)
-        .map((json) => Property.fromJson(json as Map<String, dynamic>));
-    final results = excludeClosed
-        ? mapped
-            .where(
-              (p) =>
-                  p.status != PropertyStatus.accomplie &&
-                  p.status != PropertyStatus.annulee,
-            )
-            .toList()
-        : mapped.toList();
+    final rawResults = data['results'];
+    final List<Property> results = [];
+    if (rawResults is List) {
+      for (final item in rawResults) {
+        if (item is Map) {
+          try {
+            final property = Property.fromJson(Map<String, dynamic>.from(item));
+            if (!excludeClosed ||
+                (property.status != PropertyStatus.accomplie &&
+                    property.status != PropertyStatus.annulee)) {
+              results.add(property);
+            }
+          } catch (_) {
+            // One corrupted property must never crash the entire page loading!
+          }
+        }
+      }
+    }
     return PropertyPage(
       results: results,
       hasMore: data['next'] != null,
-      count: data['count'] as int? ?? results.length,
+      count: (data['count'] as num?)?.toInt() ?? results.length,
     );
   }
 

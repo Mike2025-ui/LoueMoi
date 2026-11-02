@@ -112,7 +112,9 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
 
   static double? parseAmount(String? raw) {
     if (raw == null) return null;
-    final cleaned = raw.replaceAll(RegExp(r'[\s\u00A0\u202F]'), '').replaceAll(',', '.');
+    final cleaned = raw
+        .replaceAll(RegExp(r'[\s\u00A0\u202F]'), '')
+        .replaceAll(',', '.');
     return double.tryParse(cleaned);
   }
 
@@ -354,7 +356,9 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
           amenities: form.characteristics.toList(),
           agent: Agent(
             id: user?.id ?? '',
-            firstName: (user?.firstName.isNotEmpty ?? false) ? user!.firstName : 'LoueMoi',
+            firstName: (user?.firstName.isNotEmpty ?? false)
+                ? user!.firstName
+                : 'LoueMoi',
             lastName: user?.lastName ?? '',
             phone: user?.phone ?? '',
             whatsapp: user?.whatsapp ?? '',
@@ -950,8 +954,9 @@ class _StepLocalisationState extends ConsumerState<_StepLocalisation>
 
   void _selectCommune(String commune) {
     _communeCtrl.text = commune;
-    ref.read(publishFormProvider.notifier).state =
-        ref.read(publishFormProvider).copyWith(commune: commune);
+    ref.read(publishFormProvider.notifier).state = ref
+        .read(publishFormProvider)
+        .copyWith(commune: commune);
   }
 
   void _setPosition(double latitude, double longitude) {
@@ -962,18 +967,16 @@ class _StepLocalisationState extends ConsumerState<_StepLocalisation>
     );
     try {
       final zoom = _mapController.camera.zoom;
-      _mapController.move(
-        LatLng(latitude, longitude),
-        zoom,
-      );
+      _mapController.move(LatLng(latitude, longitude), zoom);
     } catch (_) {
       // MapController pas encore initialisé, pas de crash
     }
   }
 
   void _clearPosition() {
-    ref.read(publishFormProvider.notifier).state =
-        ref.read(publishFormProvider).copyWith(clearLocation: true);
+    ref.read(publishFormProvider.notifier).state = ref
+        .read(publishFormProvider)
+        .copyWith(clearLocation: true);
   }
 
   Future<void> _geocodeAndFill(double lat, double lng) async {
@@ -1050,8 +1053,9 @@ class _StepLocalisationState extends ConsumerState<_StepLocalisation>
             label: 'Ville',
             hint: 'Ville',
             controller: _cityCtrl,
-            onChanged: (v) => ref.read(publishFormProvider.notifier).state =
-                ref.read(publishFormProvider).copyWith(city: v),
+            onChanged: (v) => ref.read(publishFormProvider.notifier).state = ref
+                .read(publishFormProvider)
+                .copyWith(city: v),
           ),
           const SizedBox(height: AppSpacing.md),
           AppTextField(
@@ -1069,15 +1073,17 @@ class _StepLocalisationState extends ConsumerState<_StepLocalisation>
               onPressed: _locating ? null : _useMyPosition,
             ),
             controller: _communeCtrl,
-            onChanged: (v) => ref.read(publishFormProvider.notifier).state =
-                ref.read(publishFormProvider).copyWith(commune: v),
+            onChanged: (v) => ref.read(publishFormProvider.notifier).state = ref
+                .read(publishFormProvider)
+                .copyWith(commune: v),
           ),
           const SizedBox(height: AppSpacing.xs),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
               children: _popularCommunes.map((c) {
-                final isSelected = form.commune.trim().toLowerCase() == c.toLowerCase();
+                final isSelected =
+                    form.commune.trim().toLowerCase() == c.toLowerCase();
                 return Padding(
                   padding: const EdgeInsets.only(right: 6),
                   child: ActionChip(
@@ -1085,11 +1091,17 @@ class _StepLocalisationState extends ConsumerState<_StepLocalisation>
                       c,
                       style: TextStyle(
                         fontSize: 12,
-                        color: isSelected ? AppColors.white : AppColors.textPrimary,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                        color: isSelected
+                            ? AppColors.white
+                            : AppColors.textPrimary,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.normal,
                       ),
                     ),
-                    backgroundColor: isSelected ? AppColors.primary : AppColors.background,
+                    backgroundColor: isSelected
+                        ? AppColors.primary
+                        : AppColors.background,
                     side: BorderSide(
                       color: isSelected ? AppColors.primary : AppColors.border,
                     ),
@@ -1116,16 +1128,18 @@ class _StepLocalisationState extends ConsumerState<_StepLocalisation>
               onPressed: _locating ? null : _useMyPosition,
             ),
             controller: _districtCtrl,
-            onChanged: (v) => ref.read(publishFormProvider.notifier).state =
-                ref.read(publishFormProvider).copyWith(district: v),
+            onChanged: (v) => ref.read(publishFormProvider.notifier).state = ref
+                .read(publishFormProvider)
+                .copyWith(district: v),
           ),
           const SizedBox(height: AppSpacing.md),
           AppTextField(
             label: 'Adresse (optionnel)',
             hint: 'Adresse précise, rue, repère...',
             controller: _addressCtrl,
-            onChanged: (v) => ref.read(publishFormProvider.notifier).state =
-                ref.read(publishFormProvider).copyWith(address: v),
+            onChanged: (v) => ref.read(publishFormProvider.notifier).state = ref
+                .read(publishFormProvider)
+                .copyWith(address: v),
           ),
           const SizedBox(height: AppSpacing.lg),
           const Text(
@@ -1318,12 +1332,13 @@ class _StepPhotos extends ConsumerWidget {
             title: isTerrain
                 ? '2. Photos du terrain'
                 : (form.propertyType == PropertyType.magasin
-                    ? '2. Intérieur / Espace commercial'
-                    : '2. Chambre(s)'),
+                      ? '2. Intérieur / Espace commercial'
+                      : '2. Chambre(s)'),
             subtitle: form.propertyType == PropertyType.logement
                 ? 'Obligatoire — Vous pouvez sélectionner plusieurs photos.'
                 : 'Facultatif — Vous pouvez sélectionner plusieurs photos.',
-            isRequired: form.propertyType == PropertyType.logement &&
+            isRequired:
+                form.propertyType == PropertyType.logement &&
                 form.existingImages.isEmpty,
             images: form.chambreImages,
             onPick: () => _pickMultiCategoryPhotos(
@@ -1897,14 +1912,14 @@ class _StepPreview extends ConsumerWidget {
               aspectRatio: 1.5,
               child: form.newImages.isNotEmpty
                   ? (kIsWeb
-                      ? Image.network(
-                          form.newImages.first.path,
-                          fit: BoxFit.cover,
-                        )
-                      : Image.file(
-                          File(form.newImages.first.path),
-                          fit: BoxFit.cover,
-                        ))
+                        ? Image.network(
+                            form.newImages.first.path,
+                            fit: BoxFit.cover,
+                          )
+                        : Image.file(
+                            File(form.newImages.first.path),
+                            fit: BoxFit.cover,
+                          ))
                   : form.existingImages.isNotEmpty
                   ? PropertyImage(form.existingImages.first, fit: BoxFit.cover)
                   : Container(color: AppColors.surfaceMuted),

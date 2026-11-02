@@ -91,7 +91,12 @@ class Property extends Equatable {
   /// Total réservation = loyer + caution + avance (calcul dynamique).
   double get reservationTotal => price + (deposit ?? 0) + (advance ?? 0);
 
-  String get locationLabel => '$commune,$district';
+  String get locationLabel {
+    final parts = [commune, district].where((s) => s.trim().isNotEmpty).toList();
+    if (parts.isNotEmpty) return parts.join(', ');
+    if (city.trim().isNotEmpty) return city.trim();
+    return address.trim();
+  }
 
   Property copyWith({
     bool? isFavorite,
@@ -136,43 +141,86 @@ class Property extends Equatable {
     );
   }
 
+  static double? _parseDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    return num.tryParse(value.toString())?.toDouble();
+  }
+
+  static int? _parseInt(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toInt();
+    return int.tryParse(value.toString());
+  }
+
   factory Property.fromJson(Map<String, dynamic> json) {
-    final rawStatus = json['status'] as String;
-    final expiresAtRaw = json['expires_at'] as String?;
+    final rawStatus = json['status']?.toString() ?? 'disponible';
+    final expiresAtRaw = json['expires_at']?.toString();
     final expiresAt = expiresAtRaw != null ? DateTime.tryParse(expiresAtRaw) : null;
     final isExpired = expiresAt != null && expiresAt.isBefore(DateTime.now());
     final resolvedStatus = (isExpired && rawStatus == 'disponible')
         ? PropertyStatus.annulee
         : PropertyStatus.fromString(rawStatus);
 
+    final rawIsFuture = json['is_future'];
+    final isFuture = rawIsFuture == true ||
+        rawIsFuture == 1 ||
+        rawIsFuture?.toString().toLowerCase() == 'true';
+
+    final rawIsFavorite = json['is_favorite'];
+    final isFavorite = rawIsFavorite == true ||
+        rawIsFavorite == 1 ||
+        rawIsFavorite?.toString().toLowerCase() == 'true';
+
+    final rawSub = json['owner_has_active_subscription'];
+    final ownerHasActiveSubscription = rawSub == true ||
+        rawSub == 1 ||
+        rawSub?.toString().toLowerCase() == 'true';
+
+    final parsedImages = (json['images'] as List?)
+            ?.map((e) => e.toString())
+            .where((e) => e.isNotEmpty)
+            .toList() ??
+        const <String>[];
+
+    final rawCover = json['cover_image']?.toString() ?? '';
+    final coverImage = rawCover.isNotEmpty
+        ? rawCover
+        : (parsedImages.isNotEmpty ? parsedImages.first : '');
+
+    final agentJson = json['agent'];
+    final Agent parsedAgent;
+    if (agentJson is Map<String, dynamic>) {
+      parsedAgent = Agent.fromJson(agentJson);
+    } else if (agentJson is Map) {
+      parsedAgent = Agent.fromJson(Map<String, dynamic>.from(agentJson));
+    } else {
+      parsedAgent = const Agent.empty();
+    }
+
     return Property(
-      id: json['id'].toString(),
-      title: json['title'] as String? ?? '',
-      description: json['description'] as String? ?? '',
+      id: json['id']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
       type: PropertyType.fromString(json['type']?.toString() ?? ''),
-      category: json['category'] as String? ?? '',
+      category: json['category']?.toString() ?? '',
       transactionType:
           TransactionType.fromString(json['transaction_type']?.toString() ?? ''),
-      price: (json['price'] as num?)?.toDouble() ??
-          (num.tryParse(json['price']?.toString() ?? '')?.toDouble() ?? 0.0),
-      deposit: (json['deposit'] as num?)?.toDouble() ??
-          num.tryParse(json['deposit']?.toString() ?? '')?.toDouble(),
-      advance: (json['advance'] as num?)?.toDouble() ??
-          num.tryParse(json['advance']?.toString() ?? '')?.toDouble(),
-      city: json['city'] as String? ?? '',
-      commune: json['commune'] as String? ?? '',
-      district: json['district'] as String? ?? '',
-      address: json['address'] as String? ?? '',
-      latitude: (json['latitude'] as num?)?.toDouble() ??
-          num.tryParse(json['latitude']?.toString() ?? '')?.toDouble(),
-      longitude: (json['longitude'] as num?)?.toDouble() ??
-          num.tryParse(json['longitude']?.toString() ?? '')?.toDouble(),
+      price: _parseDouble(json['price']) ?? 0.0,
+      deposit: _parseDouble(json['deposit']),
+      advance: _parseDouble(json['advance']),
+      city: json['city']?.toString() ?? '',
+      commune: json['commune']?.toString() ?? '',
+      district: json['district']?.toString() ?? '',
+      address: json['address']?.toString() ?? '',
+      latitude: _parseDouble(json['latitude']),
+      longitude: _parseDouble(json['longitude']),
       status: resolvedStatus,
-      isFuture: json['is_future'] as bool? ?? false,
-      isFavorite: json['is_favorite'] as bool? ?? false,
-      images: (json['images'] as List?)?.map((e) => e.toString()).toList() ?? const [],
-      coverImage: json['cover_image'] as String? ?? '',
-      video: _resolveVideoUrl(json['video'] as String?),
+      isFuture: isFuture,
+      isFavorite: isFavorite,
+      images: parsedImages,
+      coverImage: coverImage,
+      video: _resolveVideoUrl(json['video']?.toString()),
       features: (json['features'] as List?)?.map((e) {
         if (e is Map) {
           final val = e['value']?.toString() ?? '';
@@ -185,12 +233,11 @@ class Property extends Equatable {
         return e.toString();
       }).toList() ?? const [],
       amenities: (json['amenities'] as List?)?.map((e) => e.toString()).toList() ?? const [],
-      agent: Agent.fromJson(json['agent'] as Map<String, dynamic>? ?? const {}),
-      viewsCount: json['views_count'] as int? ?? 0,
-      favoritesCount: json['favorites_count'] as int? ?? 0,
-      ownerHasActiveSubscription: json['owner_has_active_subscription'] as bool? ?? false,
-      distanceKm: (json['distance_km'] as num?)?.toDouble() ??
-          num.tryParse(json['distance_km']?.toString() ?? '')?.toDouble(),
+      agent: parsedAgent,
+      viewsCount: _parseInt(json['views_count']) ?? 0,
+      favoritesCount: _parseInt(json['favorites_count']) ?? 0,
+      ownerHasActiveSubscription: ownerHasActiveSubscription,
+      distanceKm: _parseDouble(json['distance_km']),
       createdAt: json['created_at'] != null
           ? (DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now())
           : DateTime.now(),

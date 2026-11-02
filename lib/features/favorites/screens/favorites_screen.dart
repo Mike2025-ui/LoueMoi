@@ -81,6 +81,7 @@ class FavoritesScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Mes favoris')),
       body: favoritesAsync.when(
+        skipLoadingOnReload: true,
         data: (favorites) {
           if (favorites.isEmpty) {
             return const Center(
@@ -118,8 +119,49 @@ class FavoritesScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => const Center(
-          child: Text('Impossible de charger les favoris.', style: AppTextStyles.caption),
+        error: (e, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.cloud_off_outlined,
+                  size: 56,
+                  color: AppColors.textHint,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                const Text(
+                  'Impossible de charger les favoris',
+                  style: AppTextStyles.h3,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                const Text(
+                  'Vérifiez votre connexion internet ou réessayez.',
+                  style: AppTextStyles.caption,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                ElevatedButton.icon(
+                  onPressed: () => ref.refresh(favoritesListProvider.future),
+                  icon: const Icon(Icons.refresh, size: 18),
+                  label: const Text('Réessayer'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

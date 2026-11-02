@@ -50,7 +50,7 @@ class PropertiesController extends StateNotifier<AsyncValue<List<Property>>> {
   bool get isLoadingMore => _isLoadingMore;
 
   Future<void> _loadFirstPage() async {
-    state = const AsyncValue.loading();
+    state = const AsyncLoading<List<Property>>().copyWithPrevious(state);
     try {
       final page = await _repository.fetchProperties(filters: _filters, page: 1);
       if (!mounted) return;
@@ -108,6 +108,8 @@ final propertiesControllerProvider = StateNotifierProvider.autoDispose<Propertie
     AsyncValue<List<Property>>>((ref) {
   final repository = ref.watch(propertyRepositoryProvider);
   final filters = _effectiveFilters(ref);
+  // Re-synchronise l'état des favoris des annonces lors d'une connexion/déconnexion
+  ref.watch(authControllerProvider.select((s) => s.valueOrNull?.id));
   return PropertiesController(repository, filters, ref);
 });
 
