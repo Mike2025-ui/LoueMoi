@@ -5,6 +5,7 @@ import '../../auth/providers/auth_providers.dart';
 import '../data/api_reservation_repository.dart';
 import '../data/reservation_repository.dart';
 import '../models/reservation.dart';
+import '../../properties/providers/property_providers.dart';
 
 final reservationRepositoryProvider = Provider<ReservationRepository>((ref) {
   if (Env.useMockData) return MockReservationRepository();
@@ -48,6 +49,9 @@ Future<void> cancelReservation(WidgetRef ref, String id) async {
   final repository = ref.read(reservationRepositoryProvider);
   await repository.cancelReservation(id);
   ref.invalidate(reservationsListProvider);
+  ref.invalidate(myPropertiesProvider);
+  ref.invalidate(propertiesControllerProvider);
+  ref.invalidate(propertiesListProvider);
 }
 
 /// Réservé au propriétaire du bien — voir le bouton "Valider" de
@@ -56,6 +60,9 @@ Future<void> completeReservation(WidgetRef ref, String id) async {
   final repository = ref.read(reservationRepositoryProvider);
   await repository.completeReservation(id);
   ref.invalidate(reservationsListProvider);
+  ref.invalidate(myPropertiesProvider);
+  ref.invalidate(propertiesControllerProvider);
+  ref.invalidate(propertiesListProvider);
 }
 
 Future<void> deleteReservation(WidgetRef ref, String id) async {

@@ -556,7 +556,10 @@ class _AProposTab extends ConsumerWidget {
       phoneToUse = Env.supportPhone;
     }
 
-    final cleanPhone = phoneToUse.replaceAll(RegExp(r'[^0-9]'), '');
+    var cleanPhone = phoneToUse.replaceAll(RegExp(r'[^0-9]'), '');
+    if (cleanPhone.length == 10 && cleanPhone.startsWith('0')) {
+      cleanPhone = '225$cleanPhone';
+    }
     if (cleanPhone.isEmpty) {
       if (context.mounted) {
         showErrorSnackbar(context, "Numéro WhatsApp non renseigné.");

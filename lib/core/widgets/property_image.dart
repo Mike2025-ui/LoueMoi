@@ -31,7 +31,7 @@ class PropertyImage extends StatelessWidget {
         fit: fit,
         width: width,
         height: height,
-        memCacheWidth: width != null && width!.isFinite ? (width! * 2).toInt() : 600,
+        memCacheWidth: (width != null && width!.isFinite && width! > 0) ? (width! * 2).toInt() : 600,
         maxWidthDiskCache: 1200,
         fadeInDuration: const Duration(milliseconds: 150),
         placeholder: (context, url) => Container(

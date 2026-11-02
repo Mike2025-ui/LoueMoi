@@ -130,12 +130,15 @@ class _PropertyVideoPlayerState extends State<PropertyVideoPlayer> {
       );
     }
 
+    final ar = _controller!.value.aspectRatio;
+    final safeAspectRatio = (ar.isNaN || ar.isInfinite || ar <= 0) ? 16 / 9 : ar;
+
     return GestureDetector(
       onTap: _togglePlay,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(AppRadius.md),
         child: AspectRatio(
-          aspectRatio: _controller!.value.aspectRatio == 0 ? 16 / 9 : _controller!.value.aspectRatio,
+          aspectRatio: safeAspectRatio,
           child: Stack(
             alignment: Alignment.center,
             fit: StackFit.expand,

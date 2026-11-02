@@ -10,7 +10,7 @@ String buildMediaUrl(String source) {
   if (source.startsWith('http://') || source.startsWith('https://')) return source;
   if (source.startsWith('assets/')) return source;
   if (source.startsWith('/')) return '${Env.apiBaseUrl}$source';
-  return source;
+  return '${Env.apiBaseUrl}/$source';
 }
 
 /// true si [source] doit être chargée depuis le réseau (après résolution),

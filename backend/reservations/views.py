@@ -29,7 +29,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated:
             return Reservation.objects.none()
-        if user.is_staff:
+        if user.is_staff or user.is_superuser:
             return (
                 Reservation.objects.all()
                 .select_related("user", "property", "property__agent")
@@ -96,7 +96,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
         if instance.status != "annulee":
             raise ValidationError("Seules les réservations annulées peuvent être supprimées.")
         user = self.request.user
-        if instance.user != user and instance.property.agent != user and not user.is_staff:
+        if instance.user != user and instance.property.agent != user and not user.is_staff and not user.is_superuser:
             raise PermissionDenied("Vous n'êtes pas autorisé à supprimer cette réservation.")
         instance.delete()
 
@@ -125,7 +125,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
         bien disponible, d'autant qu'il peut y avoir d'autres réservations
         en cours sur le même bien."""
         reservation = self.get_object()
-        if reservation.user_id != request.user.id and not request.user.is_staff:
+        if reservation.user_id != request.user.id and not request.user.is_staff and not request.user.is_superuser:
             raise PermissionDenied("Seul le client ayant fait cette réservation peut l'annuler.")
         if reservation.status == "accomplie":
             raise ValidationError("Une réservation accomplie ne peut plus être annulée.")
@@ -184,7 +184,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
         une transition invalide (l'annulation est définitive)."""
         reservation = self.get_object()
         property_obj = reservation.property
-        if property_obj.agent_id != request.user.id and not request.user.is_staff:
+        if property_obj.agent_id != request.user.id and not request.user.is_staff and not request.user.is_superuser:
             raise PermissionDenied("Seul le propriétaire du bien peut valider cette réservation.")
         if reservation.status == "annulee":
             raise ValidationError("Une réservation annulée ne peut pas être marquée accomplie.")
@@ -217,7 +217,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
         Property.agent accepte déjà indifféremment agent et bailleur."""
         reservation = self.get_object()
         property_obj = reservation.property
-        if property_obj.agent_id != request.user.id and not request.user.is_staff:
+        if property_obj.agent_id != request.user.id and not request.user.is_staff and not request.user.is_superuser:
             raise PermissionDenied("Seul le propriétaire du bien ou un administrateur peut contacter ce client.")
 
         conversation = Conversation.objects.filter(
