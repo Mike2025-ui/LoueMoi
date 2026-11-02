@@ -109,18 +109,22 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
     super.dispose();
   }
 
+  static double? parseAmount(String? raw) {
+    if (raw == null) return null;
+    final cleaned = raw.replaceAll(RegExp(r'[\s\u00A0\u202F]'), '').replaceAll(',', '.');
+    return double.tryParse(cleaned);
+  }
+
   String? _validateStep(int step) {
     final form = ref.read(publishFormProvider);
     switch (step) {
       case 1:
         if (form.title.trim().isEmpty) return 'Le titre est obligatoire.';
-        if (RegExp(r'\d').hasMatch(form.description)) {
-          return 'La description ne doit contenir aucun chiffre ni numéro de téléphone. Utilisez uniquement des caractères alphabétiques.';
-        }
         final price = form.transactionType == TransactionType.vente
             ? form.price
             : form.rent;
-        if (price.trim().isEmpty || (double.tryParse(price) ?? 0) <= 0) {
+        final cleanPrice = parseAmount(price);
+        if (cleanPrice == null || cleanPrice <= 0) {
           return form.transactionType == TransactionType.vente
               ? 'Indiquez un prix de vente valide.'
               : 'Indiquez un loyer valide.';
@@ -136,7 +140,7 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
           if (form.coverImageFile == null) {
             return 'La photo de couverture est obligatoire.';
           }
-          if (form.propertyType != PropertyType.terrain &&
+          if (form.propertyType == PropertyType.logement &&
               form.chambreImages.isEmpty) {
             return 'Au moins une photo pour la ou les chambre(s) est obligatoire.';
           }
@@ -276,7 +280,7 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
     final form = ref.read(publishFormProvider);
     final repository = ref.read(propertyRepositoryProvider);
     final priceValue =
-        double.tryParse(
+        parseAmount(
           form.transactionType == TransactionType.vente
               ? form.price
               : form.rent,
@@ -295,10 +299,10 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
           'transaction_type': form.transactionType.name,
           'price': priceValue,
           'deposit': isLocation && form.deposit.trim().isNotEmpty
-              ? double.tryParse(form.deposit)
+              ? parseAmount(form.deposit)
               : null,
           'advance': isLocation && form.advance.trim().isNotEmpty
-              ? double.tryParse(form.advance)
+              ? parseAmount(form.advance)
               : null,
           'city': form.city,
           'commune': form.commune.trim(),
@@ -331,10 +335,10 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
           transactionType: form.transactionType,
           price: priceValue,
           deposit: isLocation && form.deposit.trim().isNotEmpty
-              ? double.tryParse(form.deposit)
+              ? parseAmount(form.deposit)
               : null,
           advance: isLocation && form.advance.trim().isNotEmpty
-              ? double.tryParse(form.advance)
+              ? parseAmount(form.advance)
               : null,
           city: form.city,
           commune: form.commune.trim(),
@@ -1169,13 +1173,18 @@ class _StepPhotos extends ConsumerWidget {
           ),
           const SizedBox(height: AppSpacing.lg),
 
-          // 2. Chambre(s) (obligatoire pour logement/magasin)
+          // 2. Chambre(s) ou espace intérieur
           _PhotoCategorySection(
-            title: isTerrain ? '2. Photos du terrain' : '2. Chambre(s)',
-            subtitle: isTerrain
-                ? 'Facultatif — Vue générale ou détails du terrain.'
-                : 'Obligatoire — Vous pouvez sélectionner plusieurs photos.',
-            isRequired: !isTerrain && form.existingImages.isEmpty,
+            title: isTerrain
+                ? '2. Photos du terrain'
+                : (form.propertyType == PropertyType.magasin
+                    ? '2. Intérieur / Espace commercial'
+                    : '2. Chambre(s)'),
+            subtitle: form.propertyType == PropertyType.logement
+                ? 'Obligatoire — Vous pouvez sélectionner plusieurs photos.'
+                : 'Facultatif — Vous pouvez sélectionner plusieurs photos.',
+            isRequired: form.propertyType == PropertyType.logement &&
+                form.existingImages.isEmpty,
             images: form.chambreImages,
             onPick: () => _pickMultiCategoryPhotos(
               context: context,
@@ -1682,7 +1691,7 @@ class _StepPreview extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final form = ref.watch(publishFormProvider);
     final priceValue =
-        double.tryParse(
+        _PublishScreenState.parseAmount(
           form.transactionType == TransactionType.vente
               ? form.price
               : form.rent,

@@ -88,6 +88,20 @@ class _FakeAgentAuthRepository extends MockAuthRepository {
         phone: '+225070000000',
         whatsapp: '+225070000000',
         role: UserRole.agent,
+        isSuperAdmin: true,
+      );
+}
+
+class _FakeClientAuthRepository extends MockAuthRepository {
+  @override
+  Future<User?> restoreSession() async => const User(
+        id: 'c1',
+        firstName: 'M.',
+        lastName: 'Client',
+        phone: '+225010000000',
+        whatsapp: '+225010000000',
+        role: UserRole.client,
+        isSuperAdmin: false,
       );
 }
 
@@ -213,6 +227,18 @@ void main() {
     );
 
     // Même sur l'onglet Menu (index 0) d'un agent/bailleur : le FAB n'apparaît pas
+    expect(find.byType(FloatingActionButton), findsNothing);
+  });
+
+  testWidgets('le bouton plus est masqué pour les utilisateurs normaux (non super admin)', (tester) async {
+    await _pumpAt(
+      tester,
+      const Size(375, 800),
+      extraOverrides: [
+        authControllerProvider.overrideWith((ref) => AuthController(_FakeClientAuthRepository())),
+      ],
+    );
+
     expect(find.byType(FloatingActionButton), findsNothing);
   });
 }

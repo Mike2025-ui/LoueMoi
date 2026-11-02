@@ -184,14 +184,20 @@ class PropertySerializer(serializers.ModelSerializer):
     def validate_description(self, value):
         if not value:
             return value
+        # Administrateurs / Staff LoueMoi : publication libre sans restriction
+        request = self.context.get("request")
+        if request and request.user and (request.user.is_staff or request.user.is_superuser):
+            return value
+
+        # Anti-contournement pour utilisateurs standards :
+        # Bloque uniquement les véritables séquences de numéros de téléphone (8 chiffres ou plus)
+        # Tout en autorisant les descriptions contenant des chiffres légitimes (pièces, m², étages, etc.)
         import re
-        # Règle anti-contournement d'abonnement :
-        # Empêche l'agent ou le bailleur d'insérer un numéro de téléphone dans la description.
-        # La description doit contenir uniquement des caractères alphabétiques (pas de chiffres).
-        if re.search(r"\d", value):
+        cleaned_digits = re.sub(r"[^\d]", "", value)
+        if len(cleaned_digits) >= 8 and re.search(r"(?:\+?225\s*)?(?:0[157]\d{8}|\d{2}[-\s.]?\d{2}[-\s.]?\d{2}[-\s.]?\d{2}|\d{8,10})", value):
             raise serializers.ValidationError(
-                "La description ne doit contenir aucun chiffre ni numéro de téléphone. "
-                "Utilisez uniquement des caractères alphabétiques."
+                "La description ne doit pas contenir de numéro de téléphone direct. "
+                "Les contacts passent par la plateforme LoueMoi."
             )
         return value
 

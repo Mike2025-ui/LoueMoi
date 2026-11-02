@@ -7,6 +7,7 @@ import '../../../core/constants/app_assets.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../auth/providers/auth_providers.dart';
 import '../../filters/models/filter_params.dart';
 import '../../filters/providers/filter_providers.dart';
 import '../../messaging/providers/message_providers.dart';
@@ -102,9 +103,11 @@ class MainBottomNav extends ConsumerWidget {
       );
     }
 
+    final currentUser = ref.watch(authControllerProvider).valueOrNull;
+    final isSuperAdmin = currentUser?.isSuperAdminUser ?? false;
     final unreadMessages = ref.watch(totalUnreadConversationsCountProvider);
-    // Tout le monde peut désormais proposer / confier un bien à LoueMoi
-    final showPublishFab = currentBranch == 0 && !isFiltersOpen;
+    // Le bouton "+" est réservé exclusivement aux super admins
+    final showPublishFab = currentBranch == 0 && !isFiltersOpen && isSuperAdmin;
 
     Widget navButton(int branchIndex) {
       final item = _items[branchIndex];

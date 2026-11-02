@@ -91,8 +91,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
         skipLoadingOnReload: true,
         data: (property) {
           final currentUser = ref.watch(authControllerProvider).valueOrNull;
-          final isOwner =
-              currentUser != null && currentUser.id == property.agent.id;
+          final isOwner = currentUser != null &&
+              (currentUser.id == property.agent.id || currentUser.isSuperAdminUser);
           if (isOwner) {
             return SafeArea(
               child: Padding(
@@ -661,12 +661,13 @@ class _AProposTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentUser = ref.watch(authControllerProvider).valueOrNull;
-    final isOwner = currentUser != null && currentUser.id == property.agent.id;
+    final isOwner = currentUser != null &&
+        (currentUser.id == property.agent.id || currentUser.isSuperAdminUser);
 
     void showOwnerNotice() {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Vous êtes l'auteur de cette annonce."),
+          content: Text("Vous êtes l'auteur ou l'administrateur de cette annonce."),
           backgroundColor: AppColors.primary,
         ),
       );

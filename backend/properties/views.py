@@ -514,20 +514,27 @@ class PropertyNearbyView(generics.ListAPIView):
 
 
 class MyPropertiesView(generics.ListAPIView):
-    """GET /api/agent/properties/ — uniquement les annonces de l'agent
-    connecté (tous statuts, y compris "occupee", "accomplie", "annulee").
+    """GET /api/agent/properties/ — annonces gérées par l'utilisateur connecté
+    (ou toutes les annonces pour les administrateurs/staff LoueMoi).
     Le filtrage se fait ici, côté Django, jamais côté Flutter."""
 
     serializer_class = PropertySerializer
-    permission_classes = [permissions.IsAuthenticated, IsAgent]
+    permission_classes = [permissions.IsAuthenticated, CanOwnProperties]
 
     def get_queryset(self):
-        qs = (
-            Property.objects.filter(agent=self.request.user)
-            .exclude(status="disabled")
-            .select_related("agent", "agent__agent_profile")
-        )
-        return annotate_property_queryset(qs, self.request.user)
+        user = self.request.user
+        if user.is_staff or user.is_superuser:
+            qs = (
+                Property.objects.exclude(status="disabled")
+                .select_related("agent", "agent__agent_profile")
+            )
+        else:
+            qs = (
+                Property.objects.filter(agent=user)
+                .exclude(status="disabled")
+                .select_related("agent", "agent__agent_profile")
+            )
+        return annotate_property_queryset(qs, user)
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
