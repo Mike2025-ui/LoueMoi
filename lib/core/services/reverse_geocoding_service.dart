@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:dio/dio.dart';
 import '../utils/geo.dart';
 
@@ -92,7 +91,7 @@ class ReverseGeocodingService {
       );
 
       final data = response.data;
-      if (data != null && data is Map<String, dynamic>) {
+      if (data != null) {
         final address = data['address'];
         final displayName = (data['display_name'] as String?) ?? '';
 

@@ -79,8 +79,10 @@ class _FiltersSheetState extends ConsumerState<FiltersSheet> {
     final draft = ref.read(draftFilterParamsProvider);
     // Si déjà sélectionné, on peut désélectionner (revenir à tous les types)
     if (draft.propertyType == type) {
-      ref.read(draftFilterParamsProvider.notifier).state =
-          draft.copyWith(clearPropertyType: true, clearCategory: true);
+      ref.read(draftFilterParamsProvider.notifier).state = draft.copyWith(
+        clearPropertyType: true,
+        clearCategory: true,
+      );
       return;
     }
     String? category;
@@ -95,14 +97,18 @@ class _FiltersSheetState extends ConsumerState<FiltersSheet> {
         category = 'Magasin';
         break;
     }
-    ref.read(draftFilterParamsProvider.notifier).state =
-        draft.copyWith(propertyType: type, category: category);
+    ref.read(draftFilterParamsProvider.notifier).state = draft.copyWith(
+      propertyType: type,
+      category: category,
+    );
   }
 
   void _search() {
     final draft = ref.read(draftFilterParamsProvider);
     double? parseAmount(String raw) {
-      final cleaned = raw.replaceAll(RegExp(r'[\s\u00A0\u202F]'), '').replaceAll(',', '.');
+      final cleaned = raw
+          .replaceAll(RegExp(r'[\s\u00A0\u202F]'), '')
+          .replaceAll(',', '.');
       return double.tryParse(cleaned);
     }
 
@@ -131,7 +137,8 @@ class _FiltersSheetState extends ConsumerState<FiltersSheet> {
     // Location/Vente affiché sur HomeScreen (voir _effectiveFilters côté
     // property_providers.dart) — sans cette synchronisation, choisir
     // "Vente" ici n'aurait aucun effet sur la recherche réellement lancée.
-    ref.read(homeTransactionTypeProvider.notifier).state = updated.transactionType;
+    ref.read(homeTransactionTypeProvider.notifier).state =
+        updated.transactionType;
     Navigator.of(context, rootNavigator: true).pop();
   }
 
@@ -156,7 +163,8 @@ class _FiltersSheetState extends ConsumerState<FiltersSheet> {
               child: Row(
                 children: [
                   InkWell(
-                    onTap: () => Navigator.of(context, rootNavigator: true).pop(),
+                    onTap: () =>
+                        Navigator.of(context, rootNavigator: true).pop(),
                     child: const Icon(Icons.close, size: 22),
                   ),
                   const Expanded(
@@ -171,16 +179,21 @@ class _FiltersSheetState extends ConsumerState<FiltersSheet> {
                       // Réinitialise tout (brouillon + filtres appliqués)
                       // sauf Location/Vente, qui reste piloté par le toggle
                       // déjà visible sur HomeScreen.
-                      final resetDraft =
-                          const FilterParams().copyWith(transactionType: draft.transactionType);
+                      final resetDraft = const FilterParams().copyWith(
+                        transactionType: draft.transactionType,
+                      );
                       notifier.state = resetDraft;
-                      ref.read(appliedFilterParamsProvider.notifier).state = null;
+                      ref.read(appliedFilterParamsProvider.notifier).state =
+                          null;
                       _communeController.clear();
                       _quartierController.clear();
                       _budgetMinController.clear();
                       _budgetMaxController.clear();
                     },
-                    child: const Text('Réinitialiser', style: AppTextStyles.link),
+                    child: const Text(
+                      'Réinitialiser',
+                      style: AppTextStyles.link,
+                    ),
                   ),
                 ],
               ),
@@ -207,7 +220,8 @@ class _FiltersSheetState extends ConsumerState<FiltersSheet> {
                               FilterToggleChip(
                                 label: 'Location',
                                 isActive:
-                                    draft.transactionType == TransactionType.location,
+                                    draft.transactionType ==
+                                    TransactionType.location,
                                 onTap: () => notifier.state = draft.copyWith(
                                   transactionType: TransactionType.location,
                                 ),
@@ -215,7 +229,9 @@ class _FiltersSheetState extends ConsumerState<FiltersSheet> {
                               const SizedBox(width: AppSpacing.md),
                               FilterToggleChip(
                                 label: 'Vente',
-                                isActive: draft.transactionType == TransactionType.vente,
+                                isActive:
+                                    draft.transactionType ==
+                                    TransactionType.vente,
                                 onTap: () => notifier.state = draft.copyWith(
                                   transactionType: TransactionType.vente,
                                 ),
@@ -233,10 +249,13 @@ class _FiltersSheetState extends ConsumerState<FiltersSheet> {
                                     Checkbox(
                                       value: draft.isFuture,
                                       activeColor: AppColors.primary,
-                                      onChanged: (v) =>
-                                          notifier.state = draft.copyWith(isFuture: v),
+                                      onChanged: (v) => notifier.state = draft
+                                          .copyWith(isFuture: v),
                                     ),
-                                    const Text('Bien futur', style: AppTextStyles.caption),
+                                    const Text(
+                                      'Bien futur',
+                                      style: AppTextStyles.caption,
+                                    ),
                                   ],
                                 ),
                             ],
@@ -247,8 +266,10 @@ class _FiltersSheetState extends ConsumerState<FiltersSheet> {
                             controller: _communeController,
                             onChanged: (v) =>
                                 notifier.state = draft.copyWith(commune: v),
-                            suffixIcon:
-                                const Icon(Icons.my_location, color: AppColors.textHint),
+                            suffixIcon: const Icon(
+                              Icons.my_location,
+                              color: AppColors.textHint,
+                            ),
                           ),
                           const SizedBox(height: AppSpacing.md),
                           const Text('Quartier', style: AppTextStyles.label),
@@ -258,8 +279,10 @@ class _FiltersSheetState extends ConsumerState<FiltersSheet> {
                             controller: _quartierController,
                             onChanged: (v) =>
                                 notifier.state = draft.copyWith(district: v),
-                            suffixIcon:
-                                const Icon(Icons.my_location, color: AppColors.textHint),
+                            suffixIcon: const Icon(
+                              Icons.my_location,
+                              color: AppColors.textHint,
+                            ),
                           ),
                           const SizedBox(height: AppSpacing.lg),
                         ],
@@ -280,20 +303,26 @@ class _FiltersSheetState extends ConsumerState<FiltersSheet> {
                             children: [
                               FilterToggleChip(
                                 label: 'Logement',
-                                isActive: draft.propertyType == PropertyType.logement,
-                                onTap: () => _selectPropertyType(PropertyType.logement),
+                                isActive:
+                                    draft.propertyType == PropertyType.logement,
+                                onTap: () =>
+                                    _selectPropertyType(PropertyType.logement),
                               ),
                               const SizedBox(width: AppSpacing.sm),
                               FilterToggleChip(
                                 label: 'Terrain',
-                                isActive: draft.propertyType == PropertyType.terrain,
-                                onTap: () => _selectPropertyType(PropertyType.terrain),
+                                isActive:
+                                    draft.propertyType == PropertyType.terrain,
+                                onTap: () =>
+                                    _selectPropertyType(PropertyType.terrain),
                               ),
                               const SizedBox(width: AppSpacing.sm),
                               FilterToggleChip(
                                 label: 'Magasin',
-                                isActive: draft.propertyType == PropertyType.magasin,
-                                onTap: () => _selectPropertyType(PropertyType.magasin),
+                                isActive:
+                                    draft.propertyType == PropertyType.magasin,
+                                onTap: () =>
+                                    _selectPropertyType(PropertyType.magasin),
                               ),
                             ],
                           ),
@@ -302,13 +331,16 @@ class _FiltersSheetState extends ConsumerState<FiltersSheet> {
                             Wrap(
                               spacing: AppSpacing.sm,
                               runSpacing: AppSpacing.sm,
-                              children: AppConstants.logementCategories.map((c) {
+                              children: AppConstants.logementCategories.map((
+                                c,
+                              ) {
                                 return FilterToggleChip(
                                   label: c,
                                   isActive: draft.category == c,
                                   expanded: false,
-                                  onTap: () =>
-                                      notifier.state = draft.copyWith(category: c),
+                                  onTap: () => notifier.state = draft.copyWith(
+                                    category: c,
+                                  ),
                                 );
                               }).toList(),
                             ),
@@ -334,8 +366,10 @@ class _FiltersSheetState extends ConsumerState<FiltersSheet> {
                             hint: 'Budget minimun',
                             controller: _budgetMinController,
                             keyboardType: TextInputType.number,
-                            suffixIcon:
-                                const Icon(Icons.savings_outlined, color: AppColors.textHint),
+                            suffixIcon: const Icon(
+                              Icons.savings_outlined,
+                              color: AppColors.textHint,
+                            ),
                           ),
                           const SizedBox(height: AppSpacing.md),
                           const Text('Maximun', style: AppTextStyles.label),
@@ -344,8 +378,10 @@ class _FiltersSheetState extends ConsumerState<FiltersSheet> {
                             hint: 'Budget maximun',
                             controller: _budgetMaxController,
                             keyboardType: TextInputType.number,
-                            suffixIcon:
-                                const Icon(Icons.savings_outlined, color: AppColors.textHint),
+                            suffixIcon: const Icon(
+                              Icons.savings_outlined,
+                              color: AppColors.textHint,
+                            ),
                           ),
                         ],
                       ),

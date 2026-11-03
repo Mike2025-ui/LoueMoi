@@ -13,6 +13,7 @@ import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_map_view.dart';
 import '../../../core/widgets/property_image.dart';
 import '../../../core/widgets/status_badge.dart';
+import '../../auth/providers/auth_providers.dart';
 import '../../properties/models/property.dart';
 import '../../properties/providers/property_providers.dart';
 import '../providers/map_providers.dart';
@@ -119,6 +120,23 @@ class _PropertyMapScreenState extends ConsumerState<PropertyMapScreen> {
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(),
                                 onPressed: () async {
+                                  final user = ref.read(authControllerProvider).valueOrNull;
+                                  if (user == null) {
+                                    ScaffoldMessenger.of(sheetContext).showSnackBar(
+                                      SnackBar(
+                                        content: const Text(
+                                          'Veuillez vous connecter pour gérer vos favoris.',
+                                        ),
+                                        backgroundColor: AppColors.primary,
+                                        action: SnackBarAction(
+                                          label: 'Se connecter',
+                                          textColor: AppColors.white,
+                                          onPressed: () => context.push(AppRoutes.login),
+                                        ),
+                                      ),
+                                    );
+                                    return;
+                                  }
                                   try {
                                     await toggleFavorite(ref, property.id);
                                   } catch (e) {

@@ -29,16 +29,27 @@ class AgentSearchResult extends Equatable {
   String get fullName => '$firstName $lastName'.trim();
 
   factory AgentSearchResult.fromJson(Map<String, dynamic> json) {
+    final rawVerified = json['is_verified'];
+    final isVerified =
+        rawVerified == true ||
+        rawVerified == 1 ||
+        rawVerified?.toString().toLowerCase() == 'true';
+
+    final rawRating = json['rating'];
+    final double rating = rawRating is num
+        ? rawRating.toDouble()
+        : (double.tryParse(rawRating?.toString() ?? '') ?? 0.0);
+
     return AgentSearchResult(
-      id: json['id'].toString(),
-      firstName: json['first_name'] as String,
-      lastName: json['last_name'] as String,
-      photo: json['photo'] as String?,
-      phone: json['phone'] as String? ?? '',
-      agencyName: json['agency_name'] as String? ?? '',
-      description: json['description'] as String? ?? '',
-      rating: (json['rating'] as num?)?.toDouble() ?? 0,
-      isVerified: json['is_verified'] as bool? ?? false,
+      id: json['id']?.toString() ?? '',
+      firstName: json['first_name']?.toString() ?? '',
+      lastName: json['last_name']?.toString() ?? '',
+      photo: json['photo']?.toString(),
+      phone: json['phone']?.toString() ?? '',
+      agencyName: json['agency_name']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      rating: rating,
+      isVerified: isVerified,
     );
   }
 

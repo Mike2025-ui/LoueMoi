@@ -50,8 +50,8 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     _markRead();
     _pollTimer = Timer.periodic(const Duration(seconds: 4), (_) {
       if (mounted) {
-        ref.refresh(messagesProvider(widget.conversationId));
-        ref.refresh(conversationsProvider);
+        final _ = ref.refresh(messagesProvider(widget.conversationId));
+        final _ = ref.refresh(conversationsProvider);
         _markRead();
       }
     });

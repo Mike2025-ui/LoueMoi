@@ -933,6 +933,20 @@ class _StepLocalisationState extends ConsumerState<_StepLocalisation>
     'Bingerville',
   ];
 
+  static const _communeCoords = <String, LatLng>{
+    'Cocody': LatLng(5.359951, -3.985000),
+    'Plateau': LatLng(5.323000, -4.019000),
+    'Yopougon': LatLng(5.340000, -4.080000),
+    'Marcory': LatLng(5.300000, -3.980000),
+    'Koumassi': LatLng(5.290000, -3.950000),
+    'Treichville': LatLng(5.305000, -4.010000),
+    'Port-Bouët': LatLng(5.250000, -3.930000),
+    'Abobo': LatLng(5.420000, -4.020000),
+    'Adjamé': LatLng(5.360000, -4.030000),
+    'Attécoubé': LatLng(5.330000, -4.040000),
+    'Bingerville': LatLng(5.355000, -3.890000),
+  };
+
   @override
   void initState() {
     super.initState();
@@ -957,6 +971,12 @@ class _StepLocalisationState extends ConsumerState<_StepLocalisation>
     ref.read(publishFormProvider.notifier).state = ref
         .read(publishFormProvider)
         .copyWith(commune: commune);
+    final target = _communeCoords[commune];
+    if (target != null) {
+      try {
+        _mapController.move(target, 13);
+      } catch (_) {}
+    }
   }
 
   void _setPosition(double latitude, double longitude) {
@@ -979,7 +999,11 @@ class _StepLocalisationState extends ConsumerState<_StepLocalisation>
         .copyWith(clearLocation: true);
   }
 
-  Future<void> _geocodeAndFill(double lat, double lng) async {
+  Future<void> _geocodeAndFill(
+    double lat,
+    double lng, {
+    bool isGps = false,
+  }) async {
     final res = await ReverseGeocodingService().reverseGeocode(lat, lng);
     if (!mounted) return;
     final currentForm = ref.read(publishFormProvider);
@@ -988,19 +1012,22 @@ class _StepLocalisationState extends ConsumerState<_StepLocalisation>
     String nextCity = currentForm.city;
     String nextAddress = currentForm.address;
 
-    if (_communeCtrl.text.trim().isEmpty && res.commune != null) {
+    if (res.commune != null && (isGps || _communeCtrl.text.trim().isEmpty)) {
       _communeCtrl.text = res.commune!;
       nextCommune = res.commune!;
     }
-    if (_districtCtrl.text.trim().isEmpty && res.district != null) {
+    if (res.district != null && (isGps || _districtCtrl.text.trim().isEmpty)) {
       _districtCtrl.text = res.district!;
       nextDistrict = res.district!;
     }
-    if (_cityCtrl.text.trim().isEmpty && res.city != null) {
+    if (res.city != null &&
+        (isGps ||
+            _cityCtrl.text.trim().isEmpty ||
+            _cityCtrl.text.trim() == 'Abidjan')) {
       _cityCtrl.text = res.city!;
       nextCity = res.city!;
     }
-    if (_addressCtrl.text.trim().isEmpty && res.address != null) {
+    if (res.address != null && (isGps || _addressCtrl.text.trim().isEmpty)) {
       _addressCtrl.text = res.address!;
       nextAddress = res.address!;
     }
@@ -1025,7 +1052,7 @@ class _StepLocalisationState extends ConsumerState<_StepLocalisation>
       return;
     }
     _setPosition(result.latitude!, result.longitude!);
-    await _geocodeAndFill(result.latitude!, result.longitude!);
+    await _geocodeAndFill(result.latitude!, result.longitude!, isGps: true);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -1170,7 +1197,7 @@ class _StepLocalisationState extends ConsumerState<_StepLocalisation>
                     : const [],
                 onTap: (point) {
                   _setPosition(point.latitude, point.longitude);
-                  _geocodeAndFill(point.latitude, point.longitude);
+                  _geocodeAndFill(point.latitude, point.longitude, isGps: true);
                 },
               ),
             ),

@@ -68,18 +68,34 @@ class AppNotification extends Equatable {
   }
 
   factory AppNotification.fromJson(Map<String, dynamic> json) {
-    final rawType = json['type'] as String? ?? '';
+    final rawType = json['type']?.toString() ?? '';
+    final rawRead = json['is_read'];
+    final isRead =
+        rawRead == true ||
+        rawRead == 1 ||
+        rawRead?.toString().toLowerCase() == 'true';
+
+    final rawData = json['data'];
+    final Map<String, dynamic> safeData;
+    if (rawData is Map<String, dynamic>) {
+      safeData = rawData;
+    } else if (rawData is Map) {
+      safeData = Map<String, dynamic>.from(rawData);
+    } else {
+      safeData = const {};
+    }
+
     return AppNotification(
-      id: json['id'].toString(),
-      title: json['title'] as String? ?? '',
-      message: json['body'] as String? ?? '',
+      id: json['id']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
+      message: (json['body'] ?? json['message'])?.toString() ?? '',
       type: _categoryFor(rawType),
       rawType: rawType,
-      data: (json['data'] as Map?)?.cast<String, dynamic>() ?? const {},
+      data: safeData,
       createdAt: json['created_at'] != null
           ? (DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now())
           : DateTime.now(),
-      isRead: json['is_read'] as bool? ?? false,
+      isRead: isRead,
     );
   }
 

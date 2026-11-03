@@ -22,7 +22,11 @@ class MessageBubble extends StatelessWidget {
   bool get _isNetworkAttachment {
     final raw = message.attachmentUrl ?? '';
     if (raw.startsWith('http://') || raw.startsWith('https://')) return true;
-    if (raw.startsWith('/media/') || raw.startsWith('media/') || raw.startsWith('/')) return true;
+    if (raw.startsWith('/media/') ||
+        raw.startsWith('media/') ||
+        raw.startsWith('/')) {
+      return true;
+    }
     return false;
   }
 

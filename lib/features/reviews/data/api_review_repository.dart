@@ -15,12 +15,19 @@ class ApiReviewRepository implements ReviewRepository {
       ApiEndpoints.propertyReviews(propertyId),
       query: {'page_size': 100},
     );
-    // PropertyReviewListCreateView hérite de DefaultPagination (comme
-    // /api/properties/) : même enveloppe {count,next,previous,results}.
-    final results = response.data!['results'] as List;
-    return results
-        .map((json) => Review.fromJson(json as Map<String, dynamic>))
-        .toList();
+    final data = response.data;
+    if (data == null) return const [];
+    final rawResults = data['results'] ?? data;
+    if (rawResults is! List) return const [];
+    final results = <Review>[];
+    for (final item in rawResults) {
+      if (item is Map) {
+        try {
+          results.add(Review.fromJson(Map<String, dynamic>.from(item)));
+        } catch (_) {}
+      }
+    }
+    return results;
   }
 
   @override
@@ -33,6 +40,17 @@ class ApiReviewRepository implements ReviewRepository {
       ApiEndpoints.propertyReviews(propertyId),
       data: {'comment': comment, 'rating': rating},
     );
+    if (response.data == null) {
+      return Review(
+        id: '',
+        propertyId: propertyId,
+        userId: '',
+        userName: 'Moi',
+        rating: rating,
+        comment: comment,
+        createdAt: DateTime.now(),
+      );
+    }
     return Review.fromJson(response.data!);
   }
 }

@@ -17,14 +17,22 @@ class ApiNotificationRepository implements NotificationRepository {
       ApiEndpoints.notifications,
       query: {'page_size': 100},
     );
-    final results = response.data!['results'] as List;
-    return results
-        .map((json) => AppNotification.fromJson(json as Map<String, dynamic>))
-        .where(
-          (n) =>
-              n.rawType != 'new_message' && n.type != NotificationType.message,
-        )
-        .toList();
+    final data = response.data;
+    if (data == null) return const [];
+    final rawResults = data['results'] ?? data;
+    if (rawResults is! List) return const [];
+    final results = <AppNotification>[];
+    for (final item in rawResults) {
+      if (item is Map) {
+        try {
+          final n = AppNotification.fromJson(Map<String, dynamic>.from(item));
+          if (n.rawType != 'new_message' && n.type != NotificationType.message) {
+            results.add(n);
+          }
+        } catch (_) {}
+      }
+    }
+    return results;
   }
 
   @override

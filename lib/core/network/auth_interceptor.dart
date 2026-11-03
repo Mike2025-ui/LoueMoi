@@ -28,10 +28,14 @@ class AuthInterceptor extends Interceptor {
 
   @override
   Future<void> onError(DioException err, ErrorInterceptorHandler handler) async {
-    final isAuthEndpoint = err.requestOptions.path.contains('/auth/');
+    final path = err.requestOptions.path;
+    final isUnauthenticatedAuthEndpoint = path.contains('/auth/login') ||
+        path.contains('/auth/register') ||
+        path.contains('/auth/refresh') ||
+        path.contains('/auth/password-reset');
     final alreadyRetried = err.requestOptions.extra['retried'] == true;
 
-    if (err.response?.statusCode != 401 || isAuthEndpoint || alreadyRetried) {
+    if (err.response?.statusCode != 401 || isUnauthenticatedAuthEndpoint || alreadyRetried) {
       handler.next(err);
       return;
     }

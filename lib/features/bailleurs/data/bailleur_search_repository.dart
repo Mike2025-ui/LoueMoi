@@ -23,10 +23,21 @@ class ApiBailleurSearchRepository implements BailleurSearchRepository {
         if (city != null && city.isNotEmpty) 'city': city,
       },
     );
-    final results = response.data!['results'] as List;
-    return results
-        .map((json) => BailleurSearchResult.fromJson(json as Map<String, dynamic>))
-        .toList();
+    final data = response.data;
+    if (data == null) return const [];
+    final rawResults = data['results'] ?? data;
+    if (rawResults is! List) return const [];
+    final results = <BailleurSearchResult>[];
+    for (final item in rawResults) {
+      if (item is Map) {
+        try {
+          results.add(
+            BailleurSearchResult.fromJson(Map<String, dynamic>.from(item)),
+          );
+        } catch (_) {}
+      }
+    }
+    return results;
   }
 }
 

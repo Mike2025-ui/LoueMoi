@@ -14,8 +14,10 @@ class NotificationRouter {
   String? resolvePath(String type, Map<String, dynamic> data) {
     switch (type) {
       case 'new_message':
-        final conversationId = data['conversation_id']?.toString();
-        return conversationId == null ? null : AppRoutes.conversationPath(conversationId);
+        final conversationId = data['conversation_id']?.toString().trim();
+        return (conversationId == null || conversationId.isEmpty)
+            ? null
+            : AppRoutes.conversationPath(conversationId);
 
       case 'reservation_created':
       case 'reservation_confirmed':
@@ -26,16 +28,20 @@ class NotificationRouter {
       case 'property_occupied':
       case 'property_available':
       case 'new_favorite':
-        final propertyId = data['property_id']?.toString();
-        return propertyId == null ? null : AppRoutes.propertyDetailPath(propertyId);
+        final propertyId = data['property_id']?.toString().trim();
+        return (propertyId == null || propertyId.isEmpty)
+            ? null
+            : AppRoutes.propertyDetailPath(propertyId);
 
       case 'new_review':
         // Pas d'écran dédié "avis" : les avis d'une annonce s'affichent dans
         // l'onglet "Avis" de PropertyDetailScreen, jamais une route séparée
         // (AppRoutes.propertyReviews n'est enregistrée dans aucune GoRoute —
         // y renvoyer plantait la navigation avec une "no matching route").
-        final propertyId = data['property_id']?.toString();
-        return propertyId == null ? null : AppRoutes.propertyDetailPath(propertyId);
+        final propertyId = data['property_id']?.toString().trim();
+        return (propertyId == null || propertyId.isEmpty)
+            ? null
+            : AppRoutes.propertyDetailPath(propertyId);
 
       case 'admin_broadcast':
       case 'subscription_expiring':

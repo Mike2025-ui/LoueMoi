@@ -278,8 +278,28 @@ class Property extends Equatable {
     return raw.startsWith('/') ? '$base$raw' : '$base/$raw';
   }
 
+  Map<String, dynamic> toCreatePayload() => {
+    'title': title,
+    'description': description,
+    'type': type.name,
+    'category': category,
+    'transaction_type': transactionType.name,
+    'price': price,
+    if (deposit != null) 'deposit': deposit,
+    if (advance != null) 'advance': advance,
+    'city': city,
+    'commune': commune,
+    'district': district,
+    'address': address,
+    if (latitude != null) 'latitude': normalizeCoordinate(latitude),
+    if (longitude != null) 'longitude': normalizeCoordinate(longitude),
+    'status': status.name,
+    'features': features,
+    'amenities': amenities,
+  };
+
   Map<String, dynamic> toJson() => {
-    'id': id,
+    if (id.isNotEmpty && id != 'draft') 'id': id,
     'title': title,
     'description': description,
     'type': type.name,

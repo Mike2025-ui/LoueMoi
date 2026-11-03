@@ -25,11 +25,11 @@ class BailleurSearchResult extends Equatable {
 
   factory BailleurSearchResult.fromJson(Map<String, dynamic> json) {
     return BailleurSearchResult(
-      id: json['id'].toString(),
-      firstName: json['first_name'] as String,
-      lastName: json['last_name'] as String,
-      photo: json['photo'] as String?,
-      phone: json['phone'] as String? ?? '',
+      id: json['id']?.toString() ?? '',
+      firstName: json['first_name']?.toString() ?? '',
+      lastName: json['last_name']?.toString() ?? '',
+      photo: json['photo']?.toString(),
+      phone: json['phone']?.toString() ?? '',
     );
   }
 

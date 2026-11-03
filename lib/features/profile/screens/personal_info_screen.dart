@@ -37,31 +37,31 @@ class PersonalInfoScreen extends ConsumerWidget {
           children: [
             AppTextField(
               label: 'Prénom',
-              controller: TextEditingController(text: user?.firstName ?? ''),
+              initialValue: user?.firstName ?? '',
               enabled: false,
             ),
             const SizedBox(height: AppSpacing.md),
             AppTextField(
               label: 'Nom',
-              controller: TextEditingController(text: user?.lastName ?? ''),
+              initialValue: user?.lastName ?? '',
               enabled: false,
             ),
             const SizedBox(height: AppSpacing.md),
             AppTextField(
               label: 'Téléphone',
-              controller: TextEditingController(text: user?.phone ?? ''),
+              initialValue: user?.phone ?? '',
               enabled: false,
             ),
             const SizedBox(height: AppSpacing.md),
             AppTextField(
               label: 'WhatsApp',
-              controller: TextEditingController(text: user?.whatsapp ?? ''),
+              initialValue: user?.whatsapp ?? '',
               enabled: false,
             ),
             const SizedBox(height: AppSpacing.md),
             AppTextField(
               label: 'Rôle',
-              controller: TextEditingController(text: _roleLabel(user)),
+              initialValue: _roleLabel(user),
               enabled: false,
             ),
             if (user?.agentProfile != null) ...[
@@ -72,13 +72,13 @@ class PersonalInfoScreen extends ConsumerWidget {
               const SizedBox(height: AppSpacing.md),
               AppTextField(
                 label: 'Agence',
-                controller: TextEditingController(text: user!.agentProfile!.agencyName),
+                initialValue: user!.agentProfile!.agencyName,
                 enabled: false,
               ),
               const SizedBox(height: AppSpacing.md),
               AppTextField(
                 label: 'Description',
-                controller: TextEditingController(text: user.agentProfile!.description),
+                initialValue: user.agentProfile!.description,
                 enabled: false,
                 maxLines: 3,
               ),

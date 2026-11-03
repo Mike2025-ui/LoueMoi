@@ -109,7 +109,7 @@ class ApiPropertyRepository implements PropertyRepository {
   Future<Property> addProperty(Property property) async {
     final response = await _apiClient.post<Map<String, dynamic>>(
       ApiEndpoints.properties,
-      data: property.toJson(),
+      data: property.toCreatePayload(),
     );
     if (response.data == null) {
       throw const UnknownApiException(
@@ -285,10 +285,8 @@ class ApiPropertyRepository implements PropertyRepository {
       ApiEndpoints.properties,
       query: {'agent': ownerId, 'page_size': 100},
     );
-    final results = response.data!['results'] as List;
-    return results
-        .map((json) => Property.fromJson(json as Map<String, dynamic>))
-        .toList();
+    if (response.data == null) return const [];
+    return _parsePage(response.data!, excludeClosed: false).results;
   }
 
   @override
