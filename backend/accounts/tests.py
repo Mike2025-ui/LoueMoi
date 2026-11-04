@@ -365,6 +365,25 @@ class PasswordResetTests(APITestCase):
         self.assertEqual(login.status_code, status.HTTP_403_FORBIDDEN)
 
 
+
+    def test_otp_code_is_strictly_six_digits(self):
+        otp, code = PasswordResetOTP.generate_for(self.user)
+        self.assertEqual(len(code), 6)
+        self.assertTrue(code.isdigit())
+        self.assertTrue(otp.check_code(code))
+
+    def test_reset_password_with_national_phone_format(self):
+        # self.user.phone est +2250700000040. Envoi avec "0700000040"
+        self._request_with_fixed_code("0700000040", code="654321")
+        response = self.client.post(
+            "/api/auth/password-reset/confirm/",
+            {"phone": "07 00 00 00 40", "code": "654321", "new_password": "nouveau-mdp-123"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("nouveau-mdp-123"))
+
 class DeactivateAccountTests(APITestCase):
     """Décision métier retenue : désactivation (is_active=False), jamais de
     suppression physique. Vérifie le cycle complet : mot de passe requis,

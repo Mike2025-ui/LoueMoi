@@ -370,6 +370,11 @@ def jeko_webhook(request):
         return JsonResponse({"received": True, "warning": "Référence inconnue"}, status=200)
 
     if is_jeko_status_success(tx_status):
+        # Protection anti-rejeu et idempotence : si l'abonnement est déjà actif, ne pas recalculer
+        if sub.status == Subscription.STATUS_ACTIVE:
+            logger.info(f"Abonnement {sub.reference} déjà actif (webhook ignoré/idempotent).")
+            return JsonResponse({"received": True, "already_active": True}, status=200)
+
         # Défense en profondeur : si JEKO_WEBHOOK_SECRET n'est pas configuré mais que les clés API Jèko
         # sont présentes en production, vérifier l'état réel de la transaction auprès de l'API Jèko.
         has_jeko_keys = bool(getattr(settings, "JEKO_API_KEY", "") and getattr(settings, "JEKO_API_KEY_ID", ""))

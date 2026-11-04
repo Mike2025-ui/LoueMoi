@@ -155,10 +155,23 @@ class ConversationSerializer(serializers.ModelSerializer):
         # Le destinataire d'une conversation peut être un agent, un bailleur,
         # un membre du staff / administrateur LoueMoi, ou tout utilisateur
         # propriétaire d'une annonce immobilière sur la plateforme.
+        request = self.context.get("request")
+        current_user = request.user if request else None
+
+        if current_user and current_user == value:
+            raise serializers.ValidationError("Vous ne pouvez pas démarrer une conversation avec vous-même.")
+
+        # Si l'initiateur est un agent, bailleur ou staff, il peut initier une conversation avec un client
+        if current_user and (
+            current_user.role in (User.ROLE_AGENT, User.ROLE_BAILLEUR, User.ROLE_ADMIN)
+            or current_user.is_staff
+        ):
+            return value
+
         from properties.models import Property
 
         is_allowed = (
-            value.role in (User.ROLE_AGENT, User.ROLE_BAILLEUR)
+            value.role in (User.ROLE_AGENT, User.ROLE_BAILLEUR, User.ROLE_ADMIN)
             or value.is_staff
             or Property.objects.filter(agent=value).exists()
         )

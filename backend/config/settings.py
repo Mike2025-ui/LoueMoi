@@ -33,28 +33,28 @@ for _candidate in [BASE_DIR / ".env", BASE_DIR.parent / ".env", Path("/var/www/l
 _SECRET_KEY_ENV = os.environ.get("DJANGO_SECRET_KEY")
 _SECRET_FILE = BASE_DIR / ".secret_key"
 
-DEBUG = os.environ.get("DJANGO_DEBUG", "True").lower() in ("true", "1", "yes")
+DEBUG = os.environ.get("DJANGO_DEBUG", "False").lower() in ("true", "1", "yes")
 
 if _SECRET_KEY_ENV:
     SECRET_KEY = _SECRET_KEY_ENV
-elif not DEBUG:
-    if _SECRET_FILE.exists():
+elif _SECRET_FILE.exists():
+    try:
         SECRET_KEY = _SECRET_FILE.read_text().strip()
-    else:
+    except Exception:
         SECRET_KEY = secrets.token_urlsafe(64)
-        try:
-            _SECRET_FILE.write_text(SECRET_KEY)
-            _SECRET_FILE.chmod(0o600)
-        except Exception:
-            pass
 else:
-    SECRET_KEY = "django-insecure-0^gqu*mhq#bm@drivr56&hnruln=$0eoa*mx_t*1ek=b*4_q8b"
+    SECRET_KEY = secrets.token_urlsafe(64)
+    try:
+        _SECRET_FILE.write_text(SECRET_KEY)
+        _SECRET_FILE.chmod(0o600)
+    except Exception:
+        pass
 
 _raw_allowed = os.environ.get("DJANGO_ALLOWED_HOSTS", "").strip()
 if _raw_allowed:
     ALLOWED_HOSTS = [h.strip() for h in _raw_allowed.split(",") if h.strip()]
 elif DEBUG:
-    ALLOWED_HOSTS = ["*"]
+    ALLOWED_HOSTS = ["127.0.0.1", "localhost", "testserver"]
 else:
     ALLOWED_HOSTS = ["transfert-online.site", "www.transfert-online.site", "127.0.0.1", "localhost"]
 
@@ -221,7 +221,7 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(hours=6),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
@@ -263,8 +263,8 @@ JEKO_SIMULATION_MODE = os.environ.get("JEKO_SIMULATION_MODE", "").strip().lower(
 
 
 # --- CORS --------------------------------------------------------------
-# Dev uniquement : l'app mobile n'a pas d'origine web à restreindre.
-CORS_ALLOW_ALL_ORIGINS = DEBUG
+# En dev local, l'app mobile n'a pas d'origine web à restreindre.
+CORS_ALLOW_ALL_ORIGINS = os.environ.get("DJANGO_CORS_ALLOW_ALL", "").lower() in ("true", "1")
 _raw_cors = os.environ.get("DJANGO_CORS_ALLOWED_ORIGINS", "").strip()
 if _raw_cors:
     CORS_ALLOWED_ORIGINS = [origin.strip() for origin in _raw_cors.split(",") if origin.strip()]

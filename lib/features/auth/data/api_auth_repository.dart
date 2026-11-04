@@ -78,11 +78,12 @@ class ApiAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<void> requestPasswordReset(String phone) async {
-    await _apiClient.post<Map<String, dynamic>>(
+  Future<Map<String, dynamic>> requestPasswordReset(String phone) async {
+    final response = await _apiClient.post<Map<String, dynamic>>(
       ApiEndpoints.passwordResetRequest,
       data: {'phone': phone},
     );
+    return response.data ?? const {};
   }
 
   @override

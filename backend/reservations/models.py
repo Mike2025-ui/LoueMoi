@@ -38,6 +38,13 @@ class Reservation(models.Model):
                 name="res_user_status_idx",
             ),
         ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "property"],
+                condition=~models.Q(status="annulee"),
+                name="unique_active_user_property_res",
+            ),
+        ]
 
     def total(self):
         # Note : le champ FK ci-dessus s'appelle `property`, ce qui masque le

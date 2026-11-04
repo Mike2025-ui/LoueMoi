@@ -1,6 +1,7 @@
 from datetime import timedelta
 import logging
 import os
+import re
 import uuid
 from PIL import Image
 
@@ -272,11 +273,17 @@ class PasswordResetRequestView(APIView):
             return Response({"detail": _GENERIC_OTP_REQUEST_DETAIL})
 
         from .sms import _mask_phone, normalize_phone_number
-        normalized_phone = normalize_phone_number(phone)
-        candidate_phones = {p for p in (phone.strip(), normalized_phone) if p}
+        clean_raw = re.sub(r"[^\d+]", "", str(phone))
+        normalized_phone = normalize_phone_number(clean_raw or str(phone))
+        candidate_phones = {p for p in (str(phone).strip(), clean_raw, normalized_phone) if p}
         if normalized_phone.startswith("+225"):
-            candidate_phones.add(normalized_phone[4:])   # e.g. "0701020304"
+            national = normalized_phone[4:]
+            candidate_phones.add(national)   # e.g. "0701020304"
             candidate_phones.add(normalized_phone[1:])   # e.g. "2250701020304"
+            if national.startswith("0"):
+                candidate_phones.add(national[1:])   # e.g. "701020304"
+                candidate_phones.add(f"+225{national[1:]}")
+                candidate_phones.add(f"225{national[1:]}")
 
         user = User.objects.filter(phone__in=candidate_phones).first()
         if user is None:
@@ -290,16 +297,30 @@ class PasswordResetRequestView(APIView):
         cooldown_start = timezone.now() - timedelta(
             seconds=PasswordResetOTP.REQUEST_COOLDOWN_SECONDS
         )
-        recent_request = PasswordResetOTP.objects.filter(
+        recent_otp = PasswordResetOTP.objects.filter(
             user=user, created_at__gt=cooldown_start
-        ).exists()
-        if recent_request:
+        ).order_by("-created_at").first()
+        if recent_otp:
+            remaining = max(
+                1,
+                int(
+                    PasswordResetOTP.REQUEST_COOLDOWN_SECONDS
+                    - (timezone.now() - recent_otp.created_at).total_seconds()
+                ),
+            )
             logger.warning(
-                "Demande OTP pour %s ignorée : cooldown anti-spam actif (%s secondes).",
+                "Demande OTP pour %s ignorée : cooldown anti-spam actif (%s secondes, reste %ss).",
                 _mask_phone(phone),
                 PasswordResetOTP.REQUEST_COOLDOWN_SECONDS,
+                remaining,
             )
-            return Response({"detail": _GENERIC_OTP_REQUEST_DETAIL})
+            return Response(
+                {
+                    "detail": _GENERIC_OTP_REQUEST_DETAIL,
+                    "cooldown": True,
+                    "retry_after": remaining,
+                }
+            )
 
         _otp, code = PasswordResetOTP.generate_for(user)
         target_phone = normalized_phone or user.phone
@@ -343,25 +364,41 @@ class PasswordResetConfirmView(APIView):
             )
 
         from .sms import normalize_phone_number
-        normalized_phone = normalize_phone_number(phone)
-        candidate_phones = {p for p in (phone.strip(), normalized_phone) if p}
+        clean_raw = re.sub(r"[^\d+]", "", str(phone))
+        normalized_phone = normalize_phone_number(clean_raw or str(phone))
+        candidate_phones = {p for p in (str(phone).strip(), clean_raw, normalized_phone) if p}
         if normalized_phone.startswith("+225"):
-            candidate_phones.add(normalized_phone[4:])
+            national = normalized_phone[4:]
+            candidate_phones.add(national)
             candidate_phones.add(normalized_phone[1:])
+            if national.startswith("0"):
+                candidate_phones.add(national[1:])
+                candidate_phones.add(f"+225{national[1:]}")
+                candidate_phones.add(f"225{national[1:]}")
+
         user = User.objects.filter(phone__in=candidate_phones).first()
-        otp = (
-            PasswordResetOTP.objects.filter(user=user, is_used=False)
-            .order_by("-created_at")
-            .first()
-            if user is not None
-            else None
-        )
-        if otp is None or not otp.check_code(code):
+        if user is None:
             return Response(
                 {"detail": "Code invalide ou expiré."}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        otp.mark_used()
+        active_otps = PasswordResetOTP.objects.filter(
+            user=user, is_used=False, expires_at__gt=timezone.now()
+        ).order_by("-created_at")
+
+        matching_otp = None
+        for cand_otp in active_otps:
+            if cand_otp.check_code(code):
+                matching_otp = cand_otp
+                break
+
+        if matching_otp is None:
+            return Response(
+                {"detail": "Code invalide ou expiré."}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Invalider tous les OTPs actifs de cet utilisateur après succès
+        active_otps.update(is_used=True)
         user.set_password(new_password)
         user.save(update_fields=["password"])
         try:

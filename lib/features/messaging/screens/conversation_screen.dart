@@ -48,11 +48,9 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     super.initState();
     _controller.addListener(() => setState(() {}));
     _markRead();
-    _pollTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+    _pollTimer = Timer.periodic(const Duration(seconds: 6), (_) {
       if (mounted) {
-        final _ = ref.refresh(messagesProvider(widget.conversationId));
-        final _ = ref.refresh(conversationsProvider);
-        _markRead();
+        ref.invalidate(messagesProvider(widget.conversationId));
       }
     });
   }
@@ -72,6 +70,10 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     _scrollController.dispose();
     _controller.dispose();
     _voiceRecorder.dispose();
+    // Rafraîchir les badges de lecture de la liste des conversations en quittant
+    try {
+      ref.invalidate(conversationsProvider);
+    } catch (_) {}
     super.dispose();
   }
 
@@ -270,6 +272,17 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     });
 
     final messagesAsync = ref.watch(messagesProvider(widget.conversationId));
+    ref.listen<AsyncValue<List<Message>>>(
+      messagesProvider(widget.conversationId),
+      (previous, next) {
+        if (next.hasValue && next.value != null && next.value!.isNotEmpty) {
+          final prevCount = previous?.valueOrNull?.length ?? 0;
+          if (next.value!.length != prevCount) {
+            _scrollToBottom();
+          }
+        }
+      },
+    );
     final conversationsAsync = ref.watch(conversationsProvider);
     final conv = conversationsAsync.valueOrNull
         ?.where((c) => c.id == widget.conversationId)
@@ -384,6 +397,11 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                     ),
                   );
                 }
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (_scrollController.hasClients && _scrollController.offset == 0) {
+                    _scrollToBottom();
+                  }
+                });
                 return ListView.builder(
                   controller: _scrollController,
                   padding: const EdgeInsets.all(AppSpacing.screenPadding),

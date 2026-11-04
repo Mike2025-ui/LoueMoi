@@ -149,25 +149,13 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     @property
     def has_active_subscription(self):
-        """Indique si l'utilisateur possède un abonnement actif non expiré."""
+        """Indique si l'utilisateur possède un abonnement actif non expiré.
+        Propriété de lecture pure sans effets de bord en base ni requêtes HTTP bloquantes."""
         if not self.pk:
             return False
         from django.utils import timezone
         now = timezone.now()
-        # Nettoyage automatique en temps réel dès que la date de fin est dépassée
-        expired_subs = self.subscriptions.filter(status="active", expires_at__lte=now)
-        for s in expired_subs:
-            s.expire_and_revoke()
-
-        if self.subscriptions.filter(status="active", expires_at__gt=now).exists():
-            return True
-        if self.subscriptions.filter(status="pending").exists():
-            try:
-                from payments.views import sync_user_pending_subscriptions
-                return sync_user_pending_subscriptions(self) is not None
-            except Exception:
-                pass
-        return False
+        return self.subscriptions.filter(status="active", expires_at__gt=now).exists()
 
 
 class PasswordResetOTP(models.Model):
@@ -206,9 +194,8 @@ class PasswordResetOTP(models.Model):
         # pseudo-aléatoire prévisible (Mersenne Twister), impropre à un
         # code de sécurité — secrets.choice() utilise l'aléatoire
         # cryptographique du système d'exploitation.
-        # Code OTP alphanumérique (lettres majuscules + chiffres) généré cryptographiquement
-        chars = string.ascii_uppercase + string.digits
-        code = "".join(secrets.choice(chars) for _ in range(6))
+        # Code OTP à 6 chiffres (digits uniquement pour compatibilité SMS & autofill mobile)
+        code = "".join(secrets.choice(string.digits) for _ in range(6))
         otp = cls.objects.create(
             user=user,
             code_hash=make_password(code),

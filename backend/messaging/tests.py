@@ -418,3 +418,21 @@ class ConversationSubscriptionAccessTests(APITestCase):
         msg_resp = self.client.get(f"/api/messages/?conversation={self.conversation.id}")
         self.assertEqual(msg_resp.status_code, status.HTTP_200_OK)
 
+
+    def test_empty_conversation_mark_read_and_retrieve_do_not_return_404(self):
+        empty_conv = Conversation.objects.create(
+            client=self.client_user,
+            agent=self.agent_user,
+        )
+        self.client.force_authenticate(user=self.client_user)
+        # Ne doit pas renvoyer 404 même si 0 messages
+        retrieve_resp = self.client.get(f"/api/conversations/{empty_conv.id}/")
+        self.assertEqual(retrieve_resp.status_code, status.HTTP_200_OK)
+
+        mark_resp = self.client.post(f"/api/conversations/{empty_conv.id}/mark-read/")
+        self.assertEqual(mark_resp.status_code, status.HTTP_200_OK)
+
+    def test_agent_can_initiate_conversation_with_client(self):
+        self.client.force_authenticate(user=self.agent_user)
+        response = self.client.post("/api/conversations/", {"agent": self.client_user.id}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)

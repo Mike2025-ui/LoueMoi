@@ -105,9 +105,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.resetPassword,
-        builder: (context, state) => ResetPasswordScreen(
-          phone: Uri.decodeComponent(state.pathParameters['phone']!),
-        ),
+        builder: (context, state) {
+          final rawPhone = state.pathParameters['phone'] ?? '';
+          String phone;
+          try {
+            phone = Uri.decodeComponent(rawPhone);
+          } catch (_) {
+            phone = rawPhone;
+          }
+          return ResetPasswordScreen(phone: phone);
+        },
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {

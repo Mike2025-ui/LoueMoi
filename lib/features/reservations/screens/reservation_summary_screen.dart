@@ -35,7 +35,10 @@ class ReservationSummaryScreen extends ConsumerWidget {
         data: (property) => _Summary(property: property),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => const Center(
-          child: Text('Impossible de charger l’annonce.', style: AppTextStyles.caption),
+          child: Text(
+            'Impossible de charger l’annonce.',
+            style: AppTextStyles.caption,
+          ),
         ),
       ),
     );
@@ -157,15 +160,25 @@ class _SummaryState extends ConsumerState<_Summary> {
                     Text(property.title, style: AppTextStyles.h3),
                     Row(
                       children: [
-                        const Icon(Icons.location_on, size: 14, color: AppColors.primary),
+                        const Icon(
+                          Icons.location_on,
+                          size: 14,
+                          color: AppColors.primary,
+                        ),
                         const SizedBox(width: 2),
-                        Text(property.locationLabel, style: AppTextStyles.caption),
+                        Text(
+                          property.locationLabel,
+                          style: AppTextStyles.caption,
+                        ),
                       ],
                     ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(Formatters.price(property.price), style: AppTextStyles.priceSm),
+                        Text(
+                          Formatters.price(property.price),
+                          style: AppTextStyles.priceSm,
+                        ),
                         property.transactionType == TransactionType.location
                             ? StatusBadge.location()
                             : StatusBadge.vente(),
@@ -181,7 +194,11 @@ class _SummaryState extends ConsumerState<_Summary> {
           PropertyDetailsTable(property: property),
           const Divider(height: AppSpacing.xl),
           if (property.transactionType == TransactionType.vente) ...[
-            _PriceRow(label: 'Prix de vente', value: property.price, isBold: true),
+            _PriceRow(
+              label: 'Prix de vente',
+              value: property.price,
+              isBold: true,
+            ),
           ] else ...[
             _PriceRow(label: 'Loyer', value: property.price),
             _PriceRow(label: 'Caution', value: property.deposit ?? 0),
@@ -200,7 +217,11 @@ class _SummaryState extends ConsumerState<_Summary> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.info_outline, color: Color(0xFF16A34A), size: 20),
+                const Icon(
+                  Icons.info_outline,
+                  color: Color(0xFF16A34A),
+                  size: 20,
+                ),
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Text(
@@ -230,7 +251,11 @@ class _SummaryState extends ConsumerState<_Summary> {
 }
 
 class _PriceRow extends StatelessWidget {
-  const _PriceRow({required this.label, required this.value, this.isBold = false});
+  const _PriceRow({
+    required this.label,
+    required this.value,
+    this.isBold = false,
+  });
 
   final String label;
   final double value;

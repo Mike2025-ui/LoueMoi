@@ -126,6 +126,24 @@ class PropertyViewSet(viewsets.ModelViewSet):
     serializer_class = PropertySerializer
     filterset_class = PropertyFilter
 
+    def perform_destroy(self, instance):
+        # Suppression propre des fichiers physiques (photos et vidéo) liés à l'annonce
+        try:
+            media_prefix = "/media/"
+            all_media = list(instance.images or [])
+            if instance.cover_image:
+                all_media.append(instance.cover_image)
+            if instance.video:
+                all_media.append(instance.video)
+            for m in set(all_media):
+                if media_prefix in m:
+                    rel_path = m.split(media_prefix, 1)[1]
+                    if default_storage.exists(rel_path):
+                        default_storage.delete(rel_path)
+        except Exception as e:
+            logger.warning(f"Erreur lors de la purge des médias de l'annonce {instance.pk}: {e}")
+        instance.delete()
+
     def get_queryset(self):
         base = (
             Property.objects.select_related("agent", "agent__agent_profile")
@@ -380,6 +398,17 @@ class PropertyViewSet(viewsets.ModelViewSet):
         url_to_remove = request.data.get("url")
         if not url_to_remove:
             return Response({"url": ["Requis."]}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Suppression physique du fichier sur default_storage pour éviter les fichiers orphelins
+        try:
+            media_prefix = "/media/"
+            if media_prefix in url_to_remove:
+                rel_path = url_to_remove.split(media_prefix, 1)[1]
+                if default_storage.exists(rel_path):
+                    default_storage.delete(rel_path)
+        except Exception as e:
+            logger.warning(f"Impossible de supprimer le fichier {url_to_remove}: {e}")
+
         images = [img for img in (property_obj.images or []) if img != url_to_remove]
         property_obj.images = images
         if property_obj.cover_image == url_to_remove:

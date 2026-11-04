@@ -162,6 +162,10 @@ class Property(models.Model):
                 fields=["expires_at"],
                 name="prop_expires_idx",
             ),
+            models.Index(
+                fields=["transaction_type", "commune", "price"],
+                name="prop_search_filter_idx",
+            ),
         ]
 
     def __str__(self):

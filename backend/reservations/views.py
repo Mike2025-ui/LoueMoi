@@ -1,4 +1,4 @@
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Q
 from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
@@ -55,14 +55,18 @@ class ReservationViewSet(viewsets.ModelViewSet):
 
         # Règle métier : l'utilisateur peut faire plusieurs réservations,
         # mais une seule réservation sur une même publication (annonce).
-        has_property_reservation = Reservation.objects.filter(
+        # Verrouillage et gestion de concurrence atomique anti-doublon
+        has_property_reservation = Reservation.objects.select_for_update().filter(
             user=self.request.user,
             property=property_obj,
         ).exclude(status="annulee").exists()
         if has_property_reservation:
             raise ValidationError("Vous avez déjà effectué une réservation pour cette annonce.")
 
-        reservation = serializer.save(user=self.request.user, status="enCours")
+        try:
+            reservation = serializer.save(user=self.request.user, status="enCours")
+        except IntegrityError:
+            raise ValidationError("Vous avez déjà effectué une réservation pour cette annonce.")
 
 
         # CORRECTION MÉTIER : une réservation ne rend plus l'annonce

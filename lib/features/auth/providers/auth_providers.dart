@@ -1,3 +1,5 @@
+import '../../properties/models/property_enums.dart';
+import '../../properties/providers/property_providers.dart';
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,11 +21,12 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 /// État d'authentification global de l'application. Démarre en `loading` le
 /// temps de tenter une restauration de session (token déjà stocké).
 class AuthController extends StateNotifier<AsyncValue<User?>> {
-  AuthController(this._repository) : super(const AsyncValue.loading()) {
+  AuthController(this._repository, [this._ref]) : super(const AsyncValue.loading()) {
     _restoreSession();
   }
 
   final AuthRepository _repository;
+  final Ref? _ref;
   final Completer<void> _readyCompleter = Completer<void>();
 
   /// Se résout une fois la tentative de restauration de session terminée
@@ -102,6 +105,7 @@ class AuthController extends StateNotifier<AsyncValue<User?>> {
 
   Future<void> logout() async {
     await _repository.logout();
+    _resetAppState();
     state = const AsyncValue.data(null);
   }
 
@@ -111,6 +115,7 @@ class AuthController extends StateNotifier<AsyncValue<User?>> {
   /// pas confirmé.
   Future<void> deactivateAccount(String password) async {
     await _repository.deactivateAccount(password);
+    _resetAppState();
     state = const AsyncValue.data(null);
   }
 
@@ -180,13 +185,22 @@ class AuthController extends StateNotifier<AsyncValue<User?>> {
   /// Appelé quand l'intercepteur détecte une session expirée (401 + refresh
   /// KO) : déconnexion locale immédiate, sans nouvel appel réseau.
   void forceLogout() {
+    _resetAppState();
     state = const AsyncValue.data(null);
+  }
+
+  void _resetAppState() {
+    if (_ref != null) {
+      try {
+        _ref.read(homeTransactionTypeProvider.notifier).state = TransactionType.location;
+      } catch (_) {}
+    }
   }
 }
 
 final authControllerProvider =
     StateNotifierProvider<AuthController, AsyncValue<User?>>((ref) {
-  return AuthController(ref.watch(authRepositoryProvider));
+  return AuthController(ref.watch(authRepositoryProvider), ref);
 });
 
 final isAuthenticatedProvider = Provider<bool>((ref) {

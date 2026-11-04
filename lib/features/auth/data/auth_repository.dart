@@ -30,7 +30,7 @@ abstract class AuthRepository {
   /// Réponse toujours générique côté serveur (jamais d'indice sur
   /// l'existence du numéro) : ne lève jamais d'exception pour "numéro
   /// inconnu", seulement en cas d'erreur réseau/serveur réelle.
-  Future<void> requestPasswordReset(String phone);
+  Future<Map<String, dynamic>> requestPasswordReset(String phone);
 
   /// "Mot de passe oublié" étape 2 — vérifie le code ET change le mot de
   /// passe en un seul appel (POST /api/auth/password-reset/confirm/). Lève
@@ -164,10 +164,9 @@ class MockAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<void> requestPasswordReset(String phone) async {
+  Future<Map<String, dynamic>> requestPasswordReset(String phone) async {
     await Future.delayed(const Duration(milliseconds: 400));
-    // Toujours un succès silencieux, même en mode mock — jamais d'indice
-    // sur l'existence du numéro, même dans la démo.
+    return const {'detail': 'Si ce numéro est associé à un compte, un code a été envoyé.'};
   }
 
   @override

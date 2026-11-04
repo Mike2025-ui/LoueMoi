@@ -48,15 +48,15 @@ class ConversationViewSet(viewsets.ModelViewSet):
             is_delivered=False,
         ).update(is_delivered=True, delivered_at=now)
 
-        has_messages = Exists(Message.objects.filter(conversation_id=OuterRef("pk")))
-        # Ne renvoie que les conversations qui contiennent au moins un message réel
-        # pour éviter d'afficher des conversations fantômes non démarrées
+        qs = Conversation.objects.filter(Q(client=user) | Q(agent=user)).select_related("client", "agent", "property")
+        if self.action == "list":
+            has_messages = Exists(Message.objects.filter(conversation_id=OuterRef("pk")))
+            # Ne renvoie dans la liste que les conversations qui contiennent au moins un message réel
+            # pour éviter d'afficher des conversations fantômes non démarrées
+            qs = qs.annotate(_has_messages=has_messages).filter(_has_messages=True)
+
         return (
-            Conversation.objects.filter(Q(client=user) | Q(agent=user))
-            .annotate(_has_messages=has_messages)
-            .filter(_has_messages=True)
-            .select_related("client", "agent", "property")
-            .annotate(
+            qs.annotate(
                 _unread_count=Count(
                     "messages",
                     filter=Q(messages__is_read=False) & ~Q(messages__sender=user),
@@ -126,7 +126,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
         jamais, même après lecture."""
         conversation = self.get_object()
         if not user_can_access_conversation(request.user, conversation):
-            raise PermissionDenied("Un abonnement actif est requis pour consulter cette conversation.")
+            raise PermissionDenied("Vous n'êtes pas autorisé à consulter cette conversation.")
         now = timezone.now()
         unread_messages = conversation.messages.filter(is_read=False).exclude(sender=request.user)
         unread_messages.filter(delivered_at__isnull=True).update(is_delivered=True, delivered_at=now)
@@ -166,7 +166,7 @@ class MessageListCreateView(generics.ListCreateAPIView):
             ):
                 raise PermissionDenied("Vous ne faites pas partie de cette conversation.")
             if not user_can_access_conversation(self.request.user, conversation):
-                raise PermissionDenied("Un abonnement actif est requis pour consulter les messages de cette conversation.")
+                raise PermissionDenied("Vous n'êtes pas autorisé à consulter les messages de cette conversation.")
 
             # Marquer automatiquement comme délivrés (2 traits gris) les messages reçus
             Message.objects.filter(
@@ -197,7 +197,7 @@ class MessageListCreateView(generics.ListCreateAPIView):
         if user not in (conversation.client, conversation.agent):
             raise serializers.ValidationError("Vous ne faites pas partie de cette conversation.")
         if not user_can_access_conversation(user, conversation):
-            raise PermissionDenied("Un abonnement actif est requis pour envoyer des messages dans cette conversation.")
+            raise PermissionDenied("Vous n'êtes pas autorisé à envoyer des messages dans cette conversation.")
 
         receiver = conversation.agent if user == conversation.client else conversation.client
 

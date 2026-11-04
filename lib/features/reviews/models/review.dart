@@ -22,18 +22,15 @@ class Review extends Equatable {
   });
 
   factory Review.fromJson(Map<String, dynamic> json) {
-    final rawRating = json['rating'];
-    final double rating = rawRating is num
-        ? rawRating.toDouble()
-        : (double.tryParse(rawRating?.toString() ?? '') ?? 5.0);
-
     return Review(
       id: json['id']?.toString() ?? '',
       propertyId: json['property_id']?.toString() ?? '',
       userId: json['user_id']?.toString() ?? '',
       userName: json['user_name']?.toString() ?? 'Utilisateur',
       userPhoto: json['user_photo']?.toString(),
-      rating: rating,
+      rating:
+          (json['rating'] as num?)?.toDouble() ??
+          (num.tryParse(json['rating']?.toString() ?? '')?.toDouble() ?? 5.0),
       comment: json['comment']?.toString() ?? '',
       createdAt: json['created_at'] != null
           ? (DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now())
@@ -42,17 +39,25 @@ class Review extends Equatable {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'property_id': propertyId,
-        'user_id': userId,
-        'user_name': userName,
-        'user_photo': userPhoto,
-        'rating': rating,
-        'comment': comment,
-        'created_at': createdAt.toIso8601String(),
-      };
+    'id': id,
+    'property_id': propertyId,
+    'user_id': userId,
+    'user_name': userName,
+    'user_photo': userPhoto,
+    'rating': rating,
+    'comment': comment,
+    'created_at': createdAt.toIso8601String(),
+  };
 
   @override
-  List<Object?> get props =>
-      [id, propertyId, userId, userName, userPhoto, rating, comment, createdAt];
+  List<Object?> get props => [
+    id,
+    propertyId,
+    userId,
+    userName,
+    userPhoto,
+    rating,
+    comment,
+    createdAt,
+  ];
 }

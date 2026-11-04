@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/routes.dart';
@@ -32,8 +33,16 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   final _confirmPasswordController = TextEditingController();
   bool _isSubmitting = false;
   bool _isResending = false;
-  int _countdownSeconds = 0;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+  int _countdownSeconds = 60;
   Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+  }
 
   @override
   void dispose() {
@@ -44,9 +53,8 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     super.dispose();
   }
 
-  void _startCountdown() {
+  void _startTimer() {
     _timer?.cancel();
-    setState(() => _countdownSeconds = 60);
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
         timer.cancel();
@@ -61,21 +69,43 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     });
   }
 
+  void _startCountdown([int seconds = 60]) {
+    _timer?.cancel();
+    if (mounted) {
+      setState(() => _countdownSeconds = seconds);
+    } else {
+      _countdownSeconds = seconds;
+    }
+    _startTimer();
+  }
+
   Future<void> _resendCode() async {
     if (_countdownSeconds > 0 || _isResending) return;
     setState(() => _isResending = true);
     try {
       final repository = ref.read(authRepositoryProvider);
       final cleanPhone = widget.phone.replaceAll(RegExp(r'\s+'), '').trim();
-      await repository.requestPasswordReset(cleanPhone);
+      final result = await repository.requestPasswordReset(cleanPhone);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Un nouveau code de vérification a été envoyé par SMS.'),
-          backgroundColor: AppColors.primary,
-        ),
-      );
-      _startCountdown();
+
+      if (result['cooldown'] == true) {
+        final waitSec = (result['retry_after'] as num?)?.toInt() ?? 60;
+        _startCountdown(waitSec);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Veuillez patienter encore ${waitSec}s avant de redemander un code.'),
+            backgroundColor: AppColors.warning,
+          ),
+        );
+      } else {
+        _startCountdown(60);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Un nouveau code de vérification a été envoyé par SMS.'),
+            backgroundColor: AppColors.primary,
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) showErrorSnackbar(context, e);
     } finally {
@@ -115,73 +145,122 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.screenPadding),
-          child: AutofillGroup(
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Entrez le code reçu par SMS au ${widget.phone} et votre nouveau mot de passe.',
-                    style: AppTextStyles.body,
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Entrez le code reçu par SMS au ${widget.phone} et votre nouveau mot de passe.',
+                  style: AppTextStyles.body,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.sm,
                   ),
-                  const SizedBox(height: AppSpacing.lg),
-                  AppTextField(
-                    label: 'Code de vérification OTP',
-                    hint: 'Entrez le code alphanumérique reçu',
-                    controller: _codeController,
-                    keyboardType: TextInputType.text,
-                    textCapitalization: TextCapitalization.characters,
-                    autofillHints: const [AutofillHints.oneTimeCode],
-                    validator: (v) => Validators.required(v, message: 'Le code est requis'),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: (_countdownSeconds > 0 || _isResending) ? null : _resendCode,
-                      child: Text(
-                        _isResending
-                            ? 'Envoi en cours...'
-                            : _countdownSeconds > 0
-                                ? 'Renvoyer dans ${_countdownSeconds}s'
-                                : 'Renvoyer le code SMS',
-                        style: TextStyle(
-                          color: _countdownSeconds > 0 ? AppColors.textSecondary : AppColors.primary,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
+                  child: const Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 18, color: AppColors.primary),
+                      SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          'Le code reçu est valable pendant 10 minutes.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                AppTextField(
+                  label: 'Code de vérification OTP',
+                  hint: '6 chiffres (ex: 123456)',
+                  controller: _codeController,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(6),
+                  ],
+                  autofillHints: const [AutofillHints.oneTimeCode],
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) {
+                      return 'Le code OTP est requis';
+                    }
+                    if (v.trim().length != 6) {
+                      return 'Le code doit contenir exactement 6 chiffres';
+                    }
+                    return null;
+                  },
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: (_countdownSeconds > 0 || _isResending) ? null : _resendCode,
+                    child: Text(
+                      _isResending
+                          ? 'Envoi en cours...'
+                          : _countdownSeconds > 0
+                              ? 'Renvoyer dans ${_countdownSeconds}s'
+                              : 'Renvoyer le code SMS',
+                      style: TextStyle(
+                        color: _countdownSeconds > 0 ? AppColors.textSecondary : AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
                       ),
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.sm),
-                  AppTextField(
-                    label: 'Nouveau mot de passe',
-                    hint: 'Au moins 6 caractères alphanumériques',
-                    controller: _passwordController,
-                    keyboardType: TextInputType.visiblePassword,
-                    autofillHints: const [AutofillHints.newPassword],
-                    obscureText: true,
-                    validator: Validators.password,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                AppTextField(
+                  label: 'Nouveau mot de passe',
+                  hint: 'Au moins 6 caractères',
+                  controller: _passwordController,
+                  keyboardType: TextInputType.visiblePassword,
+                  autofillHints: const [AutofillHints.newPassword],
+                  obscureText: _obscurePassword,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                      color: AppColors.textSecondary,
+                    ),
+                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                   ),
-                  const SizedBox(height: AppSpacing.md),
-                  AppTextField(
-                    label: 'Confirmer le mot de passe',
-                    hint: 'Répétez votre mot de passe',
-                    controller: _confirmPasswordController,
-                    keyboardType: TextInputType.visiblePassword,
-                    autofillHints: const [AutofillHints.newPassword],
-                    obscureText: true,
-                    validator: (v) =>
-                        Validators.confirmPassword(v, _passwordController.text),
+                  validator: Validators.password,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                AppTextField(
+                  label: 'Confirmer le mot de passe',
+                  hint: 'Répétez votre mot de passe',
+                  controller: _confirmPasswordController,
+                  keyboardType: TextInputType.visiblePassword,
+                  autofillHints: const [AutofillHints.newPassword],
+                  obscureText: _obscureConfirmPassword,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureConfirmPassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                      color: AppColors.textSecondary,
+                    ),
+                    onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
                   ),
-                  const SizedBox(height: AppSpacing.xl),
-                  PrimaryButton(
-                    label: 'Réinitialiser',
-                    isLoading: _isSubmitting,
-                    onPressed: _submit,
-                  ),
-                ],
-              ),
+                  validator: (v) => Validators.confirmPassword(v, _passwordController.text),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                PrimaryButton(
+                  label: 'Réinitialiser',
+                  isLoading: _isSubmitting,
+                  onPressed: _submit,
+                ),
+              ],
             ),
           ),
         ),

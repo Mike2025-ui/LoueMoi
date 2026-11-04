@@ -67,13 +67,38 @@ class ReverseGeocodingService {
   /// Tente de résoudre l'adresse complète depuis les coordonnées GPS.
   /// Ne lève jamais d'exception : en cas de coupure réseau ou de timeout,
   /// utilise le résolveur local.
+  // Cache mémoire des coordonnées géocodées pour éliminer les requêtes redondantes
+  static final Map<String, ReverseGeocodeResult> _cache = {};
+  static DateTime? _lastRequestTime;
+
   Future<ReverseGeocodeResult> reverseGeocode(double lat, double lng) async {
+    final cacheKey = '${lat.toStringAsFixed(3)},${lng.toStringAsFixed(3)}';
+    if (_cache.containsKey(cacheKey)) {
+      return _cache[cacheKey]!;
+    }
+
     String? detectedCity = 'Abidjan';
     String? detectedCommune;
     String? detectedDistrict;
     String? detectedAddress;
 
+    // Respect strict de la politique d'usage OpenStreetMap (max 1 requête par seconde)
+    final now = DateTime.now();
+    final shouldThrottle = _lastRequestTime != null &&
+        now.difference(_lastRequestTime!) < const Duration(milliseconds: 1100);
+
+    if (shouldThrottle) {
+      detectedCommune = resolveNearestCommune(lat, lng);
+      final fallbackResult = ReverseGeocodeResult(
+        city: detectedCity,
+        commune: detectedCommune,
+      );
+      _cache[cacheKey] = fallbackResult;
+      return fallbackResult;
+    }
+
     try {
+      _lastRequestTime = DateTime.now();
       final response = await _dio.get<Map<String, dynamic>>(
         'https://nominatim.openstreetmap.org/reverse',
         queryParameters: {
@@ -130,12 +155,14 @@ class ReverseGeocodingService {
     // Repli local si la commune n'a pas été identifiée via l'API
     detectedCommune ??= resolveNearestCommune(lat, lng);
 
-    return ReverseGeocodeResult(
+    final finalResult = ReverseGeocodeResult(
       city: detectedCity,
       commune: detectedCommune,
       district: detectedDistrict,
       address: detectedAddress,
     );
+    _cache[cacheKey] = finalResult;
+    return finalResult;
   }
 }
 
