@@ -226,8 +226,8 @@ class _SummaryState extends ConsumerState<_Summary> {
                 Expanded(
                   child: Text(
                     property.transactionType == TransactionType.vente
-                        ? 'Zéro commission d’agence. Frais de visite forfaitaires de 5.000 Fcfa à régler directement sur place le jour de la visite (en espèces ou par Wave / Orange Money).'
-                        : 'Zéro mois d’agence à payer. Frais de visite forfaitaires de 5.000 Fcfa à régler directement sur place le jour de la visite (en espèces ou par Wave / Orange Money).',
+                        ? 'Visite 100% gratuite et directe : zéro frais de visite et zéro commission d’agence.'
+                        : 'Visite 100% gratuite et directe : zéro frais de visite et zéro mois d’agence à payer.',
                     style: const TextStyle(
                       color: Color(0xFF166534),
                       fontSize: 12,

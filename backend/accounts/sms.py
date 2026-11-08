@@ -77,18 +77,11 @@ class LoggingSmsProvider(SmsProvider):
     """
 
     def send(self, phone: str, message: str) -> bool:
-        if settings.DEBUG:
-            logger.warning(
-                "[SMS NON ENVOYÉ — AUCUN FOURNISSEUR CONFIGURÉ] destinataire=%s message=%s",
-                phone,
-                message,
-            )
-        else:
-            logger.error(
-                "Tentative d'envoi SMS à %s sans fournisseur configuré — aucun SMS envoyé, "
-                "définissez IKODDI_API_KEY sur le serveur pour activer l'envoi réel.",
-                _mask_phone(phone),
-            )
+        logger.warning(
+            "[SMS OTP NON ENVOYÉ — PASSERELLE IKODDI NON CONFIGURÉE] destinataire=%s message=%s",
+            phone,
+            message,
+        )
         return True
 
 
@@ -174,11 +167,17 @@ class IkoddiSmsProvider(SmsProvider):
             }
         # 3. Mode personnalisé direct (si ni org_id ni app_id ne sont fournis)
         else:
-            target_url = self.api_url
+            base = self.api_url.rstrip("/")
+            if base.endswith("/groups"):
+                target_url = "https://api.ikoddi.com/api/v1/sms/send"
+            else:
+                target_url = base
             payload = {
                 "to": normalized_phone,
+                "sentTo": [clean_identity],
                 "message": message,
                 "sender": self.sender_id,
+                "from": self.sender_id,
             }
 
         try:

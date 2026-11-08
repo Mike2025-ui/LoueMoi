@@ -48,16 +48,6 @@ final routerProvider = Provider<GoRouter>((ref) {
     navigatorKey: _rootNavigatorKey,
     initialLocation: AppRoutes.splash,
     redirect: (context, state) {
-      if (kIsWeb) {
-        if (state.matchedLocation != AppRoutes.maintenance) {
-          final query = state.uri.query;
-          return query.isNotEmpty
-              ? '${AppRoutes.maintenance}?$query'
-              : AppRoutes.maintenance;
-        }
-        return null;
-      }
-
       final user = ref.read(authControllerProvider).valueOrNull;
       final location = state.matchedLocation;
       if (user != null && user.needsActivation) {
@@ -89,7 +79,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.login,
-        builder: (context, state) => const LoginScreen(),
+        builder: (context, state) => LoginScreen(
+          initialPhone: state.uri.queryParameters['phone'],
+        ),
       ),
       GoRoute(
         path: AppRoutes.register,
@@ -106,12 +98,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.resetPassword,
         builder: (context, state) {
-          final rawPhone = state.pathParameters['phone'] ?? '';
-          String phone;
-          try {
-            phone = Uri.decodeComponent(rawPhone);
-          } catch (_) {
-            phone = rawPhone;
+          String phone = (state.pathParameters['phone'] ?? '').trim();
+          if (phone.contains('%')) {
+            try {
+              phone = Uri.decodeComponent(phone);
+            } catch (_) {}
+          }
+          phone = phone.trim();
+          if (phone.startsWith('225') && !phone.startsWith('+')) {
+            phone = '+$phone';
           }
           return ResetPasswordScreen(phone: phone);
         },
@@ -159,6 +154,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: AppRoutes.profile,
                 builder: (context, state) => const ProfileScreen(),
                 routes: [
+                  GoRoute(
+                    path: 'properties',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const MyPropertiesScreen(),
+                  ),
                   GoRoute(
                     path: 'agent',
                     builder: (context, state) => const AgentSpaceScreen(),

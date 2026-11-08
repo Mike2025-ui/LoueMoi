@@ -14,14 +14,11 @@ urlpatterns = [
     path("dashboard/", include("dashboard.urls")),
     path("api/config/app-settings/", public_app_config_api, name="public_app_config"),
     path("api/", include("accounts.urls")),
-    path("api/", include("agents.urls")),
-    path("api/", include("bailleurs.urls")),
     path("api/", include("properties.urls")),
     path("api/", include("reviews.urls")),
     path("api/", include("reservations.urls")),
     path("api/", include("messaging.urls")),
     path("api/", include("notifications.urls")),
-    path("api/payments/", include("payments.urls")),
 ]
 
 if settings.DEBUG:

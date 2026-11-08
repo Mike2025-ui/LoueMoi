@@ -104,7 +104,7 @@ class PropertiesController extends StateNotifier<AsyncValue<List<Property>>> {
   Future<void> refresh() => _loadFirstPage();
 }
 
-final propertiesControllerProvider = StateNotifierProvider.autoDispose<PropertiesController,
+final propertiesControllerProvider = StateNotifierProvider<PropertiesController,
     AsyncValue<List<Property>>>((ref) {
   final repository = ref.watch(propertyRepositoryProvider);
   final filters = _effectiveFilters(ref);
@@ -115,7 +115,7 @@ final propertiesControllerProvider = StateNotifierProvider.autoDispose<Propertie
 
 /// Liste affichée à l'écran : la pagination de [propertiesControllerProvider],
 /// filtrée côté client par la recherche texte libre.
-final propertiesListProvider = Provider.autoDispose<AsyncValue<List<Property>>>((ref) {
+final propertiesListProvider = Provider<AsyncValue<List<Property>>>((ref) {
   final controllerState = ref.watch(propertiesControllerProvider);
   final query = ref.watch(searchQueryProvider).trim().toLowerCase();
 

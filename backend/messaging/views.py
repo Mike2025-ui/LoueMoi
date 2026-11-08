@@ -55,8 +55,15 @@ class ConversationViewSet(viewsets.ModelViewSet):
             # pour éviter d'afficher des conversations fantômes non démarrées
             qs = qs.annotate(_has_messages=has_messages).filter(_has_messages=True)
 
+        from django.db.models import Prefetch
+        latest_msgs_prefetch = Prefetch(
+            "messages",
+            queryset=Message.objects.select_related("sender", "receiver").order_by("-created_at"),
+            to_attr="_prefetched_messages",
+        )
         return (
-            qs.annotate(
+            qs.prefetch_related(latest_msgs_prefetch)
+            .annotate(
                 _unread_count=Count(
                     "messages",
                     filter=Q(messages__is_read=False) & ~Q(messages__sender=user),
@@ -253,17 +260,33 @@ class MessageAttachmentDownloadView(APIView):
             ):
                 raise PermissionDenied("Vous ne faites pas partie de cette conversation.")
             if not user_can_access_conversation(request.user, conversation):
-                raise PermissionDenied("Un abonnement actif est requis pour télécharger cette pièce jointe.")
+                raise PermissionDenied("Vous n'êtes pas autorisé à télécharger cette pièce jointe.")
         else:
             sig = request.query_params.get("sig", "")
             if not sig:
                 raise NotAuthenticated()
-            signer = TimestampSigner(salt="messaging.attachment")
+            from django.core.signing import BadSignature, SignatureExpired, Signer, TimestampSigner
+            valid = False
+            # 1. Vérification par signature déterministe (évite l'invalidation du cache de photos)
             try:
-                unsigned_pk = signer.unsign(sig, max_age=86400 * 7)
-                if str(unsigned_pk) != str(message.pk):
-                    raise NotAuthenticated()
-            except (BadSignature, SignatureExpired):
+                signer = Signer(salt="messaging.attachment")
+                unsigned_pk = signer.unsign(sig)
+                if str(unsigned_pk) == str(message.pk):
+                    valid = True
+            except BadSignature:
+                pass
+
+            # 2. Repli rétro-compatible sur TimestampSigner
+            if not valid:
+                try:
+                    ts_signer = TimestampSigner(salt="messaging.attachment")
+                    unsigned_pk = ts_signer.unsign(sig, max_age=86400 * 30)
+                    if str(unsigned_pk) == str(message.pk):
+                        valid = True
+                except (BadSignature, SignatureExpired):
+                    pass
+
+            if not valid:
                 raise NotAuthenticated()
 
         if not message.attachment:

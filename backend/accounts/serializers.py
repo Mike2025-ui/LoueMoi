@@ -60,24 +60,7 @@ class UserSerializer(serializers.ModelSerializer):
         return normalized or value.strip()
 
     def get_is_verified(self, user):
-        # Décision souveraine de l'administration : si révoqué ou désactivé, le badge est False
-        if not getattr(user, "is_verified", False):
-            return False
-        from django.utils import timezone
-        now = timezone.now()
-        # 1. Tout utilisateur avec un abonnement actif bénéficie du badge certifié
-        if hasattr(user, "subscriptions") and user.subscriptions.filter(status="active", expires_at__gt=now).exists():
-            return True
-        # 2. Si l'utilisateur a eu un abonnement qui a expiré ou a été annulé, le badge est révoqué
-        if hasattr(user, "subscriptions") and user.subscriptions.filter(status__in=["expired", "cancelled"]).exists():
-            return False
-        # 3. Badge attribué aux agents ou bailleurs en base ou via leur profil
-        if user.role in (User.ROLE_AGENT, User.ROLE_BAILLEUR):
-            profile = getattr(user, "agent_profile", None)
-            if profile and profile.is_verified:
-                return True
-            return False
-        return False
+        return bool(getattr(user, "is_verified", False) or user.is_staff or user.is_superuser)
 
     def update(self, instance, validated_data):
         # Défense en profondeur : rôle et numéro de téléphone strictement immuables
@@ -90,14 +73,9 @@ class UserSerializer(serializers.ModelSerializer):
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=6)
     password_confirm = serializers.CharField(write_only=True, min_length=6)
-    # ChoiceField restreint strictement les valeurs possibles : "admin" (ou
-    # toute autre valeur) est rejeté automatiquement par la validation DRF,
-    # impossible de créer un compte admin depuis l'inscription publique.
     role = serializers.ChoiceField(
         choices=[
             (User.ROLE_CLIENT, "Client"),
-            (User.ROLE_BAILLEUR, "Bailleur"),
-            (User.ROLE_AGENT, "Agent immobilier"),
         ],
         default=User.ROLE_CLIENT,
     )
@@ -134,33 +112,18 @@ class RegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {"password_confirm": "Les mots de passe ne correspondent pas."}
             )
-        role = attrs.get("role", User.ROLE_CLIENT)
-        whatsapp = (attrs.get("whatsapp") or "").strip()
-        if role in (User.ROLE_BAILLEUR, User.ROLE_AGENT) and not whatsapp:
-            raise serializers.ValidationError(
-                {"whatsapp": "Le numéro WhatsApp est requis pour l'activation du compte."}
-            )
         return attrs
 
     def create(self, validated_data):
         password = validated_data.pop("password")
         if not validated_data.get("whatsapp"):
             validated_data["whatsapp"] = validated_data.get("phone", "")
+        # Toute inscription publique est un compte client actif immédiat
+        validated_data["role"] = User.ROLE_CLIENT
         user = User(**validated_data)
         user.set_password(password)
-        # Les comptes agent et bailleur doivent être activés par un administrateur
-        if user.role in (User.ROLE_AGENT, User.ROLE_BAILLEUR):
-            user.is_approved = False
-            user.activation_requested = True
-            from django.utils import timezone
-            user.activation_requested_at = timezone.now()
-        else:
-            user.is_approved = True
+        user.is_approved = True
         user.save()
-        if user.role == User.ROLE_AGENT:
-            # is_verified reste à False par défaut : seule l'administration
-            # peut vérifier un agent, jamais l'inscription elle-même.
-            AgentProfile.objects.get_or_create(user=user)
         return user
 
 

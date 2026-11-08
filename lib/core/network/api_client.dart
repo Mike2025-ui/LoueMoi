@@ -12,9 +12,9 @@ class ApiClient {
     _dio = Dio(
       BaseOptions(
         baseUrl: ApiEndpoints.baseUrl,
-        connectTimeout: const Duration(seconds: 15),
-        receiveTimeout: const Duration(seconds: 15),
-        sendTimeout: const Duration(seconds: 15),
+        connectTimeout: const Duration(seconds: 25),
+        receiveTimeout: const Duration(seconds: 45),
+        sendTimeout: const Duration(seconds: 45),
         headers: {'Content-Type': 'application/json'},
       ),
     );
@@ -27,24 +27,24 @@ class ApiClient {
   final AuthStorage _authStorage;
   late final Dio _dio;
 
-  Future<Response<T>> get<T>(String path, {Map<String, dynamic>? query}) {
-    return _run(() => _dio.get<T>(path, queryParameters: query));
+  Future<Response<T>> get<T>(String path, {Map<String, dynamic>? query, Options? options}) {
+    return _run(() => _dio.get<T>(path, queryParameters: query, options: options));
   }
 
-  Future<Response<T>> post<T>(String path, {dynamic data}) {
-    return _run(() => _dio.post<T>(path, data: data));
+  Future<Response<T>> post<T>(String path, {dynamic data, Options? options}) {
+    return _run(() => _dio.post<T>(path, data: data, options: options));
   }
 
-  Future<Response<T>> put<T>(String path, {dynamic data}) {
-    return _run(() => _dio.put<T>(path, data: data));
+  Future<Response<T>> put<T>(String path, {dynamic data, Options? options}) {
+    return _run(() => _dio.put<T>(path, data: data, options: options));
   }
 
-  Future<Response<T>> patch<T>(String path, {dynamic data}) {
-    return _run(() => _dio.patch<T>(path, data: data));
+  Future<Response<T>> patch<T>(String path, {dynamic data, Options? options}) {
+    return _run(() => _dio.patch<T>(path, data: data, options: options));
   }
 
-  Future<Response<T>> delete<T>(String path, {dynamic data}) {
-    return _run(() => _dio.delete<T>(path, data: data));
+  Future<Response<T>> delete<T>(String path, {dynamic data, Options? options}) {
+    return _run(() => _dio.delete<T>(path, data: data, options: options));
   }
 
   Future<Response<T>> _run<T>(Future<Response<T>> Function() request) async {

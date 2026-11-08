@@ -16,7 +16,6 @@ import '../features/auth/providers/auth_providers.dart';
 import '../features/messaging/providers/message_providers.dart';
 import '../features/notifications/providers/device_token_providers.dart';
 import '../features/notifications/providers/notification_providers.dart';
-import '../features/payments/providers/payment_providers.dart';
 import '../features/properties/providers/property_providers.dart';
 import '../features/reservations/providers/reservation_providers.dart';
 import 'router.dart';
@@ -42,7 +41,6 @@ class _LoueMoiAppState extends ConsumerState<LoueMoiApp> with WidgetsBindingObse
     // mode mock de la mission notifications.
     if (!Env.useMockData) {
       _setUpPushHandling();
-      _handlePaymentRedirectQuery();
       Future.microtask(() {
         ref.read(remoteAppConfigProvider);
         final user = ref.read(authControllerProvider).valueOrNull;
@@ -51,36 +49,6 @@ class _LoueMoiAppState extends ConsumerState<LoueMoiApp> with WidgetsBindingObse
           ref.read(presenceServiceProvider).start();
         }
       });
-    }
-  }
-
-  Future<void> _handlePaymentRedirectQuery() async {
-    final paymentParam = Uri.base.queryParameters['payment']?.toLowerCase();
-    if (paymentParam == null || paymentParam.isEmpty) return;
-
-    await Future.delayed(const Duration(milliseconds: 800));
-    if (!mounted) return;
-
-    if (paymentParam == 'success') {
-      await ref.read(authControllerProvider.notifier).refreshProfile();
-      ref.invalidate(userSubscriptionStatusProvider);
-      _scaffoldMessengerKey.currentState?.showSnackBar(
-        const SnackBar(
-          content: Text('Paiement confirmé avec succès !'),
-          backgroundColor: AppColors.success,
-          duration: Duration(seconds: 4),
-        ),
-      );
-    } else if (paymentParam == 'error' ||
-        paymentParam == 'cancelled' ||
-        paymentParam == 'pending') {
-      _scaffoldMessengerKey.currentState?.showSnackBar(
-        const SnackBar(
-          content: Text("Le paiement a été interrompu ou n'a pas pu aboutir."),
-          backgroundColor: AppColors.warning,
-          duration: Duration(seconds: 4),
-        ),
-      );
     }
   }
 
@@ -104,7 +72,6 @@ class _LoueMoiAppState extends ConsumerState<LoueMoiApp> with WidgetsBindingObse
       ref.invalidate(notificationsProvider);
       ref.invalidate(unreadNotificationsCountProvider);
       ref.invalidate(conversationsProvider);
-      ref.invalidate(userSubscriptionStatusProvider);
       ref.invalidate(remoteAppConfigProvider);
       ref.read(authControllerProvider.notifier).refreshProfile();
       final user = ref.read(authControllerProvider).valueOrNull;
@@ -298,6 +265,7 @@ class _LoueMoiAppState extends ConsumerState<LoueMoiApp> with WidgetsBindingObse
         ref.invalidate(favoritesListProvider);
         ref.invalidate(conversationsProvider);
         ref.invalidate(reservationsListProvider);
+        ref.invalidate(propertiesControllerProvider);
       }
     });
 

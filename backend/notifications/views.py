@@ -71,7 +71,7 @@ class DeviceTokenRegisterView(APIView):
     def post(self, request):
         token = request.data.get("token")
         platform = request.data.get("platform")
-        if not token or platform not in (DeviceToken.PLATFORM_ANDROID, DeviceToken.PLATFORM_IOS):
+        if not token or platform not in (DeviceToken.PLATFORM_ANDROID, DeviceToken.PLATFORM_IOS, getattr(DeviceToken, 'PLATFORM_WEB', 'web')):
             return Response(
                 {"detail": "'token' et 'platform' ('android' ou 'ios') sont requis."},
                 status=status.HTTP_400_BAD_REQUEST,

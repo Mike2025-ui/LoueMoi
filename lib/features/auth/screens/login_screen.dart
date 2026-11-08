@@ -14,7 +14,9 @@ import '../../../core/widgets/primary_button.dart';
 import '../providers/auth_providers.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({super.key, this.initialPhone});
+
+  final String? initialPhone;
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
@@ -22,8 +24,14 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _phoneController = TextEditingController();
+  late final TextEditingController _phoneController;
   final _passwordController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _phoneController = TextEditingController(text: widget.initialPhone ?? '');
+  }
 
   @override
   void dispose() {

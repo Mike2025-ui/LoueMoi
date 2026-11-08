@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 from django.contrib.auth import get_user_model
 from django.core.files.storage import default_storage
+from django.db import transaction
 from django.utils import timezone
 from rest_framework import generics, permissions, status
 from rest_framework.throttling import ScopedRateThrottle
@@ -73,11 +74,6 @@ class LoginView(APIView):
                 {"detail": "Ce compte a été désactivé."},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        try:
-            from payments.views import sync_user_pending_subscriptions
-            sync_user_pending_subscriptions(user)
-        except Exception:
-            pass
         return Response(_auth_payload(user))
 
 
@@ -99,13 +95,7 @@ class MeView(generics.RetrieveUpdateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self):
-        user = self.request.user
-        try:
-            from payments.views import sync_user_pending_subscriptions
-            sync_user_pending_subscriptions(user)
-        except Exception:
-            pass
-        return user
+        return self.request.user
 
 
 class UserPhotoView(APIView):
@@ -284,8 +274,14 @@ class PasswordResetRequestView(APIView):
                 candidate_phones.add(national[1:])   # e.g. "701020304"
                 candidate_phones.add(f"+225{national[1:]}")
                 candidate_phones.add(f"225{national[1:]}")
+            else:
+                candidate_phones.add(f"0{national}")
+                candidate_phones.add(f"+2250{national}")
+                candidate_phones.add(f"2250{national}")
 
         user = User.objects.filter(phone__in=candidate_phones).first()
+        if user is None and len(clean_raw) >= 8:
+            user = User.objects.filter(phone__endswith=clean_raw[-8:]).first()
         if user is None:
             logger.warning(
                 "Demande OTP réinitialisation : aucun compte trouvé pour le numéro %s (formats testés: %s)",
@@ -322,8 +318,10 @@ class PasswordResetRequestView(APIView):
                 }
             )
 
+        # Invalider immédiatement les anciens OTPs non consommés pour repartir sur un code frais
+        PasswordResetOTP.objects.filter(user=user, is_used=False).update(is_used=True)
         _otp, code = PasswordResetOTP.generate_for(user)
-        target_phone = normalized_phone or user.phone
+        target_phone = user.phone or normalized_phone
         logger.info("Envoi d'un nouvel OTP vers %s...", _mask_phone(target_phone))
         get_sms_provider().send(
             target_phone,
@@ -375,8 +373,14 @@ class PasswordResetConfirmView(APIView):
                 candidate_phones.add(national[1:])
                 candidate_phones.add(f"+225{national[1:]}")
                 candidate_phones.add(f"225{national[1:]}")
+            else:
+                candidate_phones.add(f"0{national}")
+                candidate_phones.add(f"+2250{national}")
+                candidate_phones.add(f"2250{national}")
 
         user = User.objects.filter(phone__in=candidate_phones).first()
+        if user is None and len(clean_raw) >= 8:
+            user = User.objects.filter(phone__endswith=clean_raw[-8:]).first()
         if user is None:
             return Response(
                 {"detail": "Code invalide ou expiré."}, status=status.HTTP_400_BAD_REQUEST
@@ -386,21 +390,17 @@ class PasswordResetConfirmView(APIView):
             user=user, is_used=False, expires_at__gt=timezone.now()
         ).order_by("-created_at")
 
-        matching_otp = None
-        for cand_otp in active_otps:
-            if cand_otp.check_code(code):
-                matching_otp = cand_otp
-                break
-
-        if matching_otp is None:
+        matching_otp = active_otps.first()
+        if matching_otp is None or not matching_otp.check_code(code):
             return Response(
                 {"detail": "Code invalide ou expiré."}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Invalider tous les OTPs actifs de cet utilisateur après succès
-        active_otps.update(is_used=True)
-        user.set_password(new_password)
-        user.save(update_fields=["password"])
+        # Invalider tous les OTPs actifs de cet utilisateur après succès et mettre à jour le mot de passe
+        with transaction.atomic():
+            active_otps.update(is_used=True)
+            user.set_password(new_password)
+            user.save(update_fields=["password"])
         try:
             from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
             for token in OutstandingToken.objects.filter(user=user):

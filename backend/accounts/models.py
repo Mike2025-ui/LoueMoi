@@ -53,8 +53,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     ROLE_ADMIN = "admin"
     ROLE_CHOICES = [
         (ROLE_CLIENT, "Client"),
-        (ROLE_BAILLEUR, "Bailleur"),
-        (ROLE_AGENT, "Agent immobilier"),
         (ROLE_ADMIN, "Administrateur"),
     ]
 
@@ -103,35 +101,23 @@ class User(AbstractBaseUser, PermissionsMixin):
         return f"{self.first_name} {self.last_name}".strip()
 
     def save(self, *args, **kwargs):
-        # Règle de sécurité stricte : le rôle des clients, agents et bailleurs
+        # Règle de sécurité stricte : le rôle des utilisateurs
         # ainsi que leurs numéros de téléphone ne doivent JAMAIS être modifiables.
         if self.pk:
             orig = User.objects.filter(pk=self.pk).values("role", "phone").first()
             if orig:
-                if orig["role"] in (self.ROLE_CLIENT, self.ROLE_AGENT, self.ROLE_BAILLEUR):
+                if orig["role"] in (self.ROLE_CLIENT, self.ROLE_ADMIN, self.ROLE_AGENT, self.ROLE_BAILLEUR):
                     self.role = orig["role"]
                 self.phone = orig["phone"]
-        # Les clients non abonnés ne peuvent pas avoir de badge
-        if self.role == self.ROLE_CLIENT and not self.has_active_subscription:
-            self.is_verified = False
         super().save(*args, **kwargs)
-        if self.role == self.ROLE_AGENT:
-            profile = getattr(self, "agent_profile", None)
-            if profile and profile.is_verified != self.is_verified:
-                profile.is_verified = self.is_verified
-                profile.save(update_fields=["is_verified"])
 
     @property
     def is_agent(self):
-        """Dérivé de `role`, en lecture seule — conservé uniquement pour la
-        compatibilité du code existant (limit_choices_to, requêtes internes).
-        Ne jamais réintroduire comme champ stocké séparément : `role` est la
-        seule source de vérité."""
-        return self.role == self.ROLE_AGENT
+        return False
 
     @property
     def is_bailleur(self):
-        return self.role == self.ROLE_BAILLEUR
+        return False
 
     @property
     def is_online(self):
@@ -143,19 +129,14 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     @property
     def can_own_properties(self):
-        """Les administrateurs LoueMoi (is_staff / is_superuser) ainsi que les
-        comptes habilités peuvent publier et gérer des annonces."""
-        return bool(self.is_staff or self.is_superuser or self.role in (self.ROLE_AGENT, self.ROLE_BAILLEUR))
+        """Seuls les administrateurs LoueMoi (is_staff / is_superuser / role='admin')
+        peuvent publier et gérer des annonces."""
+        return bool(self.is_staff or self.is_superuser or self.role == self.ROLE_ADMIN)
 
     @property
     def has_active_subscription(self):
-        """Indique si l'utilisateur possède un abonnement actif non expiré.
-        Propriété de lecture pure sans effets de bord en base ni requêtes HTTP bloquantes."""
-        if not self.pk:
-            return False
-        from django.utils import timezone
-        now = timezone.now()
-        return self.subscriptions.filter(status="active", expires_at__gt=now).exists()
+        """Modèle direct 100% gratuit : aucun abonnement requis."""
+        return True
 
 
 class PasswordResetOTP(models.Model):
@@ -216,6 +197,7 @@ class PasswordResetOTP(models.Model):
             return False
         clean = re.sub(r"[^a-zA-Z0-9]", "", str(code or "").strip())
         raw_clean = str(code or "").strip()
+
         return (
             check_password(clean, self.code_hash)
             or check_password(clean.upper(), self.code_hash)

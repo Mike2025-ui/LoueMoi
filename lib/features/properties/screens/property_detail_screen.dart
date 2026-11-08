@@ -764,7 +764,7 @@ class _AProposTab extends ConsumerWidget {
                     ),
                     SizedBox(height: 2),
                     Text(
-                      'Vous économisez l’équivalent d’un mois de loyer. LoueMoi centralise les annonces et assure vos visites physiques sur place (forfait unique de 5.000 Fcfa à régler sur les lieux de la visite).',
+                      'Vous économisez l’équivalent d’un mois de loyer. LoueMoi centralise les annonces et assure vos visites physiques sur place (visites 100% gratuites, zéro commission d’agence).',
                       style: TextStyle(
                         color: Color(0xFF166534),
                         fontSize: 12,
@@ -1588,7 +1588,7 @@ class _InstallationBudgetCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.xs),
             const _BudgetRow(
               label: 'Frais de visite sur place',
-              amount: '5.000 Fcfa',
+              amount: '0 Fcfa (Gratuit)',
             ),
             const SizedBox(height: AppSpacing.xs),
             const _BudgetRow(

@@ -91,6 +91,10 @@ class ApiMessageRepository implements MessageRepository {
     final response = await _apiClient.post<Map<String, dynamic>>(
       ApiEndpoints.messages,
       data: formData,
+      options: Options(
+        sendTimeout: const Duration(minutes: 5),
+        receiveTimeout: const Duration(minutes: 5),
+      ),
     );
     return Message.fromJson(response.data!);
   }
@@ -102,7 +106,10 @@ class ApiMessageRepository implements MessageRepository {
   }) async {
     final response = await _apiClient.post<Map<String, dynamic>>(
       ApiEndpoints.conversations,
-      data: {'agent': agentId, 'property': ?propertyId},
+      data: {
+        'agent': agentId,
+        if (propertyId != null) 'property': propertyId,
+      },
     );
     return response.data!['id'].toString();
   }

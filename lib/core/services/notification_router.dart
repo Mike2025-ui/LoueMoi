@@ -44,8 +44,6 @@ class NotificationRouter {
             : AppRoutes.propertyDetailPath(propertyId);
 
       case 'admin_broadcast':
-      case 'subscription_expiring':
-      case 'subscription_expired':
         return AppRoutes.notifications;
 
       default:

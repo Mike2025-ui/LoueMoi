@@ -1,22 +1,13 @@
-/// Les trois seuls types de compte exposés dans l'app mobile. "admin" existe
-/// côté Django (is_staff/is_superuser) mais n'est jamais un choix possible
-/// ni un espace visible côté Flutter — l'administration reste exclusivement
-/// dans Django Admin.
-///
-/// Bailleur et agent sont deux rôles strictement indépendants : aucune
-/// délégation, aucun transfert de propriété entre eux. Les deux peuvent
-/// publier/posséder des annonces.
+/// Rôles d'utilisateurs LoueMoi :
+/// - client : Utilisateur standard (recherche, favoris, réservation gratuite, messagerie)
+/// - admin : Administrateur LoueMoi (gestion exclusive et publication des annonces)
 enum UserRole {
   client,
-  bailleur,
-  agent;
+  admin;
 
   static UserRole fromString(String? value) {
-    return switch (value) {
-      'bailleur' => UserRole.bailleur,
-      'agent' => UserRole.agent,
-      // "admin" existe côté Django via is_staff/is_superuser (voir User.isStaff/isSuperAdmin)
-      // et retombe sur client au niveau du rôle enum.
+    return switch (value?.toLowerCase()) {
+      'admin' => UserRole.admin,
       _ => UserRole.client,
     };
   }

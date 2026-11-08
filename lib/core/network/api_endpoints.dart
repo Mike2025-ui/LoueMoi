@@ -77,13 +77,4 @@ class ApiEndpoints {
 
   // Configuration dynamique & OTA (Server-Driven Config)
   static const String appConfig = '/api/config/app-settings/';
-
-  // Payments & Abonnements (Jèko)
-  static const String subscriptionCreate = '/api/payments/subscriptions/create/';
-  static const String subscriptionStatus = '/api/payments/subscriptions/status/';
-  static String canContact({String? propertyId, String? ownerId}) {
-    if (propertyId != null) return '/api/payments/can-contact/?property_id=$propertyId';
-    if (ownerId != null) return '/api/payments/can-contact/?owner_id=$ownerId';
-    return '/api/payments/can-contact/';
-  }
 }

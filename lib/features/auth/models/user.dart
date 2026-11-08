@@ -42,29 +42,20 @@ class User extends Equatable {
 
   String get fullName => '$firstName $lastName';
 
-  bool get isAgent => role == UserRole.agent;
-  bool get isBailleur => role == UserRole.bailleur;
-  bool get isClient => role == UserRole.client;
-  bool get isAdmin => isStaff || isSuperAdmin;
-  bool get isSuperAdminUser => isSuperAdmin || isStaff;
+  bool get isAgent => false;
+  bool get isBailleur => false;
+  bool get isClient => !isAdmin;
+  bool get isAdmin => role == UserRole.admin || isStaff || isSuperAdmin;
+  bool get isSuperAdminUser => isSuperAdmin || isStaff || role == UserRole.admin;
 
-  /// Badge de certification : accordé automatiquement à tout utilisateur abonné
-  /// ou certifié en base.
-  bool get isVerifiedUser {
-    if (isSuperAdminUser) return true;
-    if (hasActiveSubscription) return true;
-    if (isAgent) {
-      return (agentProfile?.isVerified ?? false) || isVerified;
-    }
-    return isVerified;
-  }
+  /// Badge de certification LoueMoi
+  bool get isVerifiedUser => isSuperAdminUser || isVerified;
 
-  /// Les comptes agent et bailleur doivent être approuvés par l'administrateur
-  /// avant de pouvoir accéder à l'application.
-  bool get needsActivation => !isSuperAdminUser && (isAgent || isBailleur) && !isApproved;
+  /// Les comptes clients sont immédiatement actifs.
+  bool get needsActivation => false;
 
-  /// Les administrateurs LoueMoi peuvent publier et gérer directement les annonces.
-  bool get canPublish => isSuperAdminUser || isAgent || isBailleur;
+  /// Seuls les administrateurs LoueMoi peuvent publier et gérer directement les annonces.
+  bool get canPublish => isSuperAdminUser || isAdmin;
   bool get canOwnProperties => canPublish;
 
   factory User.fromJson(Map<String, dynamic> json) {

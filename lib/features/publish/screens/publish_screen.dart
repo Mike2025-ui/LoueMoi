@@ -1262,7 +1262,9 @@ class _StepPhotos extends ConsumerWidget {
     try {
       final picked = await ImagePicker().pickImage(
         source: ImageSource.gallery,
-        imageQuality: 85,
+        maxWidth: 1600,
+        maxHeight: 1600,
+        imageQuality: 82,
       );
       if (picked == null) return;
       final notifier = ref.read(publishFormProvider.notifier);
@@ -1286,7 +1288,7 @@ class _StepPhotos extends ConsumerWidget {
     required void Function(List<XFile> updated) onUpdated,
   }) async {
     try {
-      final picked = await ImagePicker().pickMultiImage(imageQuality: 85);
+      final picked = await ImagePicker().pickMultiImage(maxWidth: 1600, maxHeight: 1600, imageQuality: 82);
       if (picked.isEmpty) return;
       onUpdated([...currentList, ...picked]);
     } catch (_) {
@@ -1559,9 +1561,7 @@ class _PhotoCategorySection extends StatelessWidget {
           children: [
             for (final file in images)
               _PhotoThumb(
-                child: kIsWeb
-                    ? Image.network(file.path, fit: BoxFit.cover)
-                    : Image.file(File(file.path), fit: BoxFit.cover),
+                child: _XFileImage(file: file, fit: BoxFit.cover),
                 onRemove: () => onRemove(file),
               ),
             if (allowMultiple || images.isEmpty)
@@ -1822,6 +1822,28 @@ class _VideoPickerSectionState extends ConsumerState<_VideoPickerSection> {
   }
 }
 
+class _XFileImage extends StatelessWidget {
+  const _XFileImage({required this.file, this.fit = BoxFit.cover});
+  final XFile file;
+  final BoxFit fit;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!kIsWeb) {
+      return Image.file(File(file.path), fit: fit);
+    }
+    return FutureBuilder<Uint8List>(
+      future: file.readAsBytes(),
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          return Image.memory(snapshot.data!, fit: fit);
+        }
+        return Container(color: AppColors.surfaceMuted);
+      },
+    );
+  }
+}
+
 class _PhotoThumb extends StatelessWidget {
   const _PhotoThumb({required this.child, required this.onRemove});
 
@@ -1938,15 +1960,7 @@ class _StepPreview extends ConsumerWidget {
             child: AspectRatio(
               aspectRatio: 1.5,
               child: form.newImages.isNotEmpty
-                  ? (kIsWeb
-                        ? Image.network(
-                            form.newImages.first.path,
-                            fit: BoxFit.cover,
-                          )
-                        : Image.file(
-                            File(form.newImages.first.path),
-                            fit: BoxFit.cover,
-                          ))
+                  ? _XFileImage(file: form.newImages.first, fit: BoxFit.cover)
                   : form.existingImages.isNotEmpty
                   ? PropertyImage(form.existingImages.first, fit: BoxFit.cover)
                   : Container(color: AppColors.surfaceMuted),

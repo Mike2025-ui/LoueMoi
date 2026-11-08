@@ -35,12 +35,26 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    final phone = _phoneController.text.replaceAll(RegExp(r'\s+'), '').trim();
+    String phone = _phoneController.text.replaceAll(RegExp(r'\s+'), '').trim();
+    if (phone.length == 10 && phone.startsWith('0')) {
+      phone = '+225$phone';
+    } else if (phone.startsWith('225') && !phone.startsWith('+')) {
+      phone = '+$phone';
+    }
     setState(() => _isSubmitting = true);
     try {
       final repository = ref.read(authRepositoryProvider);
-      await repository.requestPasswordReset(phone);
+      final result = await repository.requestPasswordReset(phone);
       if (!mounted) return;
+      if (result['cooldown'] == true) {
+        final waitSec = (result['retry_after'] as num?)?.toInt() ?? 60;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Un code a déjà été envoyé récemment. Veuillez patienter encore ${waitSec}s.'),
+            backgroundColor: AppColors.warning,
+          ),
+        );
+      }
       context.push(AppRoutes.resetPasswordPath(phone));
     } catch (e) {
       if (mounted) showErrorSnackbar(context, e);

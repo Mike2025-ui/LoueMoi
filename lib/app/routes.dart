@@ -21,18 +21,18 @@ class AppRoutes {
   static const String personalInfo = '/profile/personal-info';
   static const String editProfile = '/profile/edit';
   static const String contactedProperties = '/profile/contacted-properties';
-  static const String agentSpace = '/profile/agent';
-  static const String myProperties = '/profile/agent/properties';
-  static const String agentDashboard = '/profile/agent/dashboard';
-  static const String soldProperties = '/profile/agent/sold';
+  static const String myProperties = '/profile/properties';
+  static const String agentSpace = '/profile';
+  static const String agentDashboard = '/profile';
+  static const String soldProperties = '/profile';
 
-  static const String bailleurSpace = '/profile/bailleur';
-  static const String bailleurProperties = '/profile/bailleur/properties';
-  static const String bailleurDashboard = '/profile/bailleur/dashboard';
+  static const String bailleurSpace = '/profile';
+  static const String bailleurProperties = '/profile/properties';
+  static const String bailleurDashboard = '/profile';
 
-  static const String agentSearch = '/agents';
+  static const String agentSearch = '/home';
 
-  static const String bailleurSearch = '/bailleurs';
+  static const String bailleurSearch = '/home';
 
   /// Annonces publiques d'un propriétaire donné (agent ou bailleur) — à ne
   /// pas confondre avec [bailleurProperties] ("Mes biens" du bailleur

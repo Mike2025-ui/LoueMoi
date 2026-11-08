@@ -82,11 +82,11 @@ class CongratsScreen extends StatelessWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.payments_outlined, color: Color(0xFF16A34A), size: 20),
+                        Icon(Icons.verified_outlined, color: Color(0xFF16A34A), size: 20),
                         SizedBox(width: AppSpacing.sm),
                         Expanded(
                           child: Text(
-                            'Frais forfaitaires de visite de 5.000 Fcfa à régler directement sur place le jour de la visite (en espèces ou par Wave / Orange Money). Zéro mois d’agence à payer.',
+                            'Visite 100% gratuite et directe : zéro frais de visite et zéro commission d’agence.',
                             style: TextStyle(
                               color: Color(0xFF166534),
                               fontSize: 13,

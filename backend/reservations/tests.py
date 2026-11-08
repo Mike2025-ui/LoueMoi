@@ -102,11 +102,11 @@ class ReservationDoesNotAutoOccupyPropertyTests(APITestCase):
     def setUp(self):
         self.agent = User.objects.create_user(
             phone="+2250722222301", password="secret123", first_name="A", last_name="A",
-            role=User.ROLE_AGENT,
+            role=User.ROLE_ADMIN, is_staff=True,
         )
         self.other_agent = User.objects.create_user(
             phone="+2250722222304", password="secret123", first_name="A2", last_name="A2",
-            role=User.ROLE_AGENT,
+            role=User.ROLE_ADMIN, is_staff=True,
         )
         self.first_client = User.objects.create_user(
             phone="+2250722222302", password="secret123", first_name="C1", last_name="L",

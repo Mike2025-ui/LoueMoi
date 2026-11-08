@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/utils/media_url.dart';
 
 /// Aperçu/lecture vidéo minimal pour la messagerie — thumbnail avec overlay
 /// play, lecture inline au tap.
@@ -56,9 +57,10 @@ class _VideoMessagePlayerState extends State<VideoMessagePlayer> {
 
   Future<void> _init() async {
     try {
+      final resolvedUrl = buildMediaUrl(widget.source);
       final controller = (widget.isLocalFile && !kIsWeb)
           ? VideoPlayerController.file(File(widget.source))
-          : VideoPlayerController.networkUrl(Uri.parse(widget.source));
+          : VideoPlayerController.networkUrl(Uri.parse(resolvedUrl));
       controller.addListener(_listener);
       await controller.initialize();
       if (!mounted) {

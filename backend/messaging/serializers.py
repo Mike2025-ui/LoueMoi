@@ -54,11 +54,11 @@ class MessageSerializer(serializers.ModelSerializer):
         if not obj.attachment:
             return None
         from urllib.parse import urlencode
-        from django.core.signing import TimestampSigner
+        from django.core.signing import Signer
 
         request = self.context.get("request")
         path = reverse("message-attachment", args=[obj.pk])
-        signer = TimestampSigner(salt="messaging.attachment")
+        signer = Signer(salt="messaging.attachment")
         sig = signer.sign(str(obj.pk))
         signed_path = f"{path}?{urlencode({'sig': sig})}"
         return request.build_absolute_uri(signed_path) if request else signed_path
@@ -204,7 +204,10 @@ class ConversationSerializer(serializers.ModelSerializer):
         return last_seen.isoformat() if last_seen else None
 
     def get_last_message(self, obj):
-        last = obj.messages.order_by("-created_at").first()
+        if hasattr(obj, "_prefetched_messages") and obj._prefetched_messages:
+            last = obj._prefetched_messages[0]
+        else:
+            last = obj.messages.order_by("-created_at").first()
         return MessageSerializer(last, context=self.context).data if last else None
 
     def get_unread_count(self, obj):

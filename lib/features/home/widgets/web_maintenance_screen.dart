@@ -9,7 +9,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_logo.dart';
 import '../../auth/providers/auth_providers.dart';
-import '../../payments/providers/payment_providers.dart';
 
 /// Page de maintenance pour la version Web de LoueMoi.
 ///
@@ -85,7 +84,6 @@ class _WebMaintenanceScreenState extends ConsumerState<WebMaintenanceScreen> {
       try {
         await ref.read(authControllerProvider.notifier).refreshProfile();
       } catch (_) {}
-      ref.invalidate(userSubscriptionStatusProvider);
     }
 
     if (refCode != null && refCode.isNotEmpty) {
@@ -114,7 +112,6 @@ class _WebMaintenanceScreenState extends ConsumerState<WebMaintenanceScreen> {
             try {
               await ref.read(authControllerProvider.notifier).refreshProfile();
             } catch (_) {}
-            ref.invalidate(userSubscriptionStatusProvider);
           }
         }
       }

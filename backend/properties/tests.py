@@ -19,8 +19,8 @@ User = get_user_model()
 
 def _make_agent(phone):
     return User.objects.create_user(
-        phone=phone, password="secret123", first_name="Agent", last_name=phone,
-        role=User.ROLE_AGENT,
+        phone=phone, password="secret123", first_name="Admin", last_name=phone,
+        role=User.ROLE_ADMIN,
     )
 
 
@@ -34,7 +34,7 @@ def _make_client_user(phone):
 def _make_bailleur(phone):
     return User.objects.create_user(
         phone=phone, password="secret123", first_name="Bailleur", last_name=phone,
-        role=User.ROLE_BAILLEUR,
+        role=User.ROLE_CLIENT,
     )
 
 
@@ -587,26 +587,22 @@ class BailleurPropertyPermissionTests(APITestCase):
             "district": "Angré",
         }
 
-    def test_bailleur_can_publish(self):
+    def test_bailleur_cannot_publish(self):
         self.client.force_authenticate(user=self.bailleur_b)
         response = self.client.post("/api/properties/", self._payload(), format="json")
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data["status"], "disponible")
-        self.assertEqual(response.data["agent"]["id"], self.bailleur_b.id)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_client_cannot_publish(self):
         self.client.force_authenticate(user=self.client_user)
         response = self.client.post("/api/properties/", self._payload(), format="json")
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_bailleur_can_modify_own_property(self):
+    def test_bailleur_cannot_modify_own_property(self):
         self.client.force_authenticate(user=self.bailleur_a)
         response = self.client.patch(
             f"/api/properties/{self.property_a.id}/", {"title": "Titre modifié"}, format="json"
         )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.property_a.refresh_from_db()
-        self.assertEqual(self.property_a.title, "Titre modifié")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_bailleur_cannot_modify_another_bailleurs_property(self):
         self.client.force_authenticate(user=self.bailleur_b)
@@ -615,11 +611,11 @@ class BailleurPropertyPermissionTests(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_bailleur_can_delete_own_property(self):
+    def test_bailleur_cannot_delete_own_property(self):
         property_obj = _make_property(self.bailleur_a, "À supprimer")
         self.client.force_authenticate(user=self.bailleur_a)
         response = self.client.delete(f"/api/properties/{property_obj.id}/")
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_bailleur_cannot_delete_another_bailleurs_property(self):
         self.client.force_authenticate(user=self.bailleur_b)
@@ -1358,9 +1354,9 @@ class PropertySecurityTests(APITestCase):
         self.approved_agent = User.objects.create_user(
             phone="+2250799999902",
             password="secret123",
-            first_name="Approved",
-            last_name="Agent",
-            role=User.ROLE_AGENT,
+            first_name="Admin",
+            last_name="LoueMoi",
+            role=User.ROLE_ADMIN,
             is_approved=True,
         )
         self.property = Property.objects.create(
@@ -1390,7 +1386,7 @@ class PropertySecurityTests(APITestCase):
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertIn("activé", response.data.get("detail", "").lower())
+        self.assertIn("administrateur", response.data.get("detail", "").lower())
 
     def test_upload_image_rejects_dangerous_extension(self):
         self.client.force_authenticate(user=self.approved_agent)

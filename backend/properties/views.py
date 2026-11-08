@@ -65,24 +65,12 @@ def _haversine_distance_km(origin_latitude, origin_longitude):
 
 
 def annotate_property_queryset(queryset, user=None):
-    """Pré-calcule en 1 seule requête SQL (Exists/OuterRef) les booléens
-    d'abonnement propriétaire et de favori utilisateur pour éliminer les
-    ~140 requêtes N+1 par page de PropertySerializer & AgentSerializer."""
-    from payments.models import Subscription
-
-    now = timezone.now()
-    active_sub_sq = Subscription.objects.filter(
-        user_id=OuterRef("agent_id"),
-        status="active",
-        expires_at__gt=now,
-    )
-    any_sub_sq = Subscription.objects.filter(
-        user_id=OuterRef("agent_id"),
-        status__in=["active", "expired"],
-    )
+    """Pré-calcule en 1 seule requête SQL (Exists/OuterRef) le statut favori
+    de l'utilisateur pour éliminer les requêtes N+1. Modèle LoueMoi 100% direct et gratuit :
+    aucun abonnement requis."""
     annotations = {
-        "_owner_has_active_sub": Exists(active_sub_sq),
-        "_owner_had_any_sub": Exists(any_sub_sq),
+        "_owner_has_active_sub": Value(True, output_field=BooleanField()),
+        "_owner_had_any_sub": Value(True, output_field=BooleanField()),
     }
     if user is not None and getattr(user, "is_authenticated", False):
         fav_sq = Favorite.objects.filter(
@@ -190,7 +178,8 @@ class PropertyViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         """Règle métier stricte :
         - Si une réservation est en cours (status='enCours'), l'annonce ne peut pas être supprimée.
-        - Si les réservations associées sont accomplies ou annulées, l'annonce peut être supprimée."""
+        - Si les réservations associées sont accomplies ou annulées, l'annonce et ses fichiers
+          médias physiques sont proprement supprimés."""
         instance = self.get_object()
         if instance.reservations.filter(status="enCours").exists():
             return Response(
@@ -204,10 +193,13 @@ class PropertyViewSet(viewsets.ModelViewSet):
         video_field = instance.video
         # Nettoyage des réservations terminées (accomplies ou annulées) pour lever la contrainte PROTECT
         instance.reservations.filter(status__in=["accomplie", "annulee"]).delete()
-        instance.delete()
+        self.perform_destroy(instance)
 
         if video_field:
-            video_field.delete(save=False)
+            try:
+                video_field.delete(save=False)
+            except Exception:
+                pass
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=["post"])
@@ -552,7 +544,8 @@ class MyPropertiesView(generics.ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        if user.is_staff or user.is_superuser:
+        show_all = self.request.query_params.get("all") in ("1", "true")
+        if (user.is_staff or user.is_superuser) and show_all:
             qs = (
                 Property.objects.exclude(status="disabled")
                 .select_related("agent", "agent__agent_profile")

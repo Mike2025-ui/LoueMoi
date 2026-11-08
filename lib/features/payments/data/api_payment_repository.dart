@@ -10,17 +10,22 @@ class ApiPaymentRepository implements PaymentRepository {
 
   @override
   Future<CanContactResult> checkCanContact({String? propertyId, String? ownerId}) async {
-    final endpoint = ApiEndpoints.canContact(propertyId: propertyId, ownerId: ownerId);
-    final response = await _client.get<Map<String, dynamic>>(endpoint);
-    return CanContactResult.fromJson(response.data ?? {});
+    return const CanContactResult(
+      canContact: true,
+      reason: '',
+      ownerHasActiveSubscription: true,
+      userHasActiveSubscription: true,
+    );
   }
 
   @override
   Future<UserSubscriptionStatus> getSubscriptionStatus() async {
-    final response = await _client.get<Map<String, dynamic>>(
-      ApiEndpoints.subscriptionStatus,
+    return const UserSubscriptionStatus(
+      hasActiveSubscription: true,
+      role: 'client',
+      requiredPlan: 'client',
+      planPrice: 0,
     );
-    return UserSubscriptionStatus.fromJson(response.data ?? {});
   }
 
   @override
@@ -28,14 +33,14 @@ class ApiPaymentRepository implements PaymentRepository {
     required PaymentMethod paymentMethod,
     String? payerPhone,
   }) async {
-    final response = await _client.post<Map<String, dynamic>>(
-      ApiEndpoints.subscriptionCreate,
-      data: {
-        'payment_method': paymentMethod.code,
-        if (payerPhone != null && payerPhone.isNotEmpty) 'payer_phone': payerPhone,
-      },
+    return const SubscriptionResult(
+      reference: 'FREE',
+      redirectUrl: '',
+      amount: 0,
+      plan: 'free',
+      paymentMethod: 'none',
+      isSimulation: true,
     );
-    return SubscriptionResult.fromJson(response.data ?? {});
   }
 }
 

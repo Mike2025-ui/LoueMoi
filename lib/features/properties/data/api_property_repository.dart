@@ -174,6 +174,10 @@ class ApiPropertyRepository implements PropertyRepository {
     final response = await _apiClient.post<Map<String, dynamic>>(
       ApiEndpoints.propertyUploadImage(propertyId),
       data: formData,
+      options: Options(
+        sendTimeout: const Duration(minutes: 5),
+        receiveTimeout: const Duration(minutes: 5),
+      ),
     );
     if (response.data == null) {
       throw const UnknownApiException(
@@ -207,6 +211,10 @@ class ApiPropertyRepository implements PropertyRepository {
     final response = await _apiClient.post<Map<String, dynamic>>(
       ApiEndpoints.propertyUploadVideo(propertyId),
       data: formData,
+      options: Options(
+        sendTimeout: const Duration(minutes: 5),
+        receiveTimeout: const Duration(minutes: 5),
+      ),
     );
     if (response.data == null) {
       throw const UnknownApiException(

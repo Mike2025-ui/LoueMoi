@@ -29,7 +29,7 @@ Future<void> syncDeviceTokenOnLogin(WidgetRef ref) async {
       onToken: (token) async {
         ref.read(currentFcmTokenProvider.notifier).state = token;
         try {
-          final platform = kIsWeb ? 'android' : (Platform.isIOS ? 'ios' : 'android');
+          final platform = kIsWeb ? 'web' : (Platform.isIOS ? 'ios' : 'android');
           await ref.read(deviceTokenRepositoryProvider).register(token, platform);
         } catch (_) {
           // Un souci réseau au moment d'associer le token ne doit jamais

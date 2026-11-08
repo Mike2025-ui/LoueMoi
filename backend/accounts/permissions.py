@@ -2,9 +2,9 @@ from rest_framework import permissions
 
 
 class IsAgent(permissions.BasePermission):
-    """Autorise uniquement les utilisateurs `role=agent` actifs."""
+    """Rôle agent déprécié — seuls les administrateurs LoueMoi centralisent les opérations."""
 
-    message = "Seul un agent immobilier peut effectuer cette action."
+    message = "Seul un administrateur LoueMoi peut effectuer cette action."
 
     def has_permission(self, request, view):
         user = request.user
@@ -12,14 +12,14 @@ class IsAgent(permissions.BasePermission):
             user
             and user.is_authenticated
             and user.is_active
-            and (user.role == user.ROLE_AGENT or user.is_staff or user.is_superuser)
+            and (user.is_staff or user.is_superuser or getattr(user, "role", "") == getattr(user, "ROLE_ADMIN", "admin"))
         )
 
 
 class IsBailleur(permissions.BasePermission):
-    """Autorise uniquement les utilisateurs `role=bailleur` actifs."""
+    """Rôle bailleur déprécié — seuls les administrateurs LoueMoi centralisent les opérations."""
 
-    message = "Seul un bailleur peut effectuer cette action."
+    message = "Seul un administrateur LoueMoi peut effectuer cette action."
 
     def has_permission(self, request, view):
         user = request.user
@@ -27,16 +27,16 @@ class IsBailleur(permissions.BasePermission):
             user
             and user.is_authenticated
             and user.is_active
-            and (user.role == user.ROLE_BAILLEUR or user.is_staff or user.is_superuser)
+            and (user.is_staff or user.is_superuser or getattr(user, "role", "") == getattr(user, "ROLE_ADMIN", "admin"))
         )
 
 
 class CanOwnProperties(permissions.BasePermission):
-    """Autorise `role=agent` OU `role=bailleur` approuvé — les deux seuls rôles
-    habilités à publier/posséder des annonces. Exige que le compte ait été
-    approuvé par l'administrateur (is_approved=True) et soit actif."""
+    """Seuls les administrateurs LoueMoi (is_staff / is_superuser / role='admin')
+    sont habilités à publier, modifier ou gérer des annonces.
+    Les clients et utilisateurs tiers ne peuvent pas publier d'annonces directement."""
 
-    message = "Votre compte doit être activé par un administrateur pour publier ou gérer une annonce."
+    message = "Seul un administrateur LoueMoi peut publier ou gérer une annonce."
 
     def has_permission(self, request, view):
         user = request.user
@@ -44,15 +44,14 @@ class CanOwnProperties(permissions.BasePermission):
             user
             and user.is_authenticated
             and user.is_active
-            and user.can_own_properties
-            and (user.is_approved or user.is_staff or user.is_superuser)
+            and (user.is_staff or user.is_superuser or getattr(user, "role", "") == getattr(user, "ROLE_ADMIN", "admin"))
         )
 
 
 class HasActiveSubscription(permissions.BasePermission):
-    """Autorise uniquement les utilisateurs connectés possédant un abonnement actif (ou administrateurs)."""
+    """Modèle LoueMoi 100% direct et gratuit : aucun abonnement requis."""
 
-    message = "Un abonnement actif est requis pour effectuer cette recherche."
+    message = "Connexion requise."
 
     def has_permission(self, request, view):
         user = request.user
@@ -60,6 +59,5 @@ class HasActiveSubscription(permissions.BasePermission):
             user
             and user.is_authenticated
             and user.is_active
-            and (user.has_active_subscription or user.is_staff or user.is_superuser)
         )
 

@@ -58,13 +58,44 @@ def _parse_mvhd_duration(data):
 
 def get_mp4_duration_seconds(file_obj):
     """Durée en secondes, ou None si elle n'a pas pu être déterminée
-    (conteneur non reconnu) — jamais d'exception propagée."""
+    (conteneur non reconnu) — jamais d'exception propagée.
+    Lit par blocs pour éviter de saturer la RAM sur de grosses vidéos."""
     try:
+        file_obj.seek(0, os.SEEK_END)
+        total_size = file_obj.tell()
         file_obj.seek(0)
-        data = file_obj.read()
+
+        # 1. Vérification rapide des 2 premiers Mo (moov en début de fichier si faststart)
+        first_chunk = file_obj.read(min(total_size, 2 * 1024 * 1024))
+        duration = _parse_mvhd_duration(first_chunk)
+        if duration is not None:
+            file_obj.seek(0)
+            return duration
+
+        # 2. Si moov est à la fin du conteneur MP4
+        if total_size > 2 * 1024 * 1024:
+            tail_size = min(total_size, 3 * 1024 * 1024)
+            file_obj.seek(total_size - tail_size)
+            tail_chunk = file_obj.read(tail_size)
+            duration = _parse_mvhd_duration(tail_chunk)
+            if duration is not None:
+                file_obj.seek(0)
+                return duration
+
+        # 3. Repli avec taille modérée (< 15 Mo)
+        if total_size <= 15 * 1024 * 1024:
+            file_obj.seek(0)
+            data = file_obj.read()
+            file_obj.seek(0)
+            return _parse_mvhd_duration(data)
+
         file_obj.seek(0)
-        return _parse_mvhd_duration(data)
+        return None
     except Exception:
+        try:
+            file_obj.seek(0)
+        except Exception:
+            pass
         return None
 
 

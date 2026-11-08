@@ -104,7 +104,9 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     try {
       final file = await ImagePicker().pickImage(
         source: ImageSource.gallery,
-        imageQuality: 85,
+        maxWidth: 1600,
+        maxHeight: 1600,
+        imageQuality: 82,
       );
       if (file == null) return;
       setState(() {
@@ -279,6 +281,11 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           final prevCount = previous?.valueOrNull?.length ?? 0;
           if (next.value!.length != prevCount) {
             _scrollToBottom();
+          }
+          final currentUserId = ref.read(authControllerProvider).valueOrNull?.id;
+          final hasUnreadIncoming = next.value!.any((m) => !m.isRead && m.senderId != currentUserId);
+          if (hasUnreadIncoming) {
+            _markRead();
           }
         }
       },

@@ -26,34 +26,7 @@ class AgentSerializer(serializers.Serializer):
     def _profile(self, user):
         return getattr(user, "agent_profile", None)
 
-    def _owner_has_active_sub(self, owner):
-        prefetched = getattr(owner, "_prefetched_has_active_sub", None)
-        if prefetched is not None:
-            return bool(prefetched)
-        from django.utils import timezone
-        now = timezone.now()
-        res = bool(
-            hasattr(owner, "subscriptions")
-            and owner.subscriptions.filter(status="active", expires_at__gt=now).exists()
-        )
-        owner._prefetched_has_active_sub = res
-        return res
-
-    def _owner_had_any_sub(self, owner):
-        prefetched = getattr(owner, "_prefetched_had_any_sub", None)
-        if prefetched is not None:
-            return bool(prefetched)
-        res = bool(
-            hasattr(owner, "subscriptions")
-            and owner.subscriptions.filter(status__in=["active", "expired"]).exists()
-        )
-        owner._prefetched_had_any_sub = res
-        return res
-
     def _can_view_contact(self, owner):
-        """Dans le modèle centralisé 100% gratuit, les coordonnées LoueMoi
-        associées aux annonces sont toujours accessibles pour permettre les appels
-        et contacts WhatsApp directs."""
         return True
 
     def get_phone(self, user):
@@ -65,27 +38,14 @@ class AgentSerializer(serializers.Serializer):
         return wa or "+2250702065206"
 
     def get_is_verified(self, user):
-        # Décision souveraine de l'administration : si révoqué ou désactivé, le badge est False
-        if not getattr(user, "is_verified", False):
-            return False
-        # 1. Tout abonnement actif confère le badge
-        if self._owner_has_active_sub(user):
-            return True
-        # 2. Après expiration d'un abonnement, le badge est révoqué
-        if self._owner_had_any_sub(user):
-            return False
-        # 3. Badge administratif
-        profile = self._profile(user)
-        if profile and profile.is_verified:
-            return True
-        return True
+        return bool(getattr(user, "is_verified", False) or user.is_staff or user.is_superuser)
 
     def get_rating(self, user):
         profile = self._profile(user)
         return float(profile.rating) if profile else 0.0
 
     def get_has_active_subscription(self, user):
-        return self._owner_has_active_sub(user)
+        return True
 
 
 class PropertySerializer(serializers.ModelSerializer):
@@ -171,15 +131,7 @@ class PropertySerializer(serializers.ModelSerializer):
         return Favorite.objects.filter(user=request.user, property=obj).exists()
 
     def get_owner_has_active_subscription(self, obj):
-        if hasattr(obj, "_owner_has_active_sub"):
-            return bool(obj._owner_has_active_sub)
-        if not obj.agent:
-            return False
-        from django.utils import timezone
-        return obj.agent.subscriptions.filter(
-            status="active",
-            expires_at__gt=timezone.now(),
-        ).exists()
+        return True
 
     def validate_description(self, value):
         if not value:

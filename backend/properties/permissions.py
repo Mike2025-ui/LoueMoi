@@ -3,7 +3,7 @@ from rest_framework import permissions
 
 class IsPropertyOwnerOrReadOnly(permissions.BasePermission):
     """Lecture libre (déjà garantie par IsAuthenticatedOrReadOnly en amont) ;
-    modification/suppression réservées à l'agent propriétaire de l'annonce ou super-admin/staff.
+    modification/suppression réservées à l'administrateur propriétaire de l'annonce ou super-admin.
     """
 
     message = "Vous ne pouvez modifier ou supprimer que vos propres annonces."
@@ -13,6 +13,5 @@ class IsPropertyOwnerOrReadOnly(permissions.BasePermission):
             return True
         return (
             obj.agent_id == request.user.id
-            or request.user.is_staff
             or request.user.is_superuser
         )

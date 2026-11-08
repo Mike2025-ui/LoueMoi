@@ -33,7 +33,7 @@ class RoleRegistrationTests(APITestCase):
         self.assertEqual(user.role, User.ROLE_CLIENT)
         self.assertFalse(hasattr(user, "agent_profile"))
 
-    def test_agent_registration_creates_unverified_agent_profile(self):
+    def test_agent_registration_rejected(self):
         response = self.client.post(
             "/api/auth/register/",
             {
@@ -47,16 +47,9 @@ class RoleRegistrationTests(APITestCase):
             },
             format="json",
         )
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data["role"], "agent")
-        user = User.objects.get(phone="+2250700000011")
-        self.assertTrue(hasattr(user, "agent_profile"))
-        # Un agent ne peut jamais s'auto-vérifier à l'inscription.
-        self.assertFalse(user.agent_profile.is_verified)
-        # Compte en attente d'activation administrateur
-        self.assertFalse(user.is_approved)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_bailleur_registration(self):
+    def test_bailleur_registration_rejected(self):
         response = self.client.post(
             "/api/auth/register/",
             {
@@ -70,30 +63,7 @@ class RoleRegistrationTests(APITestCase):
             },
             format="json",
         )
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data["role"], "bailleur")
-        user = User.objects.get(phone="+2250700000016")
-        self.assertEqual(user.role, User.ROLE_BAILLEUR)
-        # Un bailleur n'a pas de profil professionnel structuré (pas
-        # d'AgentProfile) — rôle strictement indépendant de l'agent.
-        self.assertFalse(hasattr(user, "agent_profile"))
-        self.assertFalse(user.is_approved)
-
-    def test_agent_or_bailleur_registration_requires_whatsapp(self):
-        response = self.client.post(
-            "/api/auth/register/",
-            {
-                "first_name": "No",
-                "last_name": "WhatsApp",
-                "phone": "+2250700000095",
-                "password": "secret123",
-                "password_confirm": "secret123",
-                "role": "agent",
-            },
-            format="json",
-        )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("whatsapp", response.data)
 
     def test_public_registration_cannot_create_admin(self):
         response = self.client.post(
@@ -133,12 +103,13 @@ class AdminRoleManagementTests(APITestCase):
         self.assertEqual(target.role, User.ROLE_CLIENT)
         self.assertEqual(target.phone, "+2250700000014")
 
-    def test_client_cannot_have_certificate_badge(self):
+    def test_client_cannot_self_verify(self):
         target = User.objects.create_user(
             phone="+2250700000018", password="secret123", first_name="A", last_name="B", role=User.ROLE_CLIENT,
         )
-        target.is_verified = True
-        target.save()
+        self.client.force_authenticate(user=target)
+        response = self.client.patch("/api/users/me/", {"is_verified": True}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         target.refresh_from_db()
         self.assertFalse(target.is_verified)
 
@@ -193,11 +164,20 @@ class LoginAndMeRoleTests(APITestCase):
     def test_login_and_me_for_client(self):
         self._assert_login_and_me_role("+2250700000020", "client")
 
-    def test_login_and_me_for_bailleur(self):
-        self._assert_login_and_me_role("+2250700000021", "bailleur")
-
-    def test_login_and_me_for_agent(self):
-        self._assert_login_and_me_role("+2250700000022", "agent")
+    def test_login_and_me_for_admin(self):
+        admin_user = User.objects.create_user(
+            phone="+2250700000022",
+            password="secret123",
+            first_name="Admin",
+            last_name="LoueMoi",
+            role=User.ROLE_ADMIN,
+            is_staff=True,
+        )
+        login_response = self.client.post(
+            "/api/auth/login/", {"phone": admin_user.phone, "password": "secret123"}, format="json"
+        )
+        self.assertEqual(login_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(login_response.data["role"], "admin")
 
 
 class PasswordResetTests(APITestCase):

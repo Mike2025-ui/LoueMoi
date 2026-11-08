@@ -249,17 +249,9 @@ IKODDI_API_URL = (os.environ.get("IKODDI_API_URL") or os.environ.get("IKKODI_API
 if "sms/send" in IKODDI_API_URL:
     IKODDI_API_URL = "https://api.ikoddi.com/api/v1/groups"
 
-# --- Passerelle de Paiement & Abonnements (Jèko Checkout) ------------------
-# Clés API et Webhook Jèko (https://jeko.africa / https://mcp.jeko.africa)
-# Pour les abonnements mensuels :
-# - Bailleur / Agent : 3 000 FCFA / mois
-# - Client : 1 000 FCFA / mois (si bailleur non abonné)
-JEKO_API_KEY = os.environ.get("JEKO_API_KEY", "").strip().strip('"').strip("'")
-JEKO_API_KEY_ID = os.environ.get("JEKO_API_KEY_ID", "").strip().strip('"').strip("'")
-JEKO_STORE_ID = os.environ.get("JEKO_STORE_ID", "").strip().strip('"').strip("'")
-JEKO_WEBHOOK_SECRET = os.environ.get("JEKO_WEBHOOK_SECRET", "").strip().strip('"').strip("'")
-JEKO_API_URL = os.environ.get("JEKO_API_URL", "https://api.jeko.africa").strip().rstrip("/")
-JEKO_SIMULATION_MODE = os.environ.get("JEKO_SIMULATION_MODE", "").strip().lower() in ("true", "1", "yes")
+# --- Modèle LoueMoi 100% Direct & Gratuit ---------------------------------
+# L'ancien système d'abonnements Jèko Checkout a été entièrement supprimé.
+# Tous les contacts et demandes de visites sont 100% gratuits.
 
 
 # --- CORS --------------------------------------------------------------

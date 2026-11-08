@@ -80,9 +80,11 @@ class DeviceToken(models.Model):
 
     PLATFORM_ANDROID = "android"
     PLATFORM_IOS = "ios"
+    PLATFORM_WEB = "web"
     PLATFORM_CHOICES = [
         (PLATFORM_ANDROID, "Android"),
         (PLATFORM_IOS, "iOS"),
+        (PLATFORM_WEB, "Web"),
     ]
 
     user = models.ForeignKey(
