@@ -38,11 +38,6 @@ class RemoteAppConfig {
 
   factory RemoteAppConfig.fromJson(Map<String, dynamic> json) {
     final announcement = (json['announcement'] as Map?)?.cast<String, dynamic>() ?? const {};
-    final pricing = (json['pricing'] as Map?)?.cast<String, dynamic>() ?? const {};
-    final methodsRaw = json['enabled_payment_methods'];
-    final methods = methodsRaw is List
-        ? methodsRaw.map((e) => e.toString()).toList()
-        : const ['wave', 'orange', 'mtn', 'moov'];
 
     return RemoteAppConfig(
       appVersion: json['app_version']?.toString() ?? '1.0.0+1',
@@ -53,9 +48,6 @@ class RemoteAppConfig {
       announcementEnabled: announcement['enabled'] as bool? ?? false,
       announcementTitle: announcement['title']?.toString() ?? '',
       announcementBody: announcement['body']?.toString() ?? '',
-      clientPriceFcfa: (pricing['client_fcfa'] as num?)?.toInt() ?? 1000,
-      proPriceFcfa: (pricing['pro_fcfa'] as num?)?.toInt() ?? 3000,
-      enabledPaymentMethods: methods,
       supportWhatsapp: json['support_whatsapp']?.toString() ?? '+2250702065206',
     );
   }

@@ -404,32 +404,15 @@ class DashboardDataAccuracyTests(TestCase):
         self.assertTrue(data["ota_auto_update_enabled"])
         self.assertTrue(data["announcement"]["enabled"])
         self.assertEqual(data["announcement"]["title"], "Bienvenue sur LoueMoi")
-        self.assertEqual(data["pricing"]["client_fcfa"], 1500)
-        self.assertEqual(data["pricing"]["pro_fcfa"], 3500)
-        self.assertEqual(data["enabled_payment_methods"], ["wave", "orange"])
+        self.assertEqual(data["support_whatsapp"], "+2250700000000")
 
     def test_toggle_certificate_revokes_active_subscriptions(self):
-        from datetime import timedelta
-        from django.utils import timezone
-        from payments.models import Subscription
-        from accounts.serializers import UserSerializer
-
         target_agent = _make_user("0700000095", User.ROLE_AGENT)
         profile = AgentProfile.objects.create(user=target_agent, agency_name="Super Immo")
         target_agent.is_verified = True
         target_agent.save()
         profile.is_verified = True
         profile.save()
-
-        sub = Subscription.objects.create(
-            user=target_agent,
-            plan=Subscription.PLAN_PRO,
-            amount=3000,
-            reference="SUB-TEST-REVOKE-1",
-            status=Subscription.STATUS_ACTIVE,
-            started_at=timezone.now(),
-            expires_at=timezone.now() + timedelta(days=30),
-        )
 
         # Retrait du badge par l'administrateur
         res = self.client.post(reverse("dashboard:toggle_certificate", args=[target_agent.pk]))

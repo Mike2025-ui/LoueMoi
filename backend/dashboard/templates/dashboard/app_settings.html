@@ -67,51 +67,27 @@
     <div class="card-header">
       <h2 class="card-title">
         <span class="section-icon grad-teal">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
         </span>
-        <span>Solution 2 : Tarifs &amp; Opérateurs Mobile Money pilotés à distance</span>
+        <span>Support WhatsApp Officiel &amp; Contact LoueMoi</span>
       </h2>
     </div>
     <div class="card-body">
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 16px;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 16px;">
         <div>
           <label style="display:block;font-size:12.5px;font-weight:700;color:var(--text-secondary);margin-bottom:6px">
-            Tarif Abonnement Client (FCFA / mois)
-          </label>
-          <input type="number" name="client_subscription_price" value="{{ cfg.client_subscription_price }}" min="100" step="100" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-md);font-size:13.5px">
-        </div>
-        <div>
-          <label style="display:block;font-size:12.5px;font-weight:700;color:var(--text-secondary);margin-bottom:6px">
-            Tarif Abonnement Bailleur / Agent (FCFA / mois)
-          </label>
-          <input type="number" name="pro_subscription_price" value="{{ cfg.pro_subscription_price }}" min="100" step="100" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-md);font-size:13.5px">
-        </div>
-        <div>
-          <label style="display:block;font-size:12.5px;font-weight:700;color:var(--text-secondary);margin-bottom:6px">
-            WhatsApp Support Officiel
+            Numéro WhatsApp Support Officiel (ex: +2250702065206)
           </label>
           <input type="text" name="support_whatsapp" value="{{ cfg.support_whatsapp }}" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-md);font-size:13.5px">
+          <small style="color:var(--text-secondary);font-size:11.5px;margin-top:4px;display:block">
+            Numéro utilisé par l'application mobile pour l'écran « Confier un bien » et le support client.
+          </small>
         </div>
       </div>
 
-      <div>
-        <label style="display:block;font-size:12.5px;font-weight:700;color:var(--text-secondary);margin-bottom:8px">
-          Opérateurs Mobile Money affichés dans l'application
-        </label>
-        <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:13.5px">
-          <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
-            <input type="checkbox" name="payment_methods" value="wave" {% if "wave" in enabled_methods %}checked{% endif %}> Wave
-          </label>
-          <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
-            <input type="checkbox" name="payment_methods" value="orange" {% if "orange" in enabled_methods %}checked{% endif %}> Orange Money
-          </label>
-          <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
-            <input type="checkbox" name="payment_methods" value="mtn" {% if "mtn" in enabled_methods %}checked{% endif %}> MTN MoMo
-          </label>
-          <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
-            <input type="checkbox" name="payment_methods" value="moov" {% if "moov" in enabled_methods %}checked{% endif %}> Moov Money
-          </label>
-        </div>
+      <div style="padding:12px 14px;background:rgba(22,163,74,0.08);border:1px solid rgba(22,163,74,0.25);border-radius:var(--radius-md);color:#166534;font-size:13px;line-height:1.45">
+        <strong>Modèle LoueMoi 100% Direct &amp; Gratuit :</strong>
+        L'ancien système d'abonnements payants Jèko et les frais de visite ont été intégralement désactivés. Tous les contacts, recherches et demandes de visites sont sans frais pour les utilisateurs.
       </div>
     </div>
   </div>

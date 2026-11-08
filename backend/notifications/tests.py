@@ -45,24 +45,9 @@ def _make_property(agent, title="Bien test"):
 
 
 def _subscribe(user):
-    from datetime import timedelta
-    from django.utils import timezone
-    from payments.models import Subscription
-    plan = Subscription.PLAN_PRO if user.role in (User.ROLE_AGENT, User.ROLE_BAILLEUR) else Subscription.PLAN_CLIENT
-    sub, _ = Subscription.objects.get_or_create(
-        user=user,
-        defaults={
-            "plan": plan,
-            "amount": 3000 if plan == Subscription.PLAN_PRO else 1000,
-            "reference": f"SUB-NOTIF-{user.phone}",
-            "status": Subscription.STATUS_ACTIVE,
-            "started_at": timezone.now(),
-            "expires_at": timezone.now() + timedelta(days=30),
-        },
-    )
     user.is_verified = True
     user.save(update_fields=["is_verified"])
-    return sub
+    return None
 
 
 class NotificationServiceTests(APITestCase):

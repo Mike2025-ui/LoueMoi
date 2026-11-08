@@ -26,19 +26,6 @@ class AppConfiguration(models.Model):
     )
     announcement_title = models.CharField(max_length=120, blank=True, default="")
     announcement_body = models.TextField(blank=True, default="")
-    client_subscription_price = models.PositiveIntegerField(
-        default=1000,
-        help_text="Tarif mensuel Client en FCFA.",
-    )
-    pro_subscription_price = models.PositiveIntegerField(
-        default=3000,
-        help_text="Tarif mensuel Bailleur / Agent en FCFA.",
-    )
-    enabled_payment_methods = models.CharField(
-        max_length=120,
-        default="wave,orange,mtn,moov",
-        help_text="Liste des opérateurs Mobile Money actifs séparés par une virgule.",
-    )
     support_whatsapp = models.CharField(max_length=30, default="+2250702065206", blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 

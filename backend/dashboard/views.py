@@ -895,24 +895,6 @@ def app_settings_view(request):
         cfg.announcement_body = (request.POST.get("announcement_body") or "").strip()
         cfg.support_whatsapp = (request.POST.get("support_whatsapp") or "").strip()[:30]
 
-        try:
-            client_price = int(request.POST.get("client_subscription_price") or cfg.client_subscription_price)
-            if client_price >= 100:
-                cfg.client_subscription_price = client_price
-        except ValueError:
-            pass
-
-        try:
-            pro_price = int(request.POST.get("pro_subscription_price") or cfg.pro_subscription_price)
-            if pro_price >= 100:
-                cfg.pro_subscription_price = pro_price
-        except ValueError:
-            pass
-
-        selected_methods = request.POST.getlist("payment_methods")
-        if selected_methods:
-            cfg.enabled_payment_methods = ",".join(selected_methods)
-
         cfg.save()
         messages.success(
             request,
@@ -920,13 +902,11 @@ def app_settings_view(request):
         )
         return redirect("dashboard:app_settings")
 
-    enabled_methods = [m.strip() for m in cfg.enabled_payment_methods.split(",") if m.strip()]
     return render(
         request,
         "dashboard/app_settings.html",
         {
             "cfg": cfg,
-            "enabled_methods": enabled_methods,
             "active": "app_settings",
         },
     )
@@ -935,12 +915,11 @@ def app_settings_view(request):
 def public_app_config_api(request):
     """GET /api/config/app-settings/
     Endpoint public ultra-léger interrogé silencieusement par l'application Flutter
-    au démarrage et au retour au premier plan pour mettre à jour l'interface, les tarifs,
+    au démarrage et au retour au premier plan pour mettre à jour l'interface,
     la bannière d'annonce et le contrôle OTA sans passer par le Play Store."""
     from django.http import JsonResponse
 
     cfg = AppConfiguration.get_solo()
-    methods = [m.strip() for m in cfg.enabled_payment_methods.split(",") if m.strip()]
     return JsonResponse(
         {
             "app_version": cfg.app_version,
@@ -953,11 +932,6 @@ def public_app_config_api(request):
                 "title": cfg.announcement_title,
                 "body": cfg.announcement_body,
             },
-            "pricing": {
-                "client_fcfa": cfg.client_subscription_price,
-                "pro_fcfa": cfg.pro_subscription_price,
-            },
-            "enabled_payment_methods": methods,
             "support_whatsapp": cfg.support_whatsapp,
             "updated_at": cfg.updated_at.isoformat() if cfg.updated_at else None,
         }
