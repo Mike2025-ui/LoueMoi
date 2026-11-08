@@ -232,6 +232,24 @@ setup_env() {
         fi
     done
 
+    # Demande optionnelle de la clé SMS IKKODI
+    echo -e "\n${CYAN}${BOLD}--------------------------------------------------------------------${NC}"
+    echo -e "${CYAN}${BOLD}   CONFIGURATION DE LA PASSERELLE SMS OTP (IKKODI)${NC}"
+    echo -e "${CYAN}${BOLD}--------------------------------------------------------------------${NC}"
+    echo -e "${YELLOW}LoueMoi intègre nativement la passerelle SMS IKKODI pour l'envoi des codes OTP.${NC}"
+    read -r -p "Clé API IKKODI (appuyez sur Entrée si vous la renseignerez plus tard) : " INPUT_IKKODI_KEY
+    IKODDI_API_KEY=$(echo "$INPUT_IKKODI_KEY" | tr -d ' ')
+    if [ -n "$IKODDI_API_KEY" ]; then
+        read -r -p "Group ID / Org ID IKKODI (optionnel) : " INPUT_IKKODI_ORG
+        IKODDI_ORG_ID=$(echo "$INPUT_IKKODI_ORG" | tr -d ' ')
+        read -r -p "Nom d'expéditeur SMS [LoueMoi] : " INPUT_IKKODI_SENDER
+        IKODDI_SENDER_ID=${INPUT_IKKODI_SENDER:-LoueMoi}
+    else
+        IKODDI_ORG_ID=${IKODDI_ORG_ID:-}
+        IKODDI_SENDER_ID=${IKODDI_SENDER_ID:-LoueMoi}
+    fi
+    IKODDI_API_URL="https://api.ikoddi.com/api/v1/groups"
+
     # Sauvegarde dans le fichier .env
     cat <<EOF > .env
 # Configuration de Production LoueMoi
@@ -268,7 +286,7 @@ IKODDI_API_KEY=${IKODDI_API_KEY:-}
 IKODDI_ORG_ID=${IKODDI_ORG_ID:-}
 IKODDI_OTP_APP_ID=${IKODDI_OTP_APP_ID:-}
 IKODDI_SENDER_ID=${IKODDI_SENDER_ID:-LoueMoi}
-IKODDI_API_URL=${IKODDI_API_URL:-https://api.ikoddi.com/v1/sms/send}
+IKODDI_API_URL=${IKODDI_API_URL:-https://api.ikoddi.com/api/v1/groups}
 EOF
 
     log_success "Fichier .env mis à jour avec succès pour le domaine : $DOMAIN"
