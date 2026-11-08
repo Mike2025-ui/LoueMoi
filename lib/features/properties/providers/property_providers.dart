@@ -236,7 +236,8 @@ Future<void> toggleFavorite(WidgetRef ref, String propertyId) async {
   wasFavorite ??= ref.read(propertyByIdProvider(propertyId)).valueOrNull?.isFavorite;
   wasFavorite ??= favList.any((p) => p.id == propertyId);
 
-  final nextState = !(wasFavorite ?? false);
+  final isFav = wasFavorite;
+  final nextState = !isFav;
 
   // 1. Mise à jour optimiste immédiate (0 ms de latence ressentie par l'utilisateur)
   ref.read(favoriteOverridesProvider.notifier).update((state) => {
@@ -278,12 +279,12 @@ Future<void> toggleFavorite(WidgetRef ref, String propertyId) async {
       copy.remove(propertyId);
       return copy;
     });
-    controller.applyFavoriteChange(propertyId, wasFavorite ?? false);
+    controller.applyFavoriteChange(propertyId, isFav);
     final cachedRevert = ref.read(homePropertiesCacheProvider);
     if (cachedRevert.any((p) => p.id == propertyId)) {
       ref.read(homePropertiesCacheProvider.notifier).state = [
         for (final p in cachedRevert)
-          if (p.id == propertyId) p.copyWith(isFavorite: wasFavorite ?? false) else p
+          if (p.id == propertyId) p.copyWith(isFavorite: isFav) else p
       ];
     }
     rethrow;

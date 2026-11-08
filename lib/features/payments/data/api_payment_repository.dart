@@ -1,12 +1,12 @@
 import '../../../core/network/api_client.dart';
-import '../../../core/network/api_endpoints.dart';
 import '../models/payment_models.dart';
 import 'payment_repository.dart';
 
 class ApiPaymentRepository implements PaymentRepository {
-  ApiPaymentRepository(this._client);
+  ApiPaymentRepository([this._client]);
 
-  final ApiClient _client;
+  // ignore: unused_field
+  final ApiClient? _client;
 
   @override
   Future<CanContactResult> checkCanContact({String? propertyId, String? ownerId}) async {

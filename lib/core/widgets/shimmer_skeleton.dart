@@ -195,7 +195,7 @@ class PropertyGridSkeleton extends StatelessWidget {
               childAspectRatio: childAspectRatio,
             ),
             itemCount: itemCount,
-            itemBuilder: (_, __) => const PropertyCardSkeleton(),
+            itemBuilder: (context, index) => const PropertyCardSkeleton(),
           ),
         ),
       ),

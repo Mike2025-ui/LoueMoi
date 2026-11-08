@@ -1,6 +1,5 @@
 import 'package:image_picker/image_picker.dart';
 import '../../../core/network/api_exceptions.dart';
-import '../../profile/models/agent_profile.dart';
 import '../models/user.dart';
 import '../models/user_role.dart';
 
@@ -106,15 +105,7 @@ class MockAuthRepository implements AuthRepository {
       role: role,
       isApproved: isApproved,
       activationRequested: false,
-      agentProfile: role == UserRole.agent
-          ? const AgentProfile(
-              agencyName: '',
-              whatsapp: '',
-              description: '',
-              isVerified: false,
-              rating: 0,
-            )
-          : null,
+      agentProfile: null,
     );
   }
 
@@ -128,7 +119,7 @@ class MockAuthRepository implements AuthRepository {
       phone: '+2250102030405',
       whatsapp: '+2250102030405',
       token: 'mock-token-123',
-      role: UserRole.agent,
+      role: UserRole.client,
       isApproved: false,
       activationRequested: true,
     );
@@ -144,7 +135,7 @@ class MockAuthRepository implements AuthRepository {
       phone: '+2250102030405',
       whatsapp: '+2250102030405',
       token: 'mock-token-123',
-      role: UserRole.agent,
+      role: UserRole.client,
       isApproved: true,
       activationRequested: true,
     );

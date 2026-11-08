@@ -178,9 +178,9 @@ class _PendingActivationScreenState
       );
     }
 
-    final roleLabel = user.role == UserRole.bailleur
-        ? 'Compte Bailleur'
-        : 'Compte Agent immobilier';
+    final roleLabel = user.role == UserRole.admin
+        ? 'Compte Administrateur'
+        : 'Compte Utilisateur';
     final hasRequested = user.activationRequested;
 
     return PopScope(
