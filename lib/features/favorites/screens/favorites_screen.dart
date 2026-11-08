@@ -9,6 +9,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../../properties/providers/property_providers.dart';
 import '../../properties/widgets/property_card.dart';
+import '../../../core/widgets/shimmer_skeleton.dart';
 
 class FavoritesScreen extends ConsumerWidget {
   const FavoritesScreen({super.key});
@@ -118,7 +119,7 @@ class FavoritesScreen extends ConsumerWidget {
             },
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const PropertyGridSkeleton(),
         error: (e, _) => Center(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),

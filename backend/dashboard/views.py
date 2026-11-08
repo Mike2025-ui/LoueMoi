@@ -446,8 +446,8 @@ def property_create(request):
                     if img.width > max_dim or img.height > max_dim:
                         img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
                     out_io = io.BytesIO()
-                    img.save(out_io, format="JPEG", quality=82, optimize=True)
-                    safe_name = f"photo_{uuid.uuid4().hex[:12]}.jpg"
+                    img.save(out_io, format="WEBP", quality=82, method=6)
+                    safe_name = f"photo_{uuid.uuid4().hex[:12]}.webp"
                     saved_path = default_storage.save(
                         f"properties/{property_obj.pk}/{safe_name}",
                         ContentFile(out_io.getvalue())

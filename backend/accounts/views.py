@@ -146,9 +146,9 @@ class UserPhotoView(APIView):
                 img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
 
             out_io = io.BytesIO()
-            img.save(out_io, format="JPEG", quality=85, optimize=True)
+            img.save(out_io, format="WEBP", quality=85, method=6)
             photo_to_save = ContentFile(out_io.getvalue())
-            ext = ".jpg"
+            ext = ".webp"
         except Exception:
             return Response(
                 {"photo": ["Fichier image corrompu ou invalide."]},

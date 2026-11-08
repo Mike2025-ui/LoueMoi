@@ -113,11 +113,16 @@ final propertiesControllerProvider = StateNotifierProvider<PropertiesController,
   return PropertiesController(repository, filters, ref);
 });
 
+/// Override optimiste des favoris par propertyId (stocke true/false pour mise à jour instantanée de l'UI).
+final favoriteOverridesProvider = StateProvider<Map<String, bool>>((ref) => const {});
+
 /// Liste affichée à l'écran : la pagination de [propertiesControllerProvider],
-/// filtrée côté client par la recherche texte libre.
+/// filtrée côté client par la recherche texte libre et synchronisée immédiatement
+/// avec les états favoris optimistes.
 final propertiesListProvider = Provider<AsyncValue<List<Property>>>((ref) {
   final controllerState = ref.watch(propertiesControllerProvider);
   final query = ref.watch(searchQueryProvider).trim().toLowerCase();
+  final overrides = ref.watch(favoriteOverridesProvider);
 
   return controllerState.whenData(
     (list) => list
@@ -127,6 +132,9 @@ final propertiesListProvider = Provider<AsyncValue<List<Property>>>((ref) {
             p.title.toLowerCase().contains(query) ||
             p.commune.toLowerCase().contains(query) ||
             p.district.toLowerCase().contains(query))
+        .map((p) => overrides.containsKey(p.id)
+            ? p.copyWith(isFavorite: overrides[p.id]!)
+            : p)
         .toList(),
   );
 });
@@ -134,7 +142,12 @@ final propertiesListProvider = Provider<AsyncValue<List<Property>>>((ref) {
 final propertyByIdProvider =
     FutureProvider.family<Property, String>((ref, id) async {
   final repository = ref.watch(propertyRepositoryProvider);
-  return repository.fetchPropertyById(id);
+  final property = await repository.fetchPropertyById(id);
+  final overrides = ref.watch(favoriteOverridesProvider);
+  if (overrides.containsKey(id)) {
+    return property.copyWith(isFavorite: overrides[id]!);
+  }
+  return property;
 });
 
 final favoritesListProvider = FutureProvider<List<Property>>((ref) async {
@@ -142,7 +155,15 @@ final favoritesListProvider = FutureProvider<List<Property>>((ref) async {
   if (user == null && !Env.useMockData) return const [];
   final repository = ref.watch(propertyRepositoryProvider);
   final list = await repository.fetchFavorites();
-  return list.where((p) => p.status != PropertyStatus.accomplie).toList();
+  final overrides = ref.watch(favoriteOverridesProvider);
+
+  return list
+      .where((p) => p.status != PropertyStatus.accomplie)
+      .map((p) => overrides.containsKey(p.id)
+          ? p.copyWith(isFavorite: overrides[p.id]!)
+          : p)
+      .where((p) => p.isFavorite)
+      .toList();
 });
 
 /// Annonces publiques d'un propriétaire donné — "Rechercher un
@@ -200,16 +221,28 @@ Future<void> toggleFavorite(WidgetRef ref, String propertyId) async {
   final favList = ref.read(favoritesListProvider).valueOrNull ?? const [];
 
   bool? wasFavorite;
-  for (final property in currentList) {
-    if (property.id == propertyId) {
-      wasFavorite = property.isFavorite;
-      break;
+  final overrides = ref.read(favoriteOverridesProvider);
+  if (overrides.containsKey(propertyId)) {
+    wasFavorite = overrides[propertyId];
+  }
+  if (wasFavorite == null) {
+    for (final property in currentList) {
+      if (property.id == propertyId) {
+        wasFavorite = property.isFavorite;
+        break;
+      }
     }
   }
   wasFavorite ??= ref.read(propertyByIdProvider(propertyId)).valueOrNull?.isFavorite;
   wasFavorite ??= favList.any((p) => p.id == propertyId);
 
-  final nextState = !wasFavorite;
+  final nextState = !(wasFavorite ?? false);
+
+  // 1. Mise à jour optimiste immédiate (0 ms de latence ressentie par l'utilisateur)
+  ref.read(favoriteOverridesProvider.notifier).update((state) => {
+        ...state,
+        propertyId: nextState,
+      });
   controller.applyFavoriteChange(propertyId, nextState);
   final cachedBefore = ref.read(homePropertiesCacheProvider);
   if (cachedBefore.any((p) => p.id == propertyId)) {
@@ -218,9 +251,16 @@ Future<void> toggleFavorite(WidgetRef ref, String propertyId) async {
         if (p.id == propertyId) p.copyWith(isFavorite: nextState) else p
     ];
   }
+
   try {
     final repository = ref.read(propertyRepositoryProvider);
     final updated = await repository.toggleFavorite(propertyId);
+    // 2. Synchronisation avec le serveur
+    ref.read(favoriteOverridesProvider.notifier).update((state) {
+      final copy = Map<String, bool>.from(state);
+      copy.remove(propertyId);
+      return copy;
+    });
     controller.applyFavoriteChange(propertyId, updated.isFavorite);
     final cachedAfter = ref.read(homePropertiesCacheProvider);
     if (cachedAfter.any((p) => p.id == propertyId)) {
@@ -232,12 +272,18 @@ Future<void> toggleFavorite(WidgetRef ref, String propertyId) async {
     ref.invalidate(favoritesListProvider);
     ref.invalidate(propertyByIdProvider(propertyId));
   } catch (e) {
-    controller.applyFavoriteChange(propertyId, wasFavorite);
+    // 3. Annulation optimiste en cas d'échec réseau
+    ref.read(favoriteOverridesProvider.notifier).update((state) {
+      final copy = Map<String, bool>.from(state);
+      copy.remove(propertyId);
+      return copy;
+    });
+    controller.applyFavoriteChange(propertyId, wasFavorite ?? false);
     final cachedRevert = ref.read(homePropertiesCacheProvider);
     if (cachedRevert.any((p) => p.id == propertyId)) {
       ref.read(homePropertiesCacheProvider.notifier).state = [
         for (final p in cachedRevert)
-          if (p.id == propertyId) p.copyWith(isFavorite: wasFavorite) else p
+          if (p.id == propertyId) p.copyWith(isFavorite: wasFavorite ?? false) else p
       ];
     }
     rethrow;

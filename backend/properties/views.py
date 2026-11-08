@@ -356,9 +356,9 @@ class PropertyViewSet(viewsets.ModelViewSet):
                     img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
 
                 out_io = io.BytesIO()
-                img.save(out_io, format="JPEG", quality=82, optimize=True)
+                img.save(out_io, format="WEBP", quality=82, method=6)
                 file_to_save = ContentFile(out_io.getvalue())
-                ext = ".jpg"
+                ext = ".webp"
             except Exception:
                 return Response(
                     {"image": ["Fichier image corrompu ou invalide."]},

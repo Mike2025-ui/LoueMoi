@@ -1419,6 +1419,6 @@ class PropertySecurityTests(APITestCase):
         self.property.refresh_from_db()
         self.assertEqual(len(self.property.images), 1)
         saved_url = self.property.images[0]
-        # Vérifie que le nom contient bien le préfixe de catégorie nettoyé et une extension valide
+        # Vérifie que le nom contient bien le préfixe de catégorie nettoyé et le format WebP
         self.assertIn("cat_salon_", saved_url)
-        self.assertTrue(saved_url.endswith(".jpg"))
+        self.assertTrue(saved_url.endswith(".webp"))

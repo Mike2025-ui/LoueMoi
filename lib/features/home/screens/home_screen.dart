@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,6 +19,7 @@ import '../../properties/models/property.dart';
 import '../../properties/models/property_enums.dart';
 import '../../properties/providers/property_providers.dart';
 import '../../properties/widgets/property_card.dart';
+import '../../../core/widgets/shimmer_skeleton.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -29,6 +31,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final _scrollController = ScrollController();
   final _searchController = TextEditingController();
+  Timer? _searchDebounceTimer;
 
   @override
   void initState() {
@@ -38,10 +41,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   void dispose() {
+    _searchDebounceTimer?.cancel();
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _onSearchChanged(String value) {
+    _searchDebounceTimer?.cancel();
+    _searchDebounceTimer = Timer(const Duration(milliseconds: 350), () {
+      if (mounted) {
+        ref.read(searchQueryProvider.notifier).state = value;
+      }
+    });
   }
 
   /// Scroll infini : charge la page suivante un peu avant d'atteindre le bas
@@ -305,9 +318,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 Expanded(
                                   child: TextField(
                                     controller: _searchController,
-                                    onChanged: (v) =>
-                                        ref.read(searchQueryProvider.notifier).state =
-                                            v,
+                                    onChanged: _onSearchChanged,
                                     decoration: const InputDecoration(
                                       hintText: 'Recherche...',
                                       border: InputBorder.none,
@@ -323,6 +334,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 if (searchQuery.isNotEmpty)
                                   InkWell(
                                     onTap: () {
+                                      _searchDebounceTimer?.cancel();
                                       _searchController.clear();
                                       ref.read(searchQueryProvider.notifier).state = '';
                                     },
@@ -552,8 +564,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ),
                     );
                   },
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
+                  loading: () => const PropertyGridSkeleton(),
                   error: (e, _) => ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     children: [

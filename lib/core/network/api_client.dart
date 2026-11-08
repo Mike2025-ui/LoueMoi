@@ -12,9 +12,9 @@ class ApiClient {
     _dio = Dio(
       BaseOptions(
         baseUrl: ApiEndpoints.baseUrl,
-        connectTimeout: const Duration(seconds: 25),
-        receiveTimeout: const Duration(seconds: 45),
-        sendTimeout: const Duration(seconds: 45),
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 25),
+        sendTimeout: const Duration(seconds: 25),
         headers: {'Content-Type': 'application/json'},
       ),
     );
@@ -26,9 +26,22 @@ class ApiClient {
 
   final AuthStorage _authStorage;
   late final Dio _dio;
+  final Map<String, Future<Response<dynamic>>> _inflightRequests = {};
 
   Future<Response<T>> get<T>(String path, {Map<String, dynamic>? query, Options? options}) {
-    return _run(() => _dio.get<T>(path, queryParameters: query, options: options));
+    // Dédoublonnage des requêtes GET identiques en vol : si une requête identique
+    // est déjà en cours d'exécution, on partage la même promesse pour économiser
+    // la batterie, la bande passante et la charge serveur.
+    final key = '$path?${query?.entries.map((e) => '${e.key}=${e.value}').join('&')}';
+    if (_inflightRequests.containsKey(key)) {
+      return _inflightRequests[key]!.then((res) => res as Response<T>);
+    }
+
+    final future = _run(() => _dio.get<T>(path, queryParameters: query, options: options));
+    _inflightRequests[key] = future;
+    return future.whenComplete(() {
+      _inflightRequests.remove(key);
+    });
   }
 
   Future<Response<T>> post<T>(String path, {dynamic data, Options? options}) {
