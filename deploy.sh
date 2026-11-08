@@ -174,7 +174,7 @@ setup_env() {
     POSTGRES_HOST=db
     POSTGRES_PORT=5432
     DJANGO_DEBUG=${DJANGO_DEBUG:-False}
-    SEED_DEMO_DATA=${SEED_DEMO_DATA:-True}
+    SEED_DEMO_DATA=False
     GUNICORN_WORKERS=${GUNICORN_WORKERS:-3}
     GUNICORN_THREADS=${GUNICORN_THREADS:-2}
 
@@ -186,12 +186,51 @@ setup_env() {
     DJANGO_CORS_ALLOWED_ORIGINS="https://$DOMAIN,http://$DOMAIN,https://www.$DOMAIN,http://$SERVER_IP"
     DJANGO_CSRF_TRUSTED_ORIGINS="https://$DOMAIN,http://$DOMAIN,https://www.$DOMAIN,http://$SERVER_IP"
 
+    # Demande interactive des informations du Superutilisateur Administrateur unique
+    echo -e "\n${CYAN}${BOLD}--------------------------------------------------------------------${NC}"
+    echo -e "${CYAN}${BOLD}   CONFIGURATION DU COMPTE ADMINISTRATEUR UNIQUE LOUEMOI${NC}"
+    echo -e "${CYAN}${BOLD}--------------------------------------------------------------------${NC}"
+    echo -e "${YELLOW}Veuillez saisir vos coordonnées d'Administrateur unique LoueMoi :${NC}"
 
-    # Superutilisateur
-    DJANGO_SUPERUSER_PHONE=${DJANGO_SUPERUSER_PHONE:-"+2250700000000"}
-    DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD:-"LoueMoiAdmin2026!"}
-    DJANGO_SUPERUSER_FIRST_NAME=${DJANGO_SUPERUSER_FIRST_NAME:-"Admin"}
-    DJANGO_SUPERUSER_LAST_NAME=${DJANGO_SUPERUSER_LAST_NAME:-"LoueMoi"}
+    while [ -z "$DJANGO_SUPERUSER_PHONE" ] || [ "$DJANGO_SUPERUSER_PHONE" = "+2250700000000" ]; do
+        read -r -p "Numéro de téléphone administrateur (ex: +2250701020304) : " INPUT_PHONE
+        DJANGO_SUPERUSER_PHONE=$(echo "$INPUT_PHONE" | tr -d ' ')
+        if [ -z "$DJANGO_SUPERUSER_PHONE" ]; then
+            echo -e "${RED}Le numéro de téléphone est obligatoire.${NC}"
+        fi
+    done
+
+    while [ -z "$DJANGO_SUPERUSER_FIRST_NAME" ] || [ "$DJANGO_SUPERUSER_FIRST_NAME" = "Admin" ] || [ "$DJANGO_SUPERUSER_FIRST_NAME" = "Super" ]; do
+        read -r -p "Prénom de l'administrateur : " INPUT_FN
+        DJANGO_SUPERUSER_FIRST_NAME=$(echo "$INPUT_FN" | xargs)
+        if [ -z "$DJANGO_SUPERUSER_FIRST_NAME" ]; then
+            echo -e "${RED}Le prénom est obligatoire.${NC}"
+        fi
+    done
+
+    while [ -z "$DJANGO_SUPERUSER_LAST_NAME" ] || [ "$DJANGO_SUPERUSER_LAST_NAME" = "LoueMoi" ] || [ "$DJANGO_SUPERUSER_LAST_NAME" = "Admin" ]; do
+        read -r -p "Nom de famille de l'administrateur : " INPUT_LN
+        DJANGO_SUPERUSER_LAST_NAME=$(echo "$INPUT_LN" | xargs)
+        if [ -z "$DJANGO_SUPERUSER_LAST_NAME" ]; then
+            echo -e "${RED}Le nom est obligatoire.${NC}"
+        fi
+    done
+
+    while [ -z "$DJANGO_SUPERUSER_PASSWORD" ] || [ "$DJANGO_SUPERUSER_PASSWORD" = "LoueMoiAdmin2026!" ] || [ "$DJANGO_SUPERUSER_PASSWORD" = "AdminPassword2026!" ] || [ "$DJANGO_SUPERUSER_PASSWORD" = "change_me_super_secret_admin_pass!" ]; do
+        read -r -s -p "Mot de passe administrateur (min. 6 caractères) : " INPUT_PASS
+        echo ""
+        read -r -s -p "Confirmez le mot de passe administrateur : " INPUT_PASS_CONFIRM
+        echo ""
+        if [ "$INPUT_PASS" != "$INPUT_PASS_CONFIRM" ]; then
+            echo -e "${RED}Les mots de passe ne correspondent pas. Veuillez recommencer.${NC}"
+            DJANGO_SUPERUSER_PASSWORD=""
+        elif [ ${#INPUT_PASS} -lt 6 ]; then
+            echo -e "${RED}Le mot de passe doit contenir au moins 6 caractères.${NC}"
+            DJANGO_SUPERUSER_PASSWORD=""
+        else
+            DJANGO_SUPERUSER_PASSWORD="$INPUT_PASS"
+        fi
+    done
 
     # Sauvegarde dans le fichier .env
     cat <<EOF > .env
@@ -217,21 +256,17 @@ DJANGO_SUPERUSER_PASSWORD=$DJANGO_SUPERUSER_PASSWORD
 DJANGO_SUPERUSER_FIRST_NAME=$DJANGO_SUPERUSER_FIRST_NAME
 DJANGO_SUPERUSER_LAST_NAME=$DJANGO_SUPERUSER_LAST_NAME
 
-SEED_DEMO_DATA=$SEED_DEMO_DATA
+SEED_DEMO_DATA=False
 GUNICORN_WORKERS=$GUNICORN_WORKERS
 GUNICORN_THREADS=$GUNICORN_THREADS
 FIREBASE_CREDENTIALS_JSON=${FIREBASE_CREDENTIALS_JSON:-}
 
-JEKO_API_KEY=${JEKO_API_KEY:-}
-JEKO_API_KEY_ID=${JEKO_API_KEY_ID:-}
-JEKO_STORE_ID=${JEKO_STORE_ID:-}
-JEKO_WEBHOOK_SECRET=${JEKO_WEBHOOK_SECRET:-}
-JEKO_API_URL=${JEKO_API_URL:-https://api.jeko.africa}
-JEKO_SIMULATION_MODE=${JEKO_SIMULATION_MODE:-false}
 WEB_APP_URL=https://$DOMAIN
 REDIS_URL=${REDIS_URL:-}
 
 IKODDI_API_KEY=${IKODDI_API_KEY:-}
+IKODDI_ORG_ID=${IKODDI_ORG_ID:-}
+IKODDI_OTP_APP_ID=${IKODDI_OTP_APP_ID:-}
 IKODDI_SENDER_ID=${IKODDI_SENDER_ID:-LoueMoi}
 IKODDI_API_URL=${IKODDI_API_URL:-https://api.ikoddi.com/v1/sms/send}
 EOF
@@ -626,12 +661,19 @@ show_help() {
     echo "  --restore <fichier>  Restaure une sauvegarde spécifique"
     echo "  --logs [service]     Affiche les logs en direct (web, nginx, db, certbot)"
     echo "  --status             Affiche l'état des conteneurs et les informations de santé"
+    echo "  --create-admin       Crée ou met à jour interactivement l'Administrateur LoueMoi"
     echo "  --check-expirations  Exécute manuellement la vérification des expirations et alertes"
     echo "  --cron               Installe ou met à jour les tâches Cron (SSL et expirations)"
     echo "  --restart            Redémarre l'ensemble de la stack Docker"
     echo "  --stop               Arrête l'ensemble des conteneurs"
     echo "  --clean              Nettoie les images et volumes orphelins non utilisés"
     echo "  --help               Affiche cette aide"
+}
+
+# Création interactive de l'administrateur
+create_admin_interactive() {
+    log_title "Création / Mise à jour interactive de l'Administrateur LoueMoi"
+    $DOCKER_COMPOSE exec web python manage.py createsuperuser
 }
 
 # Point d'entrée principal
@@ -641,6 +683,9 @@ main() {
     case "${1:-}" in
         --help|-h)
             show_help
+            ;;
+        --create-admin)
+            create_admin_interactive
             ;;
         --update)
             update_project

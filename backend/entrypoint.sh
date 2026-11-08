@@ -37,30 +37,41 @@ python manage.py migrate --noinput
 echo "Collecte des fichiers statiques..."
 python manage.py collectstatic --noinput
 
-# Création automatique du superutilisateur si configuré
+# Création / Mise à jour du superutilisateur administrateur unique
 if [ -n "$DJANGO_SUPERUSER_PHONE" ] && [ -n "$DJANGO_SUPERUSER_PASSWORD" ]; then
-    echo "Vérification / Création du superutilisateur..."
+    echo "Vérification / Initialisation de l'administrateur unique..."
     python manage.py shell <<END
 import os
 from accounts.models import User
 
-phone = os.environ.get("DJANGO_SUPERUSER_PHONE")
-password = os.environ.get("DJANGO_SUPERUSER_PASSWORD")
-first_name = os.environ.get("DJANGO_SUPERUSER_FIRST_NAME", "Admin")
-last_name = os.environ.get("DJANGO_SUPERUSER_LAST_NAME", "LoueMoi")
+phone = os.environ.get("DJANGO_SUPERUSER_PHONE", "").strip()
+password = os.environ.get("DJANGO_SUPERUSER_PASSWORD", "").strip()
+first_name = os.environ.get("DJANGO_SUPERUSER_FIRST_NAME", "Admin").strip()
+last_name = os.environ.get("DJANGO_SUPERUSER_LAST_NAME", "LoueMoi").strip()
 
 if phone and password:
-    if not User.objects.filter(phone=phone).exists():
+    user = User.objects.filter(phone=phone).first()
+    if not user:
         User.objects.create_superuser(
             phone=phone,
             password=password,
             first_name=first_name,
             last_name=last_name,
-            role=User.ROLE_ADMIN
+            role=User.ROLE_ADMIN,
         )
-        print(f"Superutilisateur {phone} créé avec succès.")
+        print(f"Administrateur unique ({phone}) créé avec succès.")
     else:
-        print(f"Superutilisateur {phone} existe déjà.")
+        user.is_staff = True
+        user.is_superuser = True
+        user.role = User.ROLE_ADMIN
+        user.first_name = first_name
+        user.last_name = last_name
+        user.set_password(password)
+        user.save()
+        print(f"Administrateur unique ({phone}) mis à jour avec succès.")
+
+    # Nettoyage automatique des anciens comptes de démonstration
+    User.objects.filter(phone__in=["+2250700000000", "+2250712345678"]).exclude(phone=phone).delete()
 END
 fi
 

@@ -94,7 +94,7 @@ chmod +x deploy.sh
 5. 🔒 **Génère le certificat SSL Let's Encrypt** automatiquement.
 6. 🏗️ **Construit et lance les conteneurs Docker** (`louemoi_db`, `louemoi_backend`, `louemoi_nginx`, `louemoi_certbot`).
 7. 🗄️ **Exécute les migrations Django** et collecte les fichiers statiques (`collectstatic`).
-8. 👤 **Crée le compte administrateur** et charge les données de démonstration (`seed_demo_data`).
+8. 👤 **Demande interactivement vos coordonnées** pour configurer l'Administrateur unique LoueMoi (aucun compte de test n'est injecté).
 9. 🔄 **Installe une tâche Cron** pour renouveler automatiquement le certificat SSL chaque semaine.
 10. 🩺 **Exécute un Health Check** pour confirmer que l'API et le proxy répondent avec succès.
 
@@ -106,6 +106,7 @@ Toutes les opérations courantes peuvent être effectuées via `./deploy.sh` :
 
 | Action | Commande |
 |---|---|
+| **Créer / Modifier l'Admin interactif** | `./deploy.sh --create-admin` |
 | **Voir l'état de la stack** | `./deploy.sh --status` |
 | **Voir les logs en direct** | `./deploy.sh --logs` (ou `./deploy.sh --logs web`) |
 | **Mettre à jour l'application** | `./deploy.sh --update` |
