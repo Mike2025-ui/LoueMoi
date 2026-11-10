@@ -6,10 +6,20 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/formatters.dart';
-import '../../../core/utils/media_url.dart';
+import '../../../core/widgets/app_avatar.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../models/message.dart';
 import '../providers/message_providers.dart';
+
+String _computeInitials(String name) {
+  final parts = name.trim().split(RegExp(r'\s+'));
+  if (parts.length >= 2 && parts[0].isNotEmpty && parts[1].isNotEmpty) {
+    return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+  } else if (parts.isNotEmpty && parts[0].isNotEmpty) {
+    return parts[0][0].toUpperCase();
+  }
+  return '?';
+}
 
 String _lastMessagePreview(Message? message) {
   if (message == null) return '';
@@ -193,24 +203,10 @@ class ConversationsScreen extends ConsumerWidget {
                     leading: Stack(
                       clipBehavior: Clip.none,
                       children: [
-                        CircleAvatar(
+                        AppAvatar(
+                          photoUrl: conversation.participantPhoto,
+                          initials: _computeInitials(conversation.participantName),
                           radius: AppSizes.avatarSm / 2,
-                          backgroundColor: AppColors.primaryLight,
-                          backgroundImage: conversation.participantPhoto != null
-                              ? NetworkImage(
-                                  buildMediaUrl(conversation.participantPhoto!),
-                                )
-                              : null,
-                          onBackgroundImageError:
-                              conversation.participantPhoto != null
-                              ? (exception, stackTrace) {}
-                              : null,
-                          child: conversation.participantPhoto == null
-                              ? const Icon(
-                                  Icons.person,
-                                  color: AppColors.primary,
-                                )
-                              : null,
                         ),
                         Positioned(
                           bottom: 0,

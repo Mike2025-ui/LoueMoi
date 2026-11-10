@@ -108,7 +108,7 @@ class ApiMessageRepository implements MessageRepository {
       ApiEndpoints.conversations,
       data: {
         'agent': agentId,
-        if (propertyId != null) 'property': propertyId,
+        'property': ?propertyId,
       },
     );
     return response.data!['id'].toString();

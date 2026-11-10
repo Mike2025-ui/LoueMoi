@@ -7,7 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/feedback.dart';
-import '../../../core/utils/media_url.dart';
+import '../../../core/widgets/app_avatar.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../../messaging/providers/message_providers.dart';
 import '../models/bailleur_search_result.dart';
@@ -307,19 +307,10 @@ class _BailleurTile extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
+              AppAvatar(
+                photoUrl: bailleur.photo,
+                initials: bailleur.initials,
                 radius: 28,
-                backgroundColor: AppColors.primaryLight,
-                backgroundImage: bailleur.photo != null
-                    ? NetworkImage(buildMediaUrl(bailleur.photo!))
-                    : null,
-                child: bailleur.photo == null
-                    ? const Icon(
-                        Icons.person,
-                        size: 28,
-                        color: AppColors.primary,
-                      )
-                    : null,
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(

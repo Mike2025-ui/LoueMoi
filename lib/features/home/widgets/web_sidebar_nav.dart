@@ -7,7 +7,7 @@ import '../../../core/config/env.dart';
 import '../../../core/constants/app_assets.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/utils/media_url.dart';
+import '../../../core/widgets/app_avatar.dart';
 import '../../../core/widgets/app_logo.dart';
 import '../../../core/widgets/web_download_app_dialog.dart';
 import '../../auth/providers/auth_providers.dart';
@@ -31,7 +31,8 @@ class WebSidebarNav extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authControllerProvider).valueOrNull;
     final unreadMessages = ref.watch(totalUnreadConversationsCountProvider);
-    final unreadNotifs = ref.watch(unreadNotificationsCountProvider).valueOrNull ?? 0;
+    final unreadNotifs =
+        ref.watch(unreadNotificationsCountProvider).valueOrNull ?? 0;
 
     final screenWidth = MediaQuery.of(context).size.width;
     final sidebarWidth = screenWidth < 1024 ? 220.0 : 240.0;
@@ -132,7 +133,10 @@ class WebSidebarNav extends ConsumerWidget {
                     icon: const Icon(Icons.add_home_work_outlined, size: 18),
                     label: const Text(
                       'Confier un bien',
-                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
@@ -155,17 +159,16 @@ class WebSidebarNav extends ConsumerWidget {
                       child: Ink(
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
-                            colors: [
-                              Color(0xFF0F766E),
-                              Color(0xFF009688),
-                            ],
+                            colors: [Color(0xFF0F766E), Color(0xFF009688)],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF009688).withValues(alpha: 0.30),
+                              color: const Color(
+                                0xFF009688,
+                              ).withValues(alpha: 0.30),
                               blurRadius: 10,
                               offset: const Offset(0, 3),
                             ),
@@ -175,7 +178,10 @@ class WebSidebarNav extends ConsumerWidget {
                             width: 1,
                           ),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
                         child: Row(
                           children: [
                             Container(
@@ -245,27 +251,10 @@ class WebSidebarNav extends ConsumerWidget {
               child: user != null
                   ? Row(
                       children: [
-                        CircleAvatar(
+                        AppAvatar(
+                          photoUrl: user.photo,
+                          initials: user.initials,
                           radius: 16,
-                          backgroundColor: AppColors.primaryLight,
-                          backgroundImage: user.photo != null
-                              ? NetworkImage(buildMediaUrl(user.photo!))
-                              : null,
-                          onBackgroundImageError: user.photo != null
-                              ? (exception, stackTrace) {}
-                              : null,
-                          child: user.photo == null
-                              ? Text(
-                                  user.firstName.isNotEmpty
-                                      ? user.firstName[0].toUpperCase()
-                                      : 'U',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.primary,
-                                    fontSize: 13,
-                                  ),
-                                )
-                              : null,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -319,7 +308,10 @@ class WebSidebarNav extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(AppRadius.sm),
                             ),
                           ),
-                          child: const Text('Connexion', style: TextStyle(fontSize: 11.5)),
+                          child: const Text(
+                            'Connexion',
+                            style: TextStyle(fontSize: 11.5),
+                          ),
                         ),
                       ],
                     ),
@@ -327,7 +319,10 @@ class WebSidebarNav extends ConsumerWidget {
             const SizedBox(height: 8),
             InkWell(
               onTap: () async {
-                final cleanPhone = Env.supportPhone.replaceAll(RegExp(r'[^0-9]'), '');
+                final cleanPhone = Env.supportPhone.replaceAll(
+                  RegExp(r'[^0-9]'),
+                  '',
+                );
                 final uri = Uri.parse(
                   'https://wa.me/$cleanPhone?text=${Uri.encodeComponent("Bonjour LoueMoi, je vous contacte depuis le site web.")}',
                 );
@@ -340,7 +335,10 @@ class WebSidebarNav extends ConsumerWidget {
               borderRadius: BorderRadius.circular(10),
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 7,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF0FDF4),
                   borderRadius: BorderRadius.circular(10),
@@ -424,7 +422,10 @@ class _SidebarNavItem extends StatelessWidget {
             ),
             if (badgeCount > 0)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 6,
+                  vertical: 1.5,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.danger,
                   borderRadius: BorderRadius.circular(10),

@@ -81,6 +81,10 @@ if [ "$SEED_DEMO_DATA" = "true" ] || [ "$SEED_DEMO_DATA" = "True" ] || [ "$SEED_
     python manage.py seed_demo_data || true
 fi
 
+# Permissions sur les fichiers statiques et médias pour Nginx (UID 101)
+mkdir -p /app/staticfiles /app/media/avatars /app/media/properties
+chmod -R 755 /app/media /app/staticfiles 2>/dev/null || true
+
 echo "Backend LoueMoi prêt. Lancement du serveur d'application..."
 exec "$@"
 

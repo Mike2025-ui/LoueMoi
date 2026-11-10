@@ -5,7 +5,7 @@ import '../../../app/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../core/utils/media_url.dart';
+import '../../../core/widgets/app_avatar.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../widgets/profile_menu_tile.dart';
 
@@ -34,34 +34,11 @@ class BailleurSpaceScreen extends ConsumerWidget {
           children: [
             Row(
               children: [
-                Stack(
-                  children: [
-                    CircleAvatar(
-                      radius: 36,
-                      backgroundColor: AppColors.primaryLight,
-                      backgroundImage: user?.photo != null
-                          ? NetworkImage(buildMediaUrl(user!.photo!))
-                          : null,
-                      onBackgroundImageError: user?.photo != null ? (exception, stackTrace) {} : null,
-                      child: user?.photo == null
-                          ? const Icon(Icons.person, size: 36, color: AppColors.primary)
-                          : null,
-                    ),
-                    if (user?.isVerifiedUser ?? false)
-                      const Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: CircleAvatar(
-                          radius: 10,
-                          backgroundColor: AppColors.primary,
-                          child: Icon(
-                            Icons.check,
-                            size: 12,
-                            color: AppColors.white,
-                          ),
-                        ),
-                      ),
-                  ],
+                AppAvatar(
+                  photoUrl: user?.photo,
+                  initials: user?.initials ?? '?',
+                  radius: 36,
+                  isVerified: user?.isVerifiedUser ?? false,
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(

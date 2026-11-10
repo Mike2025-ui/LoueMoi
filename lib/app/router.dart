@@ -95,9 +95,25 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const ForgotPasswordScreen(),
       ),
       GoRoute(
+        path: '/reset-password',
+        builder: (context, state) {
+          String phone = (state.uri.queryParameters['phone'] ?? '').trim();
+          if (phone.contains('%')) {
+            try {
+              phone = Uri.decodeComponent(phone);
+            } catch (_) {}
+          }
+          phone = phone.trim();
+          if (phone.startsWith('225') && !phone.startsWith('+')) {
+            phone = '+$phone';
+          }
+          return ResetPasswordScreen(phone: phone);
+        },
+      ),
+      GoRoute(
         path: AppRoutes.resetPassword,
         builder: (context, state) {
-          String phone = (state.pathParameters['phone'] ?? '').trim();
+          String phone = (state.pathParameters['phone'] ?? state.uri.queryParameters['phone'] ?? '').trim();
           if (phone.contains('%')) {
             try {
               phone = Uri.decodeComponent(phone);

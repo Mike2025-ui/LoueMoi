@@ -3,13 +3,23 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/formatters.dart';
-import '../../../core/utils/media_url.dart';
+import '../../../core/widgets/app_avatar.dart';
 import '../models/review.dart';
 
 class ReviewCard extends StatelessWidget {
   const ReviewCard({super.key, required this.review});
 
   final Review review;
+
+  String _computeInitials(String name) {
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.length >= 2 && parts[0].isNotEmpty && parts[1].isNotEmpty) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    } else if (parts.isNotEmpty && parts[0].isNotEmpty) {
+      return parts[0][0].toUpperCase();
+    }
+    return '?';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -18,15 +28,10 @@ class ReviewCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
+          AppAvatar(
+            photoUrl: review.userPhoto,
+            initials: _computeInitials(review.userName),
             radius: AppSizes.avatarSm / 2,
-            backgroundColor: AppColors.primaryLight,
-            backgroundImage: review.userPhoto != null
-                ? NetworkImage(buildMediaUrl(review.userPhoto!))
-                : null,
-            child: review.userPhoto == null
-                ? const Icon(Icons.person, color: AppColors.primary, size: 20)
-                : null,
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(

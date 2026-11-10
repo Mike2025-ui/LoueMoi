@@ -42,10 +42,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    await ref.read(authControllerProvider.notifier).login(
-          phone: _phoneController.text.trim(),
-          password: _passwordController.text,
-        );
+    String phone = _phoneController.text.replaceAll(RegExp(r'\s+'), '').trim();
+    if (phone.length == 10 && phone.startsWith('0')) {
+      phone = '+225$phone';
+    } else if (phone.startsWith('225') && !phone.startsWith('+')) {
+      phone = '+$phone';
+    }
+    await ref
+        .read(authControllerProvider.notifier)
+        .login(phone: phone, password: _passwordController.text);
     final state = ref.read(authControllerProvider);
     if (!mounted) return;
     state.when(
@@ -70,7 +75,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.screenPadding,
+          ),
           child: Form(
             key: _formKey,
             child: Column(
@@ -105,7 +112,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () => context.push(AppRoutes.forgotPassword),
-                    child: const Text('Mot de passe oublié ?', style: AppTextStyles.link),
+                    child: const Text(
+                      'Mot de passe oublié ?',
+                      style: AppTextStyles.link,
+                    ),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.md),

@@ -23,6 +23,13 @@ class BailleurSearchResult extends Equatable {
 
   String get fullName => '$firstName $lastName'.trim();
 
+  String get initials {
+    final f = firstName.trim().isNotEmpty ? firstName.trim()[0].toUpperCase() : '';
+    final l = lastName.trim().isNotEmpty ? lastName.trim()[0].toUpperCase() : '';
+    final res = '$f$l'.trim();
+    return res.isNotEmpty ? res : (fullName.trim().isNotEmpty ? fullName.trim()[0].toUpperCase() : '?');
+  }
+
   factory BailleurSearchResult.fromJson(Map<String, dynamic> json) {
     return BailleurSearchResult(
       id: json['id']?.toString() ?? '',

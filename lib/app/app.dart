@@ -69,16 +69,16 @@ class _LoueMoiAppState extends ConsumerState<LoueMoiApp> with WidgetsBindingObse
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && !Env.useMockData) {
-      ref.invalidate(notificationsProvider);
-      ref.invalidate(unreadNotificationsCountProvider);
-      ref.invalidate(conversationsProvider);
-      ref.invalidate(remoteAppConfigProvider);
-      ref.read(authControllerProvider.notifier).refreshProfile();
       final user = ref.read(authControllerProvider).valueOrNull;
       if (user != null) {
+        ref.invalidate(notificationsProvider);
+        ref.invalidate(unreadNotificationsCountProvider);
+        ref.invalidate(conversationsProvider);
+        ref.read(authControllerProvider.notifier).refreshProfile();
         syncDeviceTokenOnLogin(ref);
         ref.read(presenceServiceProvider).start();
       }
+      ref.invalidate(remoteAppConfigProvider);
     } else if ((state == AppLifecycleState.paused ||
             state == AppLifecycleState.inactive ||
             state == AppLifecycleState.detached) &&
@@ -232,10 +232,21 @@ class _LoueMoiAppState extends ConsumerState<LoueMoiApp> with WidgetsBindingObse
     final router = ref.watch(routerProvider);
 
     // Session expirée (401 + refresh KO) détectée par l'AuthInterceptor :
-    // déconnexion locale immédiate et retour à l'écran de connexion.
+    // déconnexion locale immédiate et retour à l'écran de connexion si on n'est
+    // pas déjà dans un flux d'authentification (login, mot de passe oublié, reset, etc.).
     ref.listen<int>(sessionExpiredProvider, (previous, next) {
       ref.read(authControllerProvider.notifier).forceLogout();
-      router.go(AppRoutes.login);
+      final currentLoc = router.routerDelegate.currentConfiguration.uri.path;
+      final isAuthFlow = currentLoc == AppRoutes.login ||
+          currentLoc == AppRoutes.register ||
+          currentLoc == AppRoutes.forgotPassword ||
+          currentLoc.startsWith('/reset-password') ||
+          currentLoc == AppRoutes.onboarding ||
+          currentLoc == AppRoutes.splash ||
+          currentLoc == AppRoutes.pendingActivation;
+      if (!isAuthFlow) {
+        router.go(AppRoutes.login);
+      }
     });
 
     // Synchronise le token FCM avec Django à chaque transition

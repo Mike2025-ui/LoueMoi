@@ -7,7 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/feedback.dart';
-import '../../../core/utils/media_url.dart';
+import '../../../core/widgets/app_avatar.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../../messaging/providers/message_providers.dart';
 import '../models/agent_search_result.dart';
@@ -292,37 +292,11 @@ class _AgentTile extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Stack(
-                children: [
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundColor: AppColors.primaryLight,
-                    backgroundImage: agent.photo != null
-                        ? NetworkImage(buildMediaUrl(agent.photo!))
-                        : null,
-                    child: agent.photo == null
-                        ? const Icon(
-                            Icons.person,
-                            size: 28,
-                            color: AppColors.primary,
-                          )
-                        : null,
-                  ),
-                  if (agent.isVerified)
-                    const Positioned(
-                      bottom: -2,
-                      right: -2,
-                      child: CircleAvatar(
-                        radius: 9,
-                        backgroundColor: AppColors.primary,
-                        child: Icon(
-                          Icons.check,
-                          size: 11,
-                          color: AppColors.white,
-                        ),
-                      ),
-                    ),
-                ],
+              AppAvatar(
+                photoUrl: agent.photo,
+                initials: agent.initials,
+                radius: 28,
+                isVerified: agent.isVerified,
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
@@ -26,11 +27,18 @@ class AudioMessagePlayer extends StatefulWidget {
 
 class _AudioMessagePlayerState extends State<AudioMessagePlayer> {
   final _player = AudioPlayer();
+  StreamSubscription<PlayerState>? _playerStateSub;
   bool _loadFailed = false;
 
   @override
   void initState() {
     super.initState();
+    _playerStateSub = _player.playerStateStream.listen((state) {
+      if (state.processingState == ProcessingState.completed) {
+        _player.pause();
+        _player.seek(Duration.zero);
+      }
+    });
     _load();
   }
 
@@ -57,6 +65,7 @@ class _AudioMessagePlayerState extends State<AudioMessagePlayer> {
 
   @override
   void dispose() {
+    _playerStateSub?.cancel();
     _player.dispose();
     super.dispose();
   }
@@ -85,7 +94,8 @@ class _AudioMessagePlayerState extends State<AudioMessagePlayer> {
     return StreamBuilder<PlayerState>(
       stream: _player.playerStateStream,
       builder: (context, snapshot) {
-        final playing = snapshot.data?.playing ?? false;
+        final isCompleted = snapshot.data?.processingState == ProcessingState.completed;
+        final playing = (snapshot.data?.playing ?? false) && !isCompleted;
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: [

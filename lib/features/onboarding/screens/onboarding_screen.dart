@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/routes.dart';
 import '../../../core/constants/app_assets.dart';
+import '../../../core/network/network_providers.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_logo.dart';
 import '../../../core/widgets/primary_button.dart';
 
-class OnboardingScreen extends StatelessWidget {
+class OnboardingScreen extends ConsumerWidget {
   const OnboardingScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -72,7 +74,10 @@ class OnboardingScreen extends StatelessWidget {
               const Spacer(),
               PrimaryButton(
                 label: 'Continuer',
-                onPressed: () => context.go(AppRoutes.login),
+                onPressed: () async {
+                  await ref.read(authStorageProvider).setHasSeenOnboarding();
+                  if (context.mounted) context.go(AppRoutes.login);
+                },
               ),
               const SizedBox(height: AppSpacing.lg),
             ],

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../core/utils/media_url.dart';
+import '../../../core/widgets/app_avatar.dart';
 import '../models/agent.dart';
 
 /// Carte agent immobilier (photo, nom, rôle, badge de vérification).
@@ -21,33 +21,25 @@ class AgentCard extends StatelessWidget {
   final VoidCallback? onCallTap;
   final VoidCallback? onWhatsAppTap;
 
+  String _computeInitials(Agent agent) {
+    final parts = agent.fullName.trim().split(RegExp(r'\s+'));
+    if (parts.length >= 2 && parts[0].isNotEmpty && parts[1].isNotEmpty) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    } else if (parts.isNotEmpty && parts[0].isNotEmpty) {
+      return parts[0][0].toUpperCase();
+    }
+    return '?';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Stack(
-          children: [
-            CircleAvatar(
-              radius: AppSizes.avatarSm / 2,
-              backgroundColor: AppColors.primary,
-              backgroundImage: agent.photo != null
-                  ? NetworkImage(buildMediaUrl(agent.photo!))
-                  : null,
-              child: agent.photo == null
-                  ? const Icon(Icons.person, color: AppColors.white, size: 22)
-                  : null,
-            ),
-            if (agent.isVerified)
-              const Positioned(
-                bottom: -2,
-                right: -2,
-                child: CircleAvatar(
-                  radius: 8,
-                  backgroundColor: AppColors.primary,
-                  child: Icon(Icons.check, size: 10, color: AppColors.white),
-                ),
-              ),
-          ],
+        AppAvatar(
+          photoUrl: agent.photo,
+          initials: _computeInitials(agent),
+          radius: AppSizes.avatarSm / 2,
+          isVerified: agent.isVerified,
         ),
         const SizedBox(width: AppSpacing.md),
         Expanded(

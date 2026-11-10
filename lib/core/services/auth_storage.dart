@@ -10,6 +10,7 @@ class AuthStorage {
 
   static const String _accessKey = 'auth_access_token';
   static const String _refreshKey = 'auth_refresh_token';
+  static const String _onboardingKey = 'has_seen_onboarding';
 
   Future<void> saveTokens({required String access, required String refresh}) async {
     await _storage.write(key: _accessKey, value: access);
@@ -23,5 +24,14 @@ class AuthStorage {
   Future<void> clearTokens() async {
     await _storage.delete(key: _accessKey);
     await _storage.delete(key: _refreshKey);
+  }
+
+  Future<bool> hasSeenOnboarding() async {
+    final val = await _storage.read(key: _onboardingKey);
+    return val == 'true';
+  }
+
+  Future<void> setHasSeenOnboarding() async {
+    await _storage.write(key: _onboardingKey, value: 'true');
   }
 }

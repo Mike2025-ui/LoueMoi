@@ -19,9 +19,16 @@ class AuthInterceptor extends Interceptor {
 
   @override
   Future<void> onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
-    final token = await _authStorage.getAccessToken();
-    if (token != null) {
-      options.headers['Authorization'] = 'Bearer $token';
+    final path = options.path;
+    final isUnauthenticatedAuthEndpoint = path.contains('/auth/login') ||
+        path.contains('/auth/register') ||
+        path.contains('/auth/refresh') ||
+        path.contains('/auth/password-reset');
+    if (!isUnauthenticatedAuthEndpoint) {
+      final token = await _authStorage.getAccessToken();
+      if (token != null) {
+        options.headers['Authorization'] = 'Bearer $token';
+      }
     }
     handler.next(options);
   }
@@ -40,10 +47,14 @@ class AuthInterceptor extends Interceptor {
       return;
     }
 
+    final hadToken = (await _authStorage.getAccessToken()) != null ||
+        (await _authStorage.getRefreshToken()) != null;
     final newAccessToken = await _refreshAccessToken();
     if (newAccessToken == null) {
       await _authStorage.clearTokens();
-      onSessionExpired?.call();
+      if (hadToken) {
+        onSessionExpired?.call();
+      }
       handler.next(err);
       return;
     }

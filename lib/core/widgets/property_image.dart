@@ -61,15 +61,44 @@ class _Fallback extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isCompact = (height != null && height! < 100) || (width != null && width! < 100);
     return Container(
       width: width,
       height: height,
-      color: AppColors.surfaceMuted,
+      decoration: BoxDecoration(
+        color: AppColors.surfaceMuted,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.surfaceMuted,
+            AppColors.surfaceMuted.withValues(alpha: 0.85),
+          ],
+        ),
+      ),
       alignment: Alignment.center,
-      child: const Icon(
-        Icons.image_not_supported_outlined,
-        color: AppColors.textHint,
-        size: 28,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.home_work_outlined,
+            color: AppColors.primary.withValues(alpha: 0.45),
+            size: isCompact ? 22 : 36,
+          ),
+          if (!isCompact) ...[
+            const SizedBox(height: 4),
+            Text(
+              'LoueMoi',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary.withValues(alpha: 0.6),
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

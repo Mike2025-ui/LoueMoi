@@ -10,7 +10,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/feedback.dart';
-import '../../../core/utils/media_url.dart';
+import '../../../core/widgets/app_avatar.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../models/message.dart';
 import '../providers/message_providers.dart';
@@ -254,6 +254,16 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     );
   }
 
+  String _computeInitials(String name) {
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.length >= 2 && parts[0].isNotEmpty && parts[1].isNotEmpty) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    } else if (parts.isNotEmpty && parts[0].isNotEmpty) {
+      return parts[0][0].toUpperCase();
+    }
+    return '?';
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen(messagesProvider(widget.conversationId), (previous, next) {
@@ -265,8 +275,11 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
         final lastMsg = nextList.last;
         final currentUserId = ref.read(authControllerProvider).valueOrNull?.id;
         final isMine = lastMsg.senderId == currentUserId;
-        final isNearBottom = !_scrollController.hasClients ||
-            (_scrollController.position.maxScrollExtent - _scrollController.position.pixels < 150);
+        final isNearBottom =
+            !_scrollController.hasClients ||
+            (_scrollController.position.maxScrollExtent -
+                    _scrollController.position.pixels <
+                150);
         if (isMine || isNearBottom) {
           _scrollToBottom();
         }
@@ -282,8 +295,13 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           if (next.value!.length != prevCount) {
             _scrollToBottom();
           }
-          final currentUserId = ref.read(authControllerProvider).valueOrNull?.id;
-          final hasUnreadIncoming = next.value!.any((m) => !m.isRead && m.senderId != currentUserId);
+          final currentUserId = ref
+              .read(authControllerProvider)
+              .valueOrNull
+              ?.id;
+          final hasUnreadIncoming = next.value!.any(
+            (m) => !m.isRead && m.senderId != currentUserId,
+          );
           if (hasUnreadIncoming) {
             _markRead();
           }
@@ -310,20 +328,10 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           children: [
             Stack(
               children: [
-                CircleAvatar(
+                AppAvatar(
+                  photoUrl: conv?.participantPhoto,
+                  initials: _computeInitials(displayName),
                   radius: 19,
-                  backgroundColor: AppColors.primaryLight,
-                  backgroundImage: conv?.participantPhoto != null
-                      ? NetworkImage(buildMediaUrl(conv!.participantPhoto!))
-                      : null,
-                  onBackgroundImageError: conv?.participantPhoto != null ? (exception, stackTrace) {} : null,
-                  child: conv?.participantPhoto == null
-                      ? const Icon(
-                          Icons.person,
-                          size: 22,
-                          color: AppColors.primary,
-                        )
-                      : null,
                 ),
                 Positioned(
                   bottom: 0,
@@ -405,7 +413,8 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                   );
                 }
                 WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (_scrollController.hasClients && _scrollController.offset == 0) {
+                  if (_scrollController.hasClients &&
+                      _scrollController.offset == 0) {
                     _scrollToBottom();
                   }
                 });
@@ -439,7 +448,8 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                     ),
                     const SizedBox(height: AppSpacing.md),
                     ElevatedButton.icon(
-                      onPressed: () => ref.refresh(messagesProvider(widget.conversationId)),
+                      onPressed: () =>
+                          ref.refresh(messagesProvider(widget.conversationId)),
                       icon: const Icon(Icons.refresh, size: 16),
                       label: const Text('Réessayer'),
                     ),

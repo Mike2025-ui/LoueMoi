@@ -29,6 +29,16 @@ class _VideoMessagePlayerState extends State<VideoMessagePlayer> {
   bool _failed = false;
 
   void _listener() {
+    final controller = _controller;
+    if (controller != null && controller.value.isInitialized) {
+      if (controller.value.position >= controller.value.duration &&
+          controller.value.duration > Duration.zero) {
+        if (controller.value.isPlaying) {
+          controller.pause();
+          controller.seekTo(Duration.zero);
+        }
+      }
+    }
     if (mounted) setState(() {});
   }
 

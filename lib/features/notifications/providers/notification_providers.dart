@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/env.dart';
 import '../../../core/network/network_providers.dart';
+import '../../auth/providers/auth_providers.dart';
 import '../data/api_notification_repository.dart';
 import '../data/notification_repository.dart';
 import '../models/app_notification.dart';
@@ -11,6 +12,8 @@ final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
 });
 
 final notificationsProvider = FutureProvider<List<AppNotification>>((ref) async {
+  final user = ref.watch(authControllerProvider).valueOrNull;
+  if (user == null && !Env.useMockData) return const [];
   final repository = ref.watch(notificationRepositoryProvider);
   return repository.fetchNotifications();
 });
@@ -20,6 +23,8 @@ final notificationsProvider = FutureProvider<List<AppNotification>>((ref) async 
 /// réception d'un push, à l'ouverture de l'écran Notifications et après
 /// marquage lu/tout lire (voir les call sites de `ref.invalidate`).
 final unreadNotificationsCountProvider = FutureProvider.autoDispose<int>((ref) async {
+  final user = ref.watch(authControllerProvider).valueOrNull;
+  if (user == null && !Env.useMockData) return 0;
   final repository = ref.watch(notificationRepositoryProvider);
   return repository.fetchUnreadCount();
 });

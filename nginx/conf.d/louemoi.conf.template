@@ -80,12 +80,21 @@ server {
 
     # Fichiers médias Django (photos et vidéos d'annonces)
     location /media/ {
-        alias /var/html/media/;
+        root /var/html;
+        try_files $uri @backend_media;
         # Indispensable pour la lecture vidéo réseau dans Flutter (HTTP Range requests)
         add_header Accept-Ranges bytes;
         expires 7d;
         add_header Cache-Control "public, max-age=604800";
         access_log off;
+    }
+
+    location @backend_media {
+        proxy_pass http://louemoi_backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
     }
 
     # Proxy vers Gunicorn (API Django, Dashboard Admin et Django Admin)

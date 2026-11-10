@@ -9,7 +9,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/feedback.dart';
-import '../../../core/utils/media_url.dart';
+import '../../../core/widgets/app_avatar.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../widgets/profile_menu_tile.dart';
 import '../widgets/change_password_dialog.dart';
@@ -329,78 +329,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               const SizedBox(height: AppSpacing.md),
               const Text('Profil', style: AppTextStyles.h3),
               const SizedBox(height: AppSpacing.lg),
-              GestureDetector(
-                onTap: _uploadingPhoto
-                    ? null
-                    : () => _showPhotoOptions(context, user?.photo != null),
-                child: Stack(
-                  children: [
-                    CircleAvatar(
-                      radius: AppSizes.avatarLg / 2,
-                      backgroundColor: AppColors.primaryLight,
-                      backgroundImage: user?.photo != null
-                          ? NetworkImage(buildMediaUrl(user!.photo!))
-                          : null,
-                      onBackgroundImageError: user?.photo != null
-                          ? (exception, stackTrace) {}
-                          : null,
-                      child: _uploadingPhoto
-                          ? const SizedBox(
-                              width: 28,
-                              height: 28,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 3,
-                                color: AppColors.primary,
-                              ),
-                            )
-                          : (user?.photo == null
-                                ? const Icon(
-                                    Icons.person,
-                                    size: 48,
-                                    color: AppColors.primary,
-                                  )
-                                : null),
-                    ),
-                    if (isVerified)
-                      const Positioned(
-                        top: 0,
-                        right: 0,
-                        child: CircleAvatar(
-                          radius: 12,
-                          backgroundColor: AppColors.primary,
-                          child: Icon(
-                            Icons.check,
-                            size: 14,
-                            color: AppColors.white,
-                          ),
-                        ),
-                      ),
-                    Positioned(
-                      bottom: 0,
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  AppAvatar(
+                    photoUrl: user?.photo,
+                    initials: user?.initials ?? '?',
+                    radius: AppSizes.avatarLg / 2,
+                    isUploading: _uploadingPhoto,
+                    showEditBadge: true,
+                    onTap: () => _showPhotoOptions(context, user?.photo != null),
+                  ),
+                  if (isVerified)
+                    const Positioned(
+                      top: 0,
                       right: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.white, width: 2),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.15),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.camera_alt,
+                      child: CircleAvatar(
+                        radius: 12,
+                        backgroundColor: AppColors.primary,
+                        child: Icon(
+                          Icons.check,
                           size: 14,
                           color: AppColors.white,
                         ),
                       ),
                     ),
-                  ],
-                ),
+                ],
               ),
               const SizedBox(height: AppSpacing.md),
               Row(

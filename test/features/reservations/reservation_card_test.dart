@@ -54,7 +54,7 @@ class _FixedSessionAuthRepository implements AuthRepository {
   Future<void> deactivateAccount(String password) => throw UnimplementedError();
 
   @override
-  Future<void> requestPasswordReset(String phone) => throw UnimplementedError();
+  Future<Map<String, dynamic>> requestPasswordReset(String phone) => throw UnimplementedError();
 
   @override
   Future<void> confirmPasswordReset({

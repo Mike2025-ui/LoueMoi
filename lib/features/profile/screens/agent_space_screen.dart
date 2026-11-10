@@ -7,7 +7,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/network/api_exceptions.dart';
 import '../../../core/utils/feedback.dart';
-import '../../../core/utils/media_url.dart';
+import '../../../core/widgets/app_avatar.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../../properties/models/agent.dart';
 import '../models/agent_profile.dart';
@@ -61,20 +61,10 @@ class AgentSpaceScreen extends ConsumerWidget {
               children: [
                 Stack(
                   children: [
-                    CircleAvatar(
+                    AppAvatar(
+                      photoUrl: user?.photo,
+                      initials: user?.initials ?? '?',
                       radius: 36,
-                      backgroundColor: AppColors.primaryLight,
-                      backgroundImage: user?.photo != null
-                          ? NetworkImage(buildMediaUrl(user!.photo!))
-                          : null,
-                      onBackgroundImageError: user?.photo != null ? (exception, stackTrace) {} : null,
-                      child: user?.photo == null
-                          ? const Icon(
-                              Icons.person,
-                              size: 36,
-                              color: AppColors.primary,
-                            )
-                          : null,
                     ),
                     // Badge "vérifié" uniquement si agent_profile.is_verified
                     // est vrai côté serveur — jamais auto-déclaré.

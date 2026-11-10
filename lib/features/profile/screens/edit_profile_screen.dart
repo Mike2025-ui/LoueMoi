@@ -6,7 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/feedback.dart';
-import '../../../core/utils/media_url.dart';
+import '../../../core/widgets/app_avatar.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../auth/providers/auth_providers.dart';
@@ -218,75 +218,28 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Center(
-                child: GestureDetector(
-                  onTap: _uploadingPhoto ? null : () => _showPhotoOptions(context, user?.photo != null),
-                  child: Column(
-                    children: [
-                      Stack(
-                        children: [
-                          CircleAvatar(
-                            radius: AppSizes.avatarLg / 2,
-                            backgroundColor: AppColors.primaryLight,
-                            backgroundImage: user?.photo != null
-                                ? NetworkImage(buildMediaUrl(user!.photo!))
-                                : null,
-                            onBackgroundImageError: user?.photo != null ? (exception, stackTrace) {} : null,
-                            child: _uploadingPhoto
-                                ? const SizedBox(
-                                    width: 28,
-                                    height: 28,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 3,
-                                      color: AppColors.primary,
-                                    ),
-                                  )
-                                : (user?.photo == null
-                                    ? const Icon(
-                                        Icons.person,
-                                        size: 48,
-                                        color: AppColors.primary,
-                                      )
-                                    : null),
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: AppColors.primary,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: AppColors.white, width: 2),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.15),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: const Icon(
-                                Icons.camera_alt,
-                                size: 14,
-                                color: AppColors.white,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      TextButton(
-                        onPressed: _uploadingPhoto ? null : () => _showPhotoOptions(context, user?.photo != null),
-                        child: Text(
-                          user?.photo != null ? 'Modifier la photo' : 'Ajouter une photo de profil',
-                          style: const TextStyle(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
+                child: Column(
+                  children: [
+                    AppAvatar(
+                      photoUrl: user?.photo,
+                      initials: user?.initials ?? '?',
+                      radius: AppSizes.avatarLg / 2,
+                      isUploading: _uploadingPhoto,
+                      showEditBadge: true,
+                      onTap: () => _showPhotoOptions(context, user?.photo != null),
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    TextButton(
+                      onPressed: _uploadingPhoto ? null : () => _showPhotoOptions(context, user?.photo != null),
+                      child: Text(
+                        user?.photo != null ? 'Modifier la photo' : 'Ajouter une photo de profil',
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: AppSpacing.md),

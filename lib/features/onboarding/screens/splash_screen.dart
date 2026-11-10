@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/routes.dart';
+import '../../../core/network/network_providers.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_logo.dart';
@@ -43,7 +44,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         context.go(AppRoutes.home);
       }
     } else {
-      context.go(AppRoutes.onboarding);
+      final hasSeenOnboarding = await ref.read(authStorageProvider).hasSeenOnboarding();
+      if (!mounted) return;
+      if (hasSeenOnboarding) {
+        context.go(AppRoutes.login);
+      } else {
+        context.go(AppRoutes.onboarding);
+      }
     }
   }
 
