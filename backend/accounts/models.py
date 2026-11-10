@@ -168,16 +168,12 @@ class PasswordResetOTP(models.Model):
 
     @classmethod
     def generate_for(cls, user):
-        """Crée un nouvel OTP et retourne (instance, code_en_clair) — le
-        code en clair n'est JAMAIS persisté, seul son hash l'est ; il ne
-        doit être utilisé qu'immédiatement pour l'envoi SMS, jamais loggé
-        ni renvoyé par l'API."""
-        # secrets (pas random) : random.choices() repose sur un générateur
-        # pseudo-aléatoire prévisible (Mersenne Twister), impropre à un
-        # code de sécurité — secrets.choice() utilise l'aléatoire
-        # cryptographique du système d'exploitation.
-        # Code OTP à 6 chiffres (digits uniquement pour compatibilité SMS & autofill mobile)
-        code = "".join(secrets.choice(string.digits) for _ in range(6))
+        """Crée un nouvel OTP alphanumérique (6 caractères, lettres majuscules et chiffres)
+        et retourne (instance, code_en_clair) — le code en clair n'est JAMAIS persisté,
+        seul son hash l'est."""
+        # Code OTP alphanumérique (A-Z, 0-9) sécurisé par secrets.choice
+        chars = string.ascii_uppercase + string.digits
+        code = "".join(secrets.choice(chars) for _ in range(6))
         otp = cls.objects.create(
             user=user,
             code_hash=make_password(code),
@@ -189,11 +185,12 @@ class PasswordResetOTP(models.Model):
     def is_expired(self):
         return timezone.now() > self.expires_at
 
-    def check_code(self, code):
-        """Incrémente `attempts` à chaque tentative, y compris les échecs —
-        limite le brute-force sur le code."""
-        self.attempts += 1
-        self.save(update_fields=["attempts"])
+    def check_code(self, code, increment_attempt=True):
+        """Vérifie le code OTP alphanumérique insensible à la casse.
+        Incrémente `attempts` si increment_attempt est True."""
+        if increment_attempt:
+            self.attempts += 1
+            self.save(update_fields=["attempts"])
         if self.is_used or self.is_expired or self.attempts > self.MAX_ATTEMPTS:
             return False
         clean = re.sub(r"[^a-zA-Z0-9]", "", str(code or "").strip())

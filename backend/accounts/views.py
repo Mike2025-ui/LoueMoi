@@ -55,9 +55,33 @@ class LoginView(APIView):
     def post(self, request):
         phone = request.data.get("phone", "")
         password = request.data.get("password")
+        if not phone or not password:
+            return Response(
+                {"detail": "Numéro de téléphone et mot de passe requis."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         from .sms import normalize_phone_number
-        normalized = normalize_phone_number(phone)
-        user = User.objects.filter(phone=normalized).first() or User.objects.filter(phone=phone).first()
+        clean_raw = re.sub(r"[^\d+]", "", str(phone))
+        normalized = normalize_phone_number(clean_raw or str(phone))
+        candidate_phones = {p for p in (str(phone).strip(), clean_raw, normalized) if p}
+        if normalized.startswith("+225"):
+            national = normalized[4:]
+            candidate_phones.add(national)
+            candidate_phones.add(normalized[1:])
+            if national.startswith("0"):
+                candidate_phones.add(national[1:])
+                candidate_phones.add(f"+225{national[1:]}")
+                candidate_phones.add(f"225{national[1:]}")
+            else:
+                candidate_phones.add(f"0{national}")
+                candidate_phones.add(f"+2250{national}")
+                candidate_phones.add(f"2250{national}")
+
+        user = User.objects.filter(phone__in=candidate_phones).first()
+        if user is None and len(clean_raw) >= 8:
+            user = User.objects.filter(phone__endswith=clean_raw[-8:]).first()
+
         if user is None or not user.check_password(password):
             return Response(
                 {"detail": "Numéro de téléphone ou mot de passe invalide."},
@@ -328,6 +352,66 @@ class PasswordResetRequestView(APIView):
             f"Votre code LoueMoi : {code} (valide {PasswordResetOTP.VALIDITY_MINUTES} minutes).",
         )
         return Response({"detail": _GENERIC_OTP_REQUEST_DETAIL})
+
+
+class PasswordResetVerifyOTPView(APIView):
+    """POST /api/auth/password-reset/verify-otp/ —
+    {"phone": "...", "code": "ABC123"}
+
+    Étape intermédiaire : vérifie la validité du code OTP alphanumérique avant
+    de rediriger l'utilisateur vers l'écran de saisie du nouveau mot de passe.
+    """
+
+    permission_classes = [permissions.AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
+
+    def post(self, request):
+        phone = request.data.get("phone")
+        code = request.data.get("code")
+
+        if not phone or not code:
+            return Response(
+                {"detail": "Numéro de téléphone et code OTP requis."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from .sms import normalize_phone_number
+        clean_raw = re.sub(r"[^\d+]", "", str(phone))
+        normalized_phone = normalize_phone_number(clean_raw or str(phone))
+        candidate_phones = {p for p in (str(phone).strip(), clean_raw, normalized_phone) if p}
+        if normalized_phone.startswith("+225"):
+            national = normalized_phone[4:]
+            candidate_phones.add(national)
+            candidate_phones.add(normalized_phone[1:])
+            if national.startswith("0"):
+                candidate_phones.add(national[1:])
+                candidate_phones.add(f"+225{national[1:]}")
+                candidate_phones.add(f"225{national[1:]}")
+            else:
+                candidate_phones.add(f"0{national}")
+                candidate_phones.add(f"+2250{national}")
+                candidate_phones.add(f"2250{national}")
+
+        user = User.objects.filter(phone__in=candidate_phones).first()
+        if user is None and len(clean_raw) >= 8:
+            user = User.objects.filter(phone__endswith=clean_raw[-8:]).first()
+        if user is None:
+            return Response(
+                {"detail": "Code invalide ou expiré."}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        active_otps = PasswordResetOTP.objects.filter(
+            user=user, is_used=False, expires_at__gt=timezone.now()
+        ).order_by("-created_at")
+
+        matching_otp = active_otps.first()
+        if matching_otp is None or not matching_otp.check_code(code, increment_attempt=True):
+            return Response(
+                {"detail": "Code invalide ou expiré."}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        return Response({"detail": "Code vérifié avec succès.", "valid": True})
 
 
 class PasswordResetConfirmView(APIView):

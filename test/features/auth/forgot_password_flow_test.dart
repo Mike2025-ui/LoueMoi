@@ -5,13 +5,14 @@ import 'package:go_router/go_router.dart';
 import 'package:louemoi/app/routes.dart';
 import 'package:louemoi/features/auth/screens/forgot_password_screen.dart';
 import 'package:louemoi/features/auth/screens/login_screen.dart';
-import 'package:louemoi/features/auth/screens/reset_password_screen.dart';
+import 'package:louemoi/features/auth/screens/new_password_screen.dart';
+import 'package:louemoi/features/auth/screens/verify_otp_screen.dart';
 
-/// "Mot de passe oublié" : Numéro → OTP SMS → Vérification + nouveau mot de
-/// passe → Connexion. MockAuthRepository.confirmPasswordReset n'accepte que
-/// le code "123456" comme valide (voir auth_repository.dart), ce qui permet
-/// de tester les deux chemins (code correct / incorrect) sans dépendre d'un
-/// vrai fournisseur SMS.
+/// "Mot de passe oublié" :
+/// Étape 1 : Numéro de téléphone → Envoi OTP SMS.
+/// Étape 2 : Vérification du code OTP alphanumérique (écran dédié).
+/// Étape 3 : Saisie du nouveau mot de passe (écran séparé, accessible après validation).
+/// Étape 4 : Redirection vers Connexion.
 void main() {
   GoRouter buildRouter() {
     return GoRouter(
@@ -23,10 +24,18 @@ void main() {
           builder: (c, s) => const ForgotPasswordScreen(),
         ),
         GoRoute(
-          path: AppRoutes.resetPassword,
-          builder: (c, s) => ResetPasswordScreen(
+          path: AppRoutes.verifyOtp,
+          builder: (c, s) => VerifyOtpScreen(
             phone: Uri.decodeComponent(s.pathParameters['phone']!),
           ),
+        ),
+        GoRoute(
+          path: AppRoutes.newPassword,
+          builder: (c, s) {
+            final phone = s.uri.queryParameters['phone'] ?? '';
+            final code = s.uri.queryParameters['code'] ?? '';
+            return NewPasswordScreen(phone: phone, code: code);
+          },
         ),
       ],
     );
@@ -55,7 +64,7 @@ void main() {
     expect(find.text('Le numéro de téléphone est requis'), findsOneWidget);
   });
 
-  testWidgets('flux complet réussi : téléphone → code correct → retour login', (tester) async {
+  testWidgets('flux complet réussi : téléphone → vérification code alphanumérique → nouvel écran mot de passe → retour login', (tester) async {
     await tester.pumpWidget(
       ProviderScope(child: MaterialApp.router(routerConfig: buildRouter())),
     );
@@ -68,16 +77,30 @@ void main() {
     await tester.tap(find.text('Envoyer le code'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(ResetPasswordScreen), findsOneWidget);
+    // Doit être sur l'écran de vérification OTP
+    expect(find.byType(VerifyOtpScreen), findsOneWidget);
     expect(find.textContaining('+2250700000000'), findsOneWidget);
 
-    final fields = find.byType(TextFormField);
-    await tester.enterText(fields.at(0), '123456'); // code
-    await tester.enterText(fields.at(1), 'nouveau123'); // mot de passe
-    await tester.enterText(fields.at(2), 'nouveau123'); // confirmation
-    await tester.tap(find.text('Réinitialiser'));
+    // Saisie du code alphanumérique (ex: ABC123 ou 123456)
+    final otpField = find.byType(TextFormField);
+    expect(otpField, findsOneWidget);
+    await tester.enterText(otpField, 'ABC123');
+    await tester.tap(find.text('Vérifier le code'));
     await tester.pumpAndSettle();
 
+    // Doit basculer vers le NOUVEL écran dédié au mot de passe
+    expect(find.byType(NewPasswordScreen), findsOneWidget);
+    expect(find.text('Nouveau mot de passe'), findsWidgets);
+
+    // Saisie des mots de passe
+    final passwordFields = find.byType(TextFormField);
+    expect(passwordFields, findsNWidgets(2));
+    await tester.enterText(passwordFields.at(0), 'nouveau123'); // mot de passe
+    await tester.enterText(passwordFields.at(1), 'nouveau123'); // confirmation
+    await tester.tap(find.text('Enregistrer le mot de passe'));
+    await tester.pumpAndSettle();
+
+    // Succès et retour vers Login
     expect(find.byType(LoginScreen), findsOneWidget);
     expect(
       find.text('Mot de passe réinitialisé. Vous pouvez vous connecter.'),
@@ -85,36 +108,38 @@ void main() {
     );
   });
 
-  testWidgets('un code incorrect affiche une erreur et reste sur l\'écran', (tester) async {
+  testWidgets('un code alphanumérique incorrect affiche une erreur et reste sur l\'écran OTP', (tester) async {
     await tester.pumpWidget(
       const ProviderScope(
-        child: MaterialApp(home: ResetPasswordScreen(phone: '+2250700000000')),
+        child: MaterialApp(home: VerifyOtpScreen(phone: '+2250700000000')),
       ),
     );
 
-    final fields = find.byType(TextFormField);
-    await tester.enterText(fields.at(0), '000000'); // code incorrect
-    await tester.enterText(fields.at(1), 'nouveau123');
-    await tester.enterText(fields.at(2), 'nouveau123');
-    await tester.tap(find.text('Réinitialiser'));
+    final field = find.byType(TextFormField);
+    await tester.enterText(field, '999999'); // code incorrect
+    await tester.tap(find.text('Vérifier le code'));
     await tester.pumpAndSettle();
 
     expect(find.text('Code invalide ou expiré.'), findsOneWidget);
-    expect(find.byType(ResetPasswordScreen), findsOneWidget);
+    expect(find.byType(VerifyOtpScreen), findsOneWidget);
   });
 
-  testWidgets('mots de passe différents affichent une erreur de validation', (tester) async {
+  testWidgets('mots de passe différents affichent une erreur de validation sur le nouvel écran', (tester) async {
     await tester.pumpWidget(
       const ProviderScope(
-        child: MaterialApp(home: ResetPasswordScreen(phone: '+2250700000000')),
+        child: MaterialApp(
+          home: NewPasswordScreen(
+            phone: '+2250700000000',
+            code: 'ABC123',
+          ),
+        ),
       ),
     );
 
     final fields = find.byType(TextFormField);
-    await tester.enterText(fields.at(0), '123456');
-    await tester.enterText(fields.at(1), 'nouveau123');
-    await tester.enterText(fields.at(2), 'different456');
-    await tester.tap(find.text('Réinitialiser'));
+    await tester.enterText(fields.at(0), 'nouveau123');
+    await tester.enterText(fields.at(1), 'different456');
+    await tester.tap(find.text('Enregistrer le mot de passe'));
     await tester.pump();
 
     expect(find.text('Les mots de passe ne correspondent pas'), findsOneWidget);

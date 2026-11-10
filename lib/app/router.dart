@@ -4,9 +4,11 @@ import 'package:go_router/go_router.dart';
 import '../features/auth/providers/auth_providers.dart';
 import '../features/auth/screens/forgot_password_screen.dart';
 import '../features/auth/screens/login_screen.dart';
+import '../features/auth/screens/new_password_screen.dart';
 import '../features/auth/screens/pending_activation_screen.dart';
 import '../features/auth/screens/register_screen.dart';
 import '../features/auth/screens/reset_password_screen.dart';
+import '../features/auth/screens/verify_otp_screen.dart';
 import '../features/favorites/screens/favorites_screen.dart';
 import '../features/gallery/screens/gallery_screen.dart';
 import '../features/gallery/screens/photo_viewer_screen.dart';
@@ -107,7 +109,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           if (phone.startsWith('225') && !phone.startsWith('+')) {
             phone = '+$phone';
           }
-          return ResetPasswordScreen(phone: phone);
+          return VerifyOtpScreen(phone: phone);
         },
       ),
       GoRoute(
@@ -123,7 +125,54 @@ final routerProvider = Provider<GoRouter>((ref) {
           if (phone.startsWith('225') && !phone.startsWith('+')) {
             phone = '+$phone';
           }
-          return ResetPasswordScreen(phone: phone);
+          return VerifyOtpScreen(phone: phone);
+        },
+      ),
+      GoRoute(
+        path: '/verify-otp',
+        builder: (context, state) {
+          String phone = (state.uri.queryParameters['phone'] ?? '').trim();
+          if (phone.contains('%')) {
+            try {
+              phone = Uri.decodeComponent(phone);
+            } catch (_) {}
+          }
+          phone = phone.trim();
+          if (phone.startsWith('225') && !phone.startsWith('+')) {
+            phone = '+$phone';
+          }
+          return VerifyOtpScreen(phone: phone);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.verifyOtp,
+        builder: (context, state) {
+          String phone = (state.pathParameters['phone'] ?? state.uri.queryParameters['phone'] ?? '').trim();
+          if (phone.contains('%')) {
+            try {
+              phone = Uri.decodeComponent(phone);
+            } catch (_) {}
+          }
+          phone = phone.trim();
+          if (phone.startsWith('225') && !phone.startsWith('+')) {
+            phone = '+$phone';
+          }
+          return VerifyOtpScreen(phone: phone);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.newPassword,
+        builder: (context, state) {
+          String phone = (state.uri.queryParameters['phone'] ?? '').trim();
+          String code = (state.uri.queryParameters['code'] ?? '').trim();
+          final extra = state.extra as Map<String, dynamic>?;
+          if (phone.isEmpty && extra != null && extra['phone'] != null) {
+            phone = extra['phone'].toString();
+          }
+          if (code.isEmpty && extra != null && extra['code'] != null) {
+            code = extra['code'].toString();
+          }
+          return NewPasswordScreen(phone: phone, code: code);
         },
       ),
       StatefulShellRoute.indexedStack(

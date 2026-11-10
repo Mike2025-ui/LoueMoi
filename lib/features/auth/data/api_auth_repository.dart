@@ -87,6 +87,18 @@ class ApiAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<bool> verifyPasswordResetOtp({
+    required String phone,
+    required String code,
+  }) async {
+    final response = await _apiClient.post<Map<String, dynamic>>(
+      ApiEndpoints.passwordResetVerifyOtp,
+      data: {'phone': phone, 'code': code},
+    );
+    return response.data?['valid'] == true;
+  }
+
+  @override
   Future<void> confirmPasswordReset({
     required String phone,
     required String code,

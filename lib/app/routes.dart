@@ -12,6 +12,12 @@ class AppRoutes {
   static const String resetPassword = '/reset-password/:phone';
   static String resetPasswordPath(String phone) =>
       '/reset-password/${Uri.encodeComponent(phone)}';
+  static const String verifyOtp = '/verify-otp/:phone';
+  static String verifyOtpPath(String phone) =>
+      '/verify-otp/${Uri.encodeComponent(phone)}';
+  static const String newPassword = '/new-password';
+  static String newPasswordPath({required String phone, required String code}) =>
+      '/new-password?phone=${Uri.encodeComponent(phone)}&code=${Uri.encodeComponent(code)}';
 
   static const String home = '/home';
   static const String favorites = '/favorites';

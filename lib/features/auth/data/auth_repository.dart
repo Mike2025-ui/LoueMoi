@@ -31,9 +31,17 @@ abstract class AuthRepository {
   /// inconnu", seulement en cas d'erreur réseau/serveur réelle.
   Future<Map<String, dynamic>> requestPasswordReset(String phone);
 
-  /// "Mot de passe oublié" étape 2 — vérifie le code ET change le mot de
-  /// passe en un seul appel (POST /api/auth/password-reset/confirm/). Lève
-  /// une [ApiException] (400) si le code est invalide/expiré/déjà utilisé.
+  /// "Mot de passe oublié" étape 2 — vérifie que le code OTP alphanumérique est valide
+  /// (POST /api/auth/password-reset/verify-otp/). Lève une [ApiException] (400)
+  /// si le code est invalide ou expiré.
+  Future<bool> verifyPasswordResetOtp({
+    required String phone,
+    required String code,
+  });
+
+  /// "Mot de passe oublié" étape 3 — applique le nouveau mot de passe après validation
+  /// du code (POST /api/auth/password-reset/confirm/). Lève une [ApiException] (400)
+  /// si le code est invalide/expiré/déjà utilisé.
   Future<void> confirmPasswordReset({
     required String phone,
     required String code,
@@ -161,13 +169,27 @@ class MockAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<bool> verifyPasswordResetOtp({
+    required String phone,
+    required String code,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 400));
+    final clean = code.trim().toUpperCase();
+    if (clean != '123456' && clean != 'ABC123' && clean.length != 6) {
+      throw const ValidationException('Code invalide ou expiré.');
+    }
+    return true;
+  }
+
+  @override
   Future<void> confirmPasswordReset({
     required String phone,
     required String code,
     required String newPassword,
   }) async {
     await Future.delayed(const Duration(milliseconds: 400));
-    if (code != '123456') {
+    final clean = code.trim().toUpperCase();
+    if (clean != '123456' && clean != 'ABC123' && clean.length != 6) {
       throw const ValidationException('Code invalide ou expiré.');
     }
   }

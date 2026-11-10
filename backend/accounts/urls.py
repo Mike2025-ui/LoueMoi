@@ -9,6 +9,7 @@ from .views import (
     MeView,
     PasswordResetConfirmView,
     PasswordResetRequestView,
+    PasswordResetVerifyOTPView,
     RegisterView,
     RequestActivationView,
     UserPhotoView,
@@ -25,6 +26,11 @@ urlpatterns = [
         "auth/password-reset/request/",
         PasswordResetRequestView.as_view(),
         name="password-reset-request",
+    ),
+    path(
+        "auth/password-reset/verify-otp/",
+        PasswordResetVerifyOTPView.as_view(),
+        name="password-reset-verify-otp",
     ),
     path(
         "auth/password-reset/confirm/",

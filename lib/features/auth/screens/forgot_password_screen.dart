@@ -55,7 +55,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
           ),
         );
       }
-      context.push(AppRoutes.resetPasswordPath(phone));
+      context.push(AppRoutes.verifyOtpPath(phone));
     } catch (e) {
       if (mounted) showErrorSnackbar(context, e);
     } finally {

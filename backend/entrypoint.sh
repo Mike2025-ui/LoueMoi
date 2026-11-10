@@ -50,7 +50,12 @@ first_name = os.environ.get("DJANGO_SUPERUSER_FIRST_NAME", "Admin").strip()
 last_name = os.environ.get("DJANGO_SUPERUSER_LAST_NAME", "LoueMoi").strip()
 
 if phone and password:
-    user = User.objects.filter(phone=phone).first()
+    clean_raw = phone.replace(" ", "").replace("-", "")
+    candidates = [phone, clean_raw, f"+{clean_raw}" if not clean_raw.startswith("+") else clean_raw]
+    user = User.objects.filter(phone__in=candidates).first()
+    if not user and len(clean_raw) >= 8:
+        user = User.objects.filter(phone__endswith=clean_raw[-8:]).first()
+
     if not user:
         User.objects.create_superuser(
             phone=phone,
@@ -64,11 +69,12 @@ if phone and password:
         user.is_staff = True
         user.is_superuser = True
         user.role = User.ROLE_ADMIN
+        user.is_active = True
         user.first_name = first_name
         user.last_name = last_name
         user.set_password(password)
         user.save()
-        print(f"Administrateur unique ({phone}) mis à jour avec succès.")
+        print(f"Administrateur unique ({user.phone}) synchronisé et mis à jour avec succès.")
 
     # Nettoyage automatique des anciens comptes de démonstration
     User.objects.filter(phone__in=["+2250700000000", "+2250712345678"]).exclude(phone=phone).delete()
